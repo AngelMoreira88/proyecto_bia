@@ -15,7 +15,7 @@ export default function Home() {
         padding: "1rem"
       }}
     >
-      <h2>Bienvenido al sistema de Grupo BIA</h2>
+      <h2>Bienvenido al sistema de Grupo BIA..</h2>
       <p>Desde aquí podés generar tu certificado libre de deuda</p>
       <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
         <Link

@@ -1,0 +1,188 @@
+// src/components/Welcome.jsx
+import { Link } from "react-router-dom"
+import imagenBienvenida from "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/frontend/src/images/bienvenida3.jpg" // asegurate que exista en esa ruta
+
+export default function Welcome() {
+  return (
+    <div className="flex flex-col md:flex-row h-screen">
+      {/* Lado izquierdo: texto */}
+      <div className="w-full md:w-1/2 flex items-center justify-center p-8 bg-white">
+        <div className="max-w-md text-center md:text-left">
+          <h1 className="text-3xl md:text-4xl font-bold text-blue-700 mb-4">
+            Bienvenido al sistema del Grupo BIA
+          </h1>
+          <p className="text-gray-600 mb-6">
+            Desde aquí podés generar tu certificado libre de deuda
+          </p>
+          <Link
+            to="/certificado"
+            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
+          >
+            Generar certificado
+          </Link>
+        </div>
+      </div>
+
+      {/* Lado derecho: imagen */}
+      <div className="w-full md:w-1/2 h-64 md:h-full">
+        <img
+          src={imagenBienvenida}
+          alt="Grupo BIA"
+          className="object-cover w-full h-full"
+        />
+      </div>
+    </div>
+  )
+}
+
+
+https://images.unsplash.com/photo-1706170421190-48b12aa10f5e?q=80&w=2832&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D
+
+
+
+import { Link } from "react-router-dom";
+import logo from "../images/logo.png";
+
+export default function Bienvenida() {
+  return (
+    <div className="flex flex-col min-h-screen overflow-hidden bg-white">
+      {/* Header fijo */}
+      <header className="h-20 fixed top-0 left-0 w-full bg-white shadow z-10 flex items-center px-6">
+        <img src={logo} alt="Grupo BIA Logo" className="h-6 mr-4" />
+      </header>
+
+      {/* Contenido adaptativo */}
+      <main
+        className="flex flex-col md:flex-row pt-20 w-full"
+        style={{ height: "calc(100vh - 80px)" }}
+      >
+      
+        {/* Imagen - 1/2 en desktop, 100% en mobile */}
+        <div className="md:w-1/2 w-full h-[250px] md:h-auto max-h-[calc(100vh-80px)]">
+          <img
+            src="https://images.unsplash.com/photo-1639658642030-35de608d6f21?w=900&auto=format&fit=crop&q=60"
+            alt="Bienvenida"
+            className="w-full h-full object-cover"
+          />
+        </div>
+
+        {/* Texto y botón */}
+        <div className="md:w-1/2 w-full flex items-center justify-center p-6 bg-white">
+          <div className="max-w-md text-center md:text-left">
+            <h2 className="text-2xl md:text-3xl font-bold text-blue-700 mb-4">
+              Bienvenido al sistema del Grupo BIA
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Desde aquí podés generar tu certificado libre de deuda
+            </p>
+            <Link
+              to="/certificado"
+              className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
+            >
+              Generar certificado
+            </Link>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+
+
+import { Link } from "react-router-dom";
+import logo from "../images/logo.png";
+
+export default function Bienvenida() {
+  return (
+// Bienvenida.jsx
+<div className="h-screen flex flex-col">
+  <header className="h-20 fixed top-0 left-0 right-0 z-10 bg-white shadow flex items-center px-6">
+    <img src={logo} alt="Grupo BIA Logo" className="h-6 mr-4" />
+    <h1 className="text-xl font-bold text-blue-600">Grupo BIA</h1>
+  </header>
+
+  <main className="flex flex-col md:flex-row w-full flex-grow mt-20 overflow-hidden">
+    {/* Imagen */}
+    <div className="md:w-1/2 w-full h-full">
+      <img
+        src="https://images.unsplash.com/photo-1639658642030-35de608d6f21?w=900&auto=format&fit=crop&q=60"
+        alt="Bienvenida"
+        className="w-full h-full object-cover"
+      />
+    </div>
+
+    {/* Texto */}
+    <div className="md:w-1/2 w-full flex items-center justify-center bg-white p-6 h-full">
+      <div className="max-w-md text-center md:text-left">
+        <h2 className="text-3xl font-bold text-blue-700 mb-4">
+          Bienvenido al sistema del Grupo BIA
+        </h2>
+        <p className="text-gray-600 mb-6">
+          Desde aquí podés generar tu certificado libre de deuda
+        </p>
+        <Link
+          to="/certificado"
+          className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
+        >
+          Generar certificado
+        </Link>
+      </div>
+    </div>
+  </main>
+</div>
+
+  );
+}
+
+
+
+
+-- 1. Crear la base de datos con configuración limpia y apropiada para Django
+CREATE DATABASE bia_db
+  WITH OWNER = adminbia
+       ENCODING = 'UTF8'
+       LC_COLLATE = 'en_US.UTF-8'
+       LC_CTYPE = 'en_US.UTF-8'
+       TEMPLATE = template0;
+
+-- Cambiamos el contexto para ejecutar los siguientes comandos sobre la base creada
+\connect bia_db;
+
+-- 2. Crear roles para desarrollo (lectura y escritura)
+CREATE ROLE django_dev1 LOGIN PASSWORD 'dev1_password';
+CREATE ROLE django_dev2 LOGIN PASSWORD 'dev2_password';
+
+-- 3. Crear roles de solo lectura para entorno productivo
+CREATE ROLE read_only1 LOGIN PASSWORD 'readonly1_password';
+CREATE ROLE read_only2 LOGIN PASSWORD 'readonly2_password';
+
+-- 4. Crear rol para entorno productivo con lectura y escritura
+CREATE ROLE app_bia_prod LOGIN PASSWORD 'prod_password';
+
+-- 5. Dar permisos
+-- A los usuarios de desarrollo (lectura y escritura)
+GRANT CONNECT ON DATABASE bia_db TO django_dev1, django_dev2;
+GRANT USAGE ON SCHEMA public TO django_dev1, django_dev2;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO django_dev1, django_dev2;
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO django_dev1, django_dev2;
+
+-- A los usuarios read-only
+GRANT CONNECT ON DATABASE bia_db TO read_only1, read_only2;
+GRANT USAGE ON SCHEMA public TO read_only1, read_only2;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO read_only1, read_only2;
+
+-- A la app de producción (lectura y escritura)
+GRANT CONNECT ON DATABASE bia_db TO app_bia_prod;
+GRANT USAGE ON SCHEMA public TO app_bia_prod;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO app_bia_prod;
+GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA public TO app_bia_prod;
+
+-- 6. A futuro: que roles nuevos tengan permisos automáticamente (para evitar errores en nuevas tablas)
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO django_dev1, django_dev2, app_bia_prod;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+  GRANT SELECT ON TABLES TO read_only1, read_only2;
+
+-- Listo.

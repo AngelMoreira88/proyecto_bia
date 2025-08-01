@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { login } from '../services/auth';
-//import "tailwindcss";
+
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -58,6 +58,9 @@ export default function Login() {
         </button>
         {error && <p style={{ color: 'red', marginTop: '1rem' }}>{error}</p>}
       </form>
+      <h1 className="text-4xl font-bold text-blue-600">
+        ¡Tailwind está funcionando!
+      </h1>
     </div>
   );
 
