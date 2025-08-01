@@ -1,0 +1,417 @@
+[2025-07-28 12:51:31,788] INFO django.request - [angel] Validaciones fallidas para 'Base de Datos BIA.xlsx': ["La columna 'dni' es obligatoria y no está presente."]
+[2025-07-28 12:51:31,948] WARNING django.request - Bad Request: /carga-datos/api/
+[2025-07-28 13:10:57,810] ERROR django.request - [angel] Error inesperado en API al procesar 'Base de Datos BIA.xlsx': column db_bia.DNI does not exist
+LINE 1: SELECT "db_bia"."DNI" FROM "db_bia"
+               ^
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column db_bia.DNI does not exist
+LINE 1: SELECT "db_bia"."DNI" FROM "db_bia"
+               ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/carga_datos/views.py", line 158, in api_cargar_excel
+    dnis_existentes = set(BaseDeDatosBia.objects.values_list('dni', flat=True))
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 400, in __iter__
+    self._fetch_all()
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1928, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 287, in __iter__
+    for row in compiler.results_iter(
+               ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1525, in results_iter
+    results = self.execute_sql(
+              ^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1574, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column db_bia.DNI does not exist
+LINE 1: SELECT "db_bia"."DNI" FROM "db_bia"
+               ^
+
+[2025-07-28 13:10:57,814] ERROR django.request - Internal Server Error: /carga-datos/api/
+[2025-07-28 13:12:05,393] WARNING django.request - Unauthorized: /carga-datos/api/
+[2025-07-28 13:12:26,519] INFO django.request - [angel] Validaciones fallidas para 'Base de Datos BIA.xlsx': ["La columna 'dni' es obligatoria y no está presente."]
+[2025-07-28 13:12:26,674] WARNING django.request - Bad Request: /carga-datos/api/
+[2025-07-28 13:28:07,468] ERROR django.request - [angel] Error inesperado en carga: The `request` argument must be an instance of `django.http.HttpRequest`, not `pandas.core.indexes.base.Index`.
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/carga_datos/views.py", line 195, in api_cargar_excel
+    faltantes = validar_columnas_obligatorias(df.columns)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/views/decorators/csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/views/generic/base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/rest_framework/views.py", line 498, in dispatch
+    request = self.initialize_request(request, *args, **kwargs)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/rest_framework/views.py", line 397, in initialize_request
+    return Request(
+           ^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/rest_framework/request.py", line 154, in __init__
+    assert isinstance(request, HttpRequest), (
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: The `request` argument must be an instance of `django.http.HttpRequest`, not `pandas.core.indexes.base.Index`.
+[2025-07-28 13:28:07,470] ERROR django.request - Internal Server Error: /carga-datos/api/
+[2025-07-28 23:38:04,384] INFO django.request - [angel] Faltan columnas en archivo 'Base de Datos BIA.xlsx': ['id_pago_unico', 'entidad_original_1', 'entidad_original_2', 'nombre_apellido', 'fecha_apertura', 'fecha_deuda', 'saldo_capital', 'saldo_exigible', 'interes_diario', 'interes_total', 'saldo_actualizado', 'cancel_min', 'cod_rp', 'sub_estado', 'tel_1', 'tel_2', 'tel_3', 'tel_4', 'tel_5', 'mail_1', 'mail_2', 'mail_3', 'pago_acumulado', 'ultima_fecha_pago', 'fecha_plan', 'total_plan']
+[2025-07-28 23:38:04,384] WARNING django.request - Bad Request: /carga-datos/api/
+[2025-07-28 23:50:50,215] INFO django.request - [angel] Faltan columnas en archivo 'Base de Datos BIA.xlsx': ['id_pago_unico', 'entidad_original_1', 'entidad_original_2', 'nombre_apellido', 'fecha_apertura', 'fecha_deuda', 'saldo_capital', 'saldo_exigible', 'interes_diario', 'interes_total', 'saldo_actualizado', 'cancel_min', 'cod_rp', 'sub_estado', 'tel_1', 'tel_2', 'tel_3', 'tel_4', 'tel_5', 'mail_1', 'mail_2', 'mail_3', 'pago_acumulado', 'ultima_fecha_pago', 'fecha_plan', 'total_plan']
+[2025-07-28 23:50:50,215] WARNING django.request - Bad Request: /carga-datos/api/
+[2025-07-29 00:00:19,098] INFO django.request - [angel] Faltan columnas en archivo 'Base de Datos BIA.xlsx': ['id_pago_unico', 'entidad_original_1', 'entidad_original_2', 'nombre_apellido', 'fecha_apertura', 'fecha_deuda', 'saldo_capital', 'saldo_exigible', 'interes_diario', 'interes_total', 'saldo_actualizado', 'cancel_min', 'cod_rp', 'sub_estado', 'tel_1', 'tel_2', 'tel_3', 'tel_4', 'tel_5', 'mail_1', 'mail_2', 'mail_3', 'pago_acumulado', 'ultima_fecha_pago', 'fecha_plan', 'total_plan']
+[2025-07-29 00:00:19,105] WARNING django.request - Bad Request: /carga-datos/api/
+[2025-07-29 00:01:11,665] INFO django.request - [angel] Faltan columnas en archivo 'Base de Datos BIA.xlsx': ['id_pago_unico', 'entidad_original_1', 'entidad_original_2', 'nombre_apellido', 'fecha_apertura', 'fecha_deuda', 'saldo_capital', 'saldo_exigible', 'interes_diario', 'interes_total', 'saldo_actualizado', 'cancel_min', 'cod_rp', 'sub_estado', 'tel_1', 'tel_2', 'tel_3', 'tel_4', 'tel_5', 'mail_1', 'mail_2', 'mail_3', 'pago_acumulado', 'ultima_fecha_pago', 'fecha_plan', 'total_plan']
+[2025-07-29 00:01:11,665] WARNING django.request - Bad Request: /carga-datos/api/
+[2025-07-29 00:09:23,796] INFO django.request - [angel] Faltan columnas en archivo 'Base de Datos BIA.xlsx': ['id_pago_unico', 'entidad_original_1', 'entidad_original_2', 'nombre_apellido', 'fecha_apertura', 'fecha_deuda', 'saldo_capital', 'saldo_exigible', 'interes_diario', 'interes_total', 'saldo_actualizado', 'cancel_min', 'cod_rp', 'sub_estado', 'tel_1', 'tel_2', 'tel_3', 'tel_4', 'tel_5', 'mail_1', 'mail_2', 'mail_3', 'pago_acumulado', 'ultima_fecha_pago', 'fecha_plan', 'total_plan']
+[2025-07-29 00:09:23,796] WARNING django.request - Bad Request: /carga-datos/api/
+[2025-07-29 00:12:22,978] INFO django.request - [angel] Faltan columnas en archivo 'Base de Datos BIA.xlsx': ['id_pago_unico', 'entidad_original_1', 'entidad_original_2', 'nombre_apellido', 'fecha_apertura', 'fecha_deuda', 'saldo_capital', 'saldo_exigible', 'interes_diario', 'interes_total', 'saldo_actualizado', 'cancel_min', 'cod_rp', 'sub_estado', 'tel_1', 'tel_2', 'tel_3', 'tel_4', 'tel_5', 'mail_1', 'mail_2', 'mail_3', 'pago_acumulado', 'ultima_fecha_pago', 'fecha_plan', 'total_plan']
+[2025-07-29 00:12:22,978] WARNING django.request - Bad Request: /carga-datos/api/
+[2025-07-29 00:15:28,640] INFO django.request - [angel] Faltan columnas en archivo 'Base de Datos BIA.xlsx': ['id_pago_unico', 'entidad_original_1', 'entidad_original_2', 'nombre_apellido', 'fecha_apertura', 'fecha_deuda', 'saldo_capital', 'saldo_exigible', 'interes_diario', 'interes_total', 'saldo_actualizado', 'cancel_min', 'cod_rp', 'sub_estado', 'tel_1', 'tel_2', 'tel_3', 'tel_4', 'tel_5', 'mail_1', 'mail_2', 'mail_3', 'pago_acumulado', 'ultima_fecha_pago', 'fecha_plan', 'total_plan']
+[2025-07-29 00:15:28,640] WARNING django.request - Bad Request: /carga-datos/api/
+[2025-07-29 00:18:25,085] INFO django.request - [angel] Faltan columnas en archivo 'Base de Datos BIA.xlsx': ['entidad_original_2', 'nombre_apellido', 'fecha_apertura', 'ultima_fecha_pago']
+[2025-07-29 00:18:25,086] WARNING django.request - Bad Request: /carga-datos/api/
+[2025-07-29 00:43:42,620] INFO django.request - [angel] Faltan columnas en archivo 'Base de Datos BIA.xlsx': ['entidad_original_2', 'nombre_apellido', 'fecha_apertura', 'ultima_fecha_pago']
+[2025-07-29 00:43:42,620] WARNING django.request - Bad Request: /carga-datos/api/
+[2025-07-29 00:44:35,635] INFO django.request - [angel] Faltan columnas en archivo 'Base de Datos BIA.xlsx': ['entidad_original_2', 'nombre_apellido', 'fecha_apertura', 'ultima_fecha_pago']
+[2025-07-29 00:44:35,636] WARNING django.request - Bad Request: /carga-datos/api/
+[2025-07-29 01:02:31,449] INFO django.request - [angel] Faltan columnas en archivo 'Base de Datos BIA.xlsx': ['entidad_original_2', 'nombre_apellido', 'fecha_apertura', 'ultima_fecha_pago']
+[2025-07-29 01:02:31,450] WARNING django.request - Bad Request: /carga-datos/api/
+[2025-07-29 01:17:05,467] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 01:17:50,604] WARNING django.request - [angel] Intentó confirmar carga sin datos en sesión.
+[2025-07-29 01:17:50,607] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:17:50,619] WARNING django.request - [angel] Intentó confirmar carga sin datos en sesión.
+[2025-07-29 01:17:50,620] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:20:46,996] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 01:20:49,311] WARNING django.request - [angel] Intentó confirmar carga sin datos en sesión.
+[2025-07-29 01:20:49,312] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:20:49,323] WARNING django.request - [angel] Intentó confirmar carga sin datos en sesión.
+[2025-07-29 01:20:49,323] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:30:13,433] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:30:13,448] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:30:22,459] WARNING django.request - Unauthorized: /api/token/
+[2025-07-29 01:30:39,119] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 01:30:42,025] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:30:42,027] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:39:12,871] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:39:12,872] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:39:32,700] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:39:32,702] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:40:05,812] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:40:05,849] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:47:39,364] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-07-29 01:47:39,910] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:47:58,546] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:47:58,551] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:48:01,370] WARNING django.request - Not Found: /main.3c0e09960c9e6815b226.hot-update.json
+[2025-07-29 01:48:01,601] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-07-29 01:48:01,603] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-07-29 01:48:22,557] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 01:48:26,495] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:48:26,504] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 01:53:33,722] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 02:05:01,093] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 02:06:35,836] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 02:07:08,251] WARNING django.request - Unauthorized: /api/token/
+[2025-07-29 02:07:19,457] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 02:26:01,394] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 10:48:07,168] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 10:48:07,726] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 10:48:07,732] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 10:48:28,645] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 10:48:29,175] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 10:48:29,179] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 10:51:49,758] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 10:51:50,296] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 10:51:50,296] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 11:21:38,297] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 11:21:38,980] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 11:21:38,980] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 11:22:49,506] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 11:22:50,205] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 11:22:50,205] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 11:27:46,235] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 11:27:46,918] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 11:27:46,927] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 11:28:28,678] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 11:28:29,363] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 11:28:29,363] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 11:49:54,694] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 11:49:54,703] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 11:50:19,953] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 11:50:19,960] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 11:50:41,947] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 11:50:42,629] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 11:50:42,629] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 12:09:15,815] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 12:09:15,854] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 12:41:46,532] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-07-29 12:41:46,532] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-07-29 12:42:00,032] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 12:42:00,715] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 12:42:00,715] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 13:05:35,727] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 13:05:36,414] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 13:05:36,415] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 13:06:12,833] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 13:06:13,510] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 13:06:13,510] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 13:16:21,390] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 13:16:21,391] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 13:16:39,754] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 13:16:40,428] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 13:16:40,437] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 13:47:05,187] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-07-29 13:47:05,187] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-07-29 13:47:21,428] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 13:47:22,144] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-29 13:47:24,139] WARNING django.request - Not Found: /carga-datos/api/errores/
+[2025-07-29 13:47:24,145] WARNING django.request - Not Found: /carga-datos/api/errores/
+[2025-07-29 14:14:01,615] WARNING django.request - Not Found: /carga-datos/api/errores/
+[2025-07-29 14:14:01,625] WARNING django.request - Not Found: /carga-datos/api/errores/
+[2025-07-29 14:14:34,805] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 14:14:35,335] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 14:14:35,343] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 14:15:43,260] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 14:15:43,897] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 14:15:43,899] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 14:20:13,906] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 14:20:13,912] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 14:20:29,027] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 14:20:29,561] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 14:20:29,562] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 15:01:08,020] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-29 15:01:08,568] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 15:01:08,569] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
+[2025-07-29 18:32:34,693] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-07-29 18:32:34,694] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-07-31 23:54:27,682] WARNING django.request - Not Found: /main.59b0581d7d470b235e73.hot-update.json
+[2025-07-31 23:54:50,642] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-07-31 23:54:51,380] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-07-31 23:54:51,380] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-01 00:20:35,788] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-01 00:20:35,788] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-01 00:20:35,984] WARNING django.request - Not Found: /main.b974d53e2c478aed9e3b.hot-update.json
+[2025-08-01 00:21:20,965] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-08-01 00:21:21,633] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-01 00:21:21,663] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-01 00:26:49,815] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-08-01 00:26:50,547] ERROR django.request - Error en api_confirmar_carga:
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211816) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/carga_datos/views.py", line 213, in api_confirmar_carga
+    BaseDeDatosBia.objects.bulk_create(registros, batch_size=100)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 818, in bulk_create
+    returned_columns = self._batched_insert(
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1875, in _batched_insert
+    self._insert(
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211816) already exists.
+
+
+[2025-08-01 00:26:50,547] ERROR django.request - Error en api_confirmar_carga:
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211816) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/carga_datos/views.py", line 213, in api_confirmar_carga
+    BaseDeDatosBia.objects.bulk_create(registros, batch_size=100)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 818, in bulk_create
+    returned_columns = self._batched_insert(
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1875, in _batched_insert
+    self._insert(
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211816) already exists.
+
+
+[2025-08-01 00:26:50,548] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-01 00:26:50,548] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-01 00:27:15,398] ERROR django.request - Error en api_confirmar_carga:
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211816) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/carga_datos/views.py", line 213, in api_confirmar_carga
+    BaseDeDatosBia.objects.bulk_create(registros, batch_size=100)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 818, in bulk_create
+    returned_columns = self._batched_insert(
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1875, in _batched_insert
+    self._insert(
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211816) already exists.
+
+
+[2025-08-01 00:27:15,398] ERROR django.request - Error en api_confirmar_carga:
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211816) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/carga_datos/views.py", line 213, in api_confirmar_carga
+    BaseDeDatosBia.objects.bulk_create(registros, batch_size=100)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 818, in bulk_create
+    returned_columns = self._batched_insert(
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1875, in _batched_insert
+    self._insert(
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211816) already exists.
+
+
+[2025-08-01 00:27:15,399] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-01 00:27:15,399] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/

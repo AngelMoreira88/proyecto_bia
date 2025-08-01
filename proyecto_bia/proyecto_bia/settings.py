@@ -2,13 +2,22 @@ import os
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 import environ
+import logging
 
 # Root directory (one level above this settings folder)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
+# Directorio base del proyecto
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Crear carpeta de logs si no existe
+LOG_DIR = BASE_DIR / 'logs'
+LOG_DIR.mkdir(exist_ok=True)
+
+
 # Initialize django-environ with defaults
 env = environ.Env(
-    DEBUG=(bool, False),
+    DEBUG=(bool, True),
     DJANGO_SECRET_KEY=(str, ''),
     DJANGO_ALLOWED_HOSTS=(list, []),
     CORS_ALLOWED_ORIGINS=(list, []),
@@ -39,6 +48,7 @@ if not SECRET_KEY:
     raise ImproperlyConfigured('The DJANGO_SECRET_KEY variable is not set in .env')
 
 DEBUG = env('DEBUG')
+DEBUG = True
 ALLOWED_HOSTS = env('DJANGO_ALLOWED_HOSTS')
 
 # CORS
@@ -108,7 +118,7 @@ DATABASES = {
         'HOST': env('DB_HOST'),
         'PORT': env('DB_PORT'),
         'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            'sslmode': 'require',
         },
     }
 }
@@ -159,4 +169,38 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     # … otros ajustes opcionales …
+}
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+
+    'formatters': {
+        'verbose': {
+            'format': '[{asctime}] {levelname} {name} - {message}',
+            'style': '{',
+        },
+    },
+
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(LOG_DIR, 'actividad.log'),
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
+    },
+
+    'loggers': {
+        'django.request': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    }
 }

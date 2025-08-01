@@ -7,7 +7,7 @@ from django.core.files.base import ContentFile
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import ClientesBia, Certificate
+from .models import BaseDeDatosBia, Certificate
 
 
 def link_callback(uri, rel):
@@ -51,8 +51,8 @@ def certificate_view(request):
             return render(request, 'form.html', context)
 
         try:
-            cliente = ClientesBia.objects.get(dni=dni)
-        except ClientesBia.DoesNotExist:
+            cliente = BaseDeDatosBia.objects.get(dni=dni)
+        except BaseDeDatosBia.DoesNotExist:
             context['error'] = "Cliente no encontrado."
             return render(request, 'form.html', context)
 
