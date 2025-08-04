@@ -1,7 +1,7 @@
 from django.urls import path
-from .views import certificate_view
+from . import views
 
 urlpatterns = [
-    path('', certificate_view, name='certificate-web'),
-    path('api/certificado/generar/', certificate_view, name='api-generar-certificado'),
+    path('api/certificado/generar/', views.api_generar_certificado),
 ]
+

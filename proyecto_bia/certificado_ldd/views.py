@@ -1,18 +1,43 @@
 import os
-from django.shortcuts import render
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 from xhtml2pdf import pisa
 from django.core.files.base import ContentFile
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
+from django.db.models import Q
 
 from .models import BaseDeDatosBia, Certificate
+
+# Diccionario de logos según entidadinterna
+LOGOS_ENTIDADES = {
+    "Banco Galicia": "static/logos/galicia.png",
+    "Banco Nación": "static/logos/nacion.png",
+    "Banco Santander": "static/logos/santander.png",
+    # Agregá más entidades según necesites
+}
+
+# Diccionario de firmas autenticadas y responsables según entidadinterna
+FIRMAS_ENTIDADES = {
+    "Banco Galicia": {
+        "firma_path": "static/firmas/galicia.png",
+        "responsable": "Juan Pérez"
+    },
+    "Banco Nación": {
+        "firma_path": "static/firmas/nacion.png",
+        "responsable": "María López"
+    },
+    "Banco Santander": {
+        "firma_path": "static/firmas/santander.png",
+        "responsable": "Carlos Gómez"
+    },
+    # Agregá más entidades según necesites
+}
 
 
 def link_callback(uri, rel):
     """
-    Convierte una URI (/static/... o /media/...) en la ruta absoluta del archivo.
+    Convierte una URI en una ruta absoluta para xhtml2pdf.
     """
     if uri.startswith(settings.STATIC_URL):
         path_relative = uri.replace(settings.STATIC_URL, '', 1)
@@ -33,56 +58,106 @@ def link_callback(uri, rel):
 
 
 def generate_pdf(html):
-    """Genera un PDF a partir de un string HTML y devuelve un ContentFile o None en error."""
+    """
+    Genera un archivo PDF a partir de HTML.
+    """
     result = ContentFile(b"")
     pisa_status = pisa.CreatePDF(html, dest=result, link_callback=link_callback)
     return result if not pisa_status.err else None
 
 
 @csrf_exempt
-def certificate_view(request):
-    """Vista para generar y descargar el certificado PDF según DNI."""
-    context = {}
+def api_generar_certificado(request):
+    """
+    API: Generar certificado PDF si el DNI tiene al menos una deuda cancelada.
+    - Si tiene deudas pendientes: devuelve JSON con lista.
+    - Si tiene varias canceladas: devuelve JSON con opciones.
+    - Si tiene una sola cancelada: devuelve PDF.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Método no permitido"}, status=405)
 
-    if request.method == 'POST':
-        dni = request.POST.get('dni')
-        if not dni:
-            context['error'] = "Por favor, ingrese un DNI válido."
-            return render(request, 'form.html', context)
+    dni = request.POST.get("dni")
+    if not dni:
+        return JsonResponse({"error": "Debe ingresar un DNI"}, status=400)
 
-        try:
-            cliente = BaseDeDatosBia.objects.get(dni=dni)
-        except BaseDeDatosBia.DoesNotExist:
-            context['error'] = "Cliente no encontrado."
-            return render(request, 'form.html', context)
+    registros = BaseDeDatosBia.objects.filter(dni=dni)
+    if not registros.exists():
+        return JsonResponse({"error": "No se encontraron registros para el DNI ingresado."}, status=404)
 
-        # Verificar estado de deuda
-        if not cliente.estado_leg or cliente.estado_leg.lower() != 'cancelado':
-            context['error'] = "El cliente tiene deuda pendiente."
-            return render(request, 'form.html', context)
+    pendientes = registros.exclude(
+        Q(estado__iexact="cancelado") | Q(sub_estado__iexact="cancelado")
+    )
+    cancelados = registros.filter(
+        Q(estado__iexact="cancelado") | Q(sub_estado__iexact="cancelado")
+    )
 
-        certificate, created = Certificate.objects.get_or_create(client=cliente)
+    if pendientes.exists():
+        return JsonResponse({
+            "estado": "pendiente",
+            "mensaje": "Existen deudas pendientes.",
+            "deudas": [
+                {
+                    "id_pago_unico": p.id_pago_unico,
+                    "entidadinterna": p.entidadinterna,
+                    "estado": p.estado,
+                }
+                for p in pendientes
+            ]
+        })
 
-        # Generar PDF solo si no existe
+    certificados = []
+    for registro in cancelados:
+        certificate, created = Certificate.objects.get_or_create(client=registro)
+
         if created or not certificate.pdf_file:
-            html = render_to_string('pdf_template.html', {'client': cliente})
+            # Obtener logo
+            logo_path = LOGOS_ENTIDADES.get(registro.entidadinterna)
+            logo_url = settings.STATIC_URL + logo_path.split("static/")[-1] if logo_path else None
+
+            # Obtener firma y responsable
+            firma_info = FIRMAS_ENTIDADES.get(registro.entidadinterna)
+            firma_url = settings.STATIC_URL + firma_info["firma_path"].split("static/")[-1] if firma_info else None
+            responsable = firma_info["responsable"] if firma_info else "Socio/Gerente"
+
+            # Render del HTML
+            html = render_to_string(
+                'pdf_template.html',
+                {
+                    'client': registro,
+                    'logo_url': logo_url,
+                    'firma_url': firma_url,
+                    'responsable': responsable
+                }
+            )
+
             pdf_file = generate_pdf(html)
-            if not pdf_file:
-                context['error'] = "Error al generar el PDF."
-                return render(request, 'form.html', context)
+            if pdf_file:
+                filename = f"certificado_{registro.id_pago_unico}.pdf"
+                certificate.pdf_file.save(filename, pdf_file)
+                certificate.save()
 
-            filename = f"certificado_{cliente.dni}.pdf"
-            certificate.pdf_file.save(filename, pdf_file)
-            certificate.save()
+        certificados.append(certificate)
 
-            with open(certificate.pdf_file.path, 'rb') as f:
-                response = HttpResponse(f.read(), content_type='application/pdf')
-                response['Content-Disposition'] = f'attachment; filename="{filename}"'
-                return response
-        else:
-            # PDF ya existe: indicar contactar operador
-            context['error'] = "El certificado ya fue generado. Por favor, comuníquese con un operador."
-            return render(request, 'form.html', context)
+    if len(certificados) == 1:
+        cert = certificados[0]
+        with open(cert.pdf_file.path, 'rb') as f:
+            pdf = f.read()
+        response = HttpResponse(pdf, content_type='application/pdf')
+        response['Content-Disposition'] = (
+            f'attachment; filename="certificado_{cert.client.id_pago_unico}.pdf"'
+        )
+        return response
 
-    # GET o cualquier otro método muestra el formulario
-    return render(request, 'form.html', context)
+    return JsonResponse({
+        "estado": "varios_cancelados",
+        "mensaje": "Tiene varias deudas canceladas. Seleccione cuál certificado desea descargar.",
+        "certificados": [
+            {
+                "id_pago_unico": c.client.id_pago_unico,
+                "entidadinterna": c.client.entidadinterna,
+                "url_pdf": c.pdf_file.url,
+            }
+            for c in certificados
+        ]
+    })

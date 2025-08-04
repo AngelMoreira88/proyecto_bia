@@ -8,43 +8,50 @@
 <body>
   <!-- Encabezado con Logo y Título -->
   <div class="header">
-    <img src="{% static 'images/logo.png' %}" alt="Logo Empresa">
+    {% if logo_url %}
+      <img src="{{ logo_url }}" alt="Logo Entidad" style="max-height:80px;">
+    {% else %}
+      <img src="{% static 'images/logo.png' %}" alt="Logo Empresa">
+    {% endif %}
     <h1>Certificado de Libre de Deuda</h1>
     <hr>
   </div>
-  
+
   <!-- Fecha de emisión -->
   <div class="date">
     <p>Fecha: <strong>{% now "d/m/Y" %}</strong></p>
   </div>
-  
+
   <!-- Contenido del certificado -->
   <div class="content">
     <p>
-      Por medio del presente se certifica que <strong>{{ client.nombre }}</strong>,
-      con DNI <strong>{{ client.dni }}</strong>, se encuentra <strong>libre de cualquier
-      obligación o deuda pendiente</strong> con <strong>Empresa BIA S.A.</strong>, conforme a los
-      registros internos y comprobantes archivados.
+      Por medio del presente se certifica que
+      <strong>{{ client.nombre_apellido }}</strong>,
+      con DNI <strong>{{ client.dni }}</strong>,
+      se encuentra <strong>libre de cualquier obligación o deuda pendiente</strong>
+      con la entidad <strong>{{ client.entidadinterna }}</strong>
+      (ID de operación <strong>{{ client.id_pago_unico }}</strong>),
+      conforme a los registros internos y comprobantes archivados.
     </p>
     <p>
       Este certificado se expide a solicitud del interesado para los fines que estime convenientes,
-      sin que implique responsabilidad adicional por parte de <strong>Empresa BIA S.A.</strong> en
+      sin que implique responsabilidad adicional por parte de la entidad en
       cuanto a la veracidad de la información aquí contenida.
     </p>
   </div>
-  
-  <!-- Sección de firma autenticada -->
-  <div class="signature">
-    <p>Firma Autenticada:</p>
+
+<!-- Sección de firma autenticada -->
+<div class="signature">
+  <p>Firma Autenticada:</p>
+  {% if firma_url %}
+    <img src="{{ firma_url }}" alt="Firma Autenticada">
+    <p><strong>{{ responsable }}</strong><br>
+       Representante Autorizado</p>
+  {% else %}
     <img src="{% static 'images/firma.png' %}" alt="Firma Autenticada">
     <p><strong>Nombre y apellido</strong><br>
        Socio/Gerente</p>
-  </div>
-  
-  <!-- Pie de página con datos de la empresa -->
-  <div class="footer">
-    <p>Empresa BIA S.A. | Dirección: Calle Falsa 123, Ciudad | Teléfono: (011) 1234-5678 | www.empresa.bia</p>
-  </div>
+  {% endif %}
+</div>
 </body>
 </html>
-
