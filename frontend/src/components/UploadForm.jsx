@@ -1,14 +1,13 @@
-// frontend/src/components/UploadForm.jsx
-
 import React, { useState } from 'react';
-import { useNavigate }      from 'react-router-dom';
-import { subirExcel }       from '../services/api';
+import { useNavigate } from 'react-router-dom';
+import { subirExcel } from '../services/api';
+import Header from './Header';
 
 export default function UploadForm() {
-  const [archivo, setArchivo]     = useState(null);
+  const [archivo, setArchivo] = useState(null);
   const [previewHtml, setPreview] = useState('');
-  const [error, setError]         = useState('');
-  const navigate                  = useNavigate();
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const handleFileChange = e => {
     setArchivo(e.target.files[0]);
@@ -28,10 +27,7 @@ export default function UploadForm() {
     try {
       const res = await subirExcel(formData);
       if (res.data.success) {
-        // Opcional: mostrás la preview en esta pantalla
         setPreview(res.data.preview);
-
-        // 👉 Luego navegás a ConfirmarCarga PASANDO records
         navigate('/carga-datos/confirmar', {
           state: { records: res.data.data }
         });
@@ -44,28 +40,31 @@ export default function UploadForm() {
   };
 
   return (
-    <div style={{ padding: '1rem' }}>
-      <h2>Subir Excel</h2>
-      <input 
-        type="file" 
-        accept=".csv,.xls,.xlsx" 
-        onChange={handleFileChange} 
-      />
-      <button 
-        onClick={handleUpload} 
-        style={{ marginLeft: '1rem' }}
-      >
-        Subir y Previsualizar
-      </button>
+    <>
+      <Header />
+      <div className="container py-5">
+        <h2 className="mb-4">Subir Excel</h2>
+        <div className="mb-3">
+          <input 
+            type="file" 
+            className="form-control"
+            accept=".csv,.xls,.xlsx" 
+            onChange={handleFileChange} 
+          />
+        </div>
+        <button className="btn btn-success" onClick={handleUpload}>
+          Subir y Previsualizar
+        </button>
 
-      {previewHtml && (
-        <div
-          style={{ marginTop: '1rem' }}
-          dangerouslySetInnerHTML={{ __html: previewHtml }}
-        />
-      )}
+        {previewHtml && (
+          <div
+            className="mt-4"
+            dangerouslySetInnerHTML={{ __html: previewHtml }}
+          />
+        )}
 
-      {error && <p style={{ color: 'red', marginTop: '1rem' }}>{error}</p>}
-    </div>
+        {error && <div className="alert alert-danger mt-3">{error}</div>}
+      </div>
+    </>
   );
 }
