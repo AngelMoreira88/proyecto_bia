@@ -1,9 +1,6 @@
 // frontend/src/components/GenerarCertificado.jsx
 import { useState } from "react";
 import axios from "axios";
-import { Link } from "react-router-dom";
-import bienvenidaImg from "../images/ImagenBienvenida.jpg";
-import Header from './Header';
 
 export default function GenerarCertificado() {
   const [dni, setDni] = useState("");
@@ -14,24 +11,27 @@ export default function GenerarCertificado() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    setPendientes([]);
-    setCertificados([]);
 
     const formData = new FormData();
     formData.append("dni", dni);
 
     try {
-      const res = await axios.post("/api/certificado/generar/", formData, {
-        responseType: "blob",
-      });
+      const res = await axios.post(
+        "/api/certificado/generar/",
+        formData,
+        { responseType: "blob" }
+      );
 
       // Si vino PDF, lo abrimos:
       const pdfBlob = new Blob([res.data], { type: "application/pdf" });
       const url = window.URL.createObjectURL(pdfBlob);
       window.open(url);
+
     } catch (err) {
+      // Tratamos la respuesta de error JSON
       if (err.response && err.response.data) {
         try {
+          // axios con responseType blob nos da un blob, lo convertimos a texto
           const text = await err.response.data.text();
           const json = JSON.parse(text);
           setError(json.error || json.detail || "Error inesperado");
@@ -78,3 +78,4 @@ export default function GenerarCertificado() {
     </div>
   );
 }
+

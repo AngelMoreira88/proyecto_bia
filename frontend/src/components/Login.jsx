@@ -1,64 +1,82 @@
 // frontend/src/components/Login.jsx
-import React, { useState, useEffect } from 'react';
-import api from '../services/api';
-import { login } from '../services/auth';
-//import "tailwindcss";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import Header from './Header';
 
 export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const navigate = useNavigate();
 
-  // Al montar, pedimos la página de login para obtener la cookie CSRF
-  useEffect(() => {
-    api.get('/accounts/login/').catch(() => {
-      /* no nos importa la respuesta, solo la cookie */
-    });
-  }, []);
-
-  const handleSubmit = async e => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setError('');
+
     try {
-      await login(username, password);
-      window.location.href = '/carga-datos';
-    } catch {
-      setError('Usuario o contraseña inválidos');
+      const response = await axios.post('/api/token/', {
+        username,
+        password,
+      });
+
+      const { access, refresh } = response.data;
+      localStorage.setItem('access_token', access);
+      localStorage.setItem('refresh_token', refresh);
+
+      navigate('/');
+    } catch (err) {
+      setError('Credenciales inválidas. Intenta nuevamente.');
     }
   };
 
   return (
-    <div style={{ maxWidth: 300, margin: '2rem auto' }}>
-      <h2>Iniciar Sesión</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Usuario</label>
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            required
-            style={{ width: '100%', padding: '0.5rem', margin: '0.5rem 0' }}
-          />
-        </div>
-        <div>
-          <label>Contraseña</label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{ width: '100%', padding: '0.5rem', margin: '0.5rem 0' }}
-          />
-        </div>
-        <button
-          type="submit"
-          style={{ padding: '0.5rem 1rem', marginTop: '1rem' }}
-        >
-          Entrar
-        </button>
-        {error && <p style={{ color: 'red', marginTop: '1rem' }}>{error}</p>}
-      </form>
-    </div>
-  );
+    <>
+      <Header />
+      
+      <div className="container d-flex align-items-center justify-content-center min-vh-100">
+        <div className="card p-4 shadow-sm" style={{ maxWidth: 400, width: '100%' }}>
+          <h3 className="text-center text-primary mb-4">Iniciar sesión</h3>
 
+          {error && (
+            <div className="alert alert-danger text-center" role="alert">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleLogin}>
+            <div className="mb-3">
+              <label htmlFor="username" className="form-label">Usuario</label>
+              <input
+                type="text"
+                className="form-control"
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Ingrese su usuario"
+                required
+              />
+            </div>
+
+            <div className="mb-3">
+              <label htmlFor="password" className="form-label">Contraseña</label>
+              <input
+                type="password"
+                className="form-control"
+                id="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Ingrese su contraseña"
+                required
+              />
+            </div>
+
+            <button type="submit" className="btn btn-primary w-100">
+              Ingresar
+            </button>
+          </form>
+        </div>
+      </div>
+    </>
+  );
 }
