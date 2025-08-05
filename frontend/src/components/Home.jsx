@@ -1,23 +1,60 @@
+// frontend/src/components/Home.jsx
 import React from "react";
 import { Link } from "react-router-dom";
-import Header from "./Header";
 import bienvenidaImg from "../images/ImagenBienvenida.jpg";
+import Header from "./Header";
 
 export default function Home() {
   return (
     <>
       <Header />
-      <div className="container py-5">
-        <div className="row align-items-center">
-          <div className="col-md-6">
-            <h2 className="mb-4">Bienvenido al sistema de Grupo BIA</h2>
-            <p className="mb-4">Desde aquí podés generar tu certificado libre de deuda.</p>
-            <Link to="/certificado" className="btn btn-primary">
-              Generar certificado
-            </Link>
+
+      <div
+        className="container-fluid p-0"
+        style={{
+          marginTop: "88px",
+          height: "calc(100vh - 88px)",
+          overflow: "hidden",
+        }}
+      >
+        <div className="row h-100 m-0">
+          {/* Columna izquierda centrada */}
+          <div className="col-md-6 d-flex justify-content-center align-items-center">
+            <div className="text-start px-5" style={{ maxWidth: "500px" }}>
+              <h2 className="text-primary fw-bold mb-3">
+                Bienvenido al sistema de Grupo BIA
+              </h2>
+              <p className="text-muted mb-4">
+                Desde aquí podés generar tu certificado libre de deuda de manera
+                rápida y segura.
+              </p>
+
+              <div className="d-flex gap-2">
+                <Link to="/certificado" className="btn btn-primary">
+                  Generar certificado
+                </Link>
+
+                {/* Botón volver (opcional) */}
+                {/* <Link to="/" className="btn btn-secondary">
+                  Volver atrás
+                </Link> */}
+              </div>
+            </div>
           </div>
-          <div className="col-md-6 d-none d-md-block">
-            <img src={bienvenidaImg} alt="Bienvenida" className="img-fluid rounded shadow" />
+
+          {/* Columna derecha con imagen */}
+          <div className="col-md-6 p-0">
+            <img
+              src={bienvenidaImg}
+              alt="Bienvenida"
+              className="img-fluid"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                display: "block",
+              }}
+            />
           </div>
         </div>
       </div>

@@ -1,9 +1,10 @@
+
 // frontend/src/components/GenerarCertificado.jsx
 import { useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import bienvenidaImg from "../images/ImagenBienvenida.jpg";
-import Header from './Header';
+import Header from "./Header";
 
 export default function GenerarCertificado() {
   const [dni, setDni] = useState("");
@@ -47,34 +48,70 @@ export default function GenerarCertificado() {
   };
 
   return (
-    <div style={{ maxWidth: 400, margin: "0 auto" }}>
-      <h2>Generar Certificado Libre de Deuda</h2>
-      <form onSubmit={handleSubmit}>
-        <label>
-          DNI:
-          <input
-            type="text"
-            value={dni}
-            onChange={(e) => setDni(e.target.value)}
-            required
-            style={{ display: "block", width: "100%", marginTop: 4 }}
-          />
-        </label>
-        <button
-          type="submit"
-          disabled={loading}
-          style={{ marginTop: 8, padding: "8px 16px" }}
-        >
-          {loading ? "Generando..." : "Generar"}
-        </button>
-      </form>
+    <>
+      <Header />
+      <div className="container-fluid" style={{ height: "calc(100vh - 88px)" }}>
+        <div className="row h-100">
+          {/* Columna izquierda centrada */}
+          <div className="col-md-6 d-flex justify-content-center align-items-center">
+            <div className="w-100 text-center px-4 px-md-5">
+              <h2 className="text-primary fw-bold mb-3">
+                Generar Certificado Libre de Deuda
+              </h2>
+              <p className="text-muted mb-4">Ingresá tu DNI.</p>
 
-      {/* aquí mostramos el mensaje de error en rojo */}
-      {error && (
-        <p style={{ color: "red", marginTop: "1em" }}>
-          {error}
-        </p>
-      )}
-    </div>
+              <form
+                onSubmit={handleSubmit}
+                className="mx-auto"
+                style={{ maxWidth: "400px" }}
+              >
+                <div className="mb-3 text-start">
+                  <label htmlFor="dni" className="form-label">
+                  </label>
+                  <input
+                    type="text"
+                    id="dni"
+                    className="form-control"
+                    value={dni}
+                    onChange={(e) => setDni(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="d-flex justify-content-center gap-2 mt-3">
+                  <button
+                    type="submit"
+                    className="btn btn-primary"
+                    disabled={loading}
+                  >
+                    {loading ? "Generando..." : "Generar"}
+                  </button>
+
+                  <Link to="/" className="btn btn-secondary">
+                    Volver atrás
+                  </Link>
+                </div>
+
+                {error && (
+                  <div className="alert alert-danger mt-3" role="alert">
+                    {error}
+                  </div>
+                )}
+              </form>
+            </div>
+          </div>
+
+          {/* Columna derecha imagen */}
+          <div className="col-md-6 d-none d-md-block p-0">
+            <img
+              src={bienvenidaImg}
+              alt="Certificado"
+              className="img-fluid w-100 h-100"
+              style={{ objectFit: "cover" }}
+            />
+          </div>
+        </div>
+      </div>
+    </>
   );
 }

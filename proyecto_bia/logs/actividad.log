@@ -419,7 +419,7 @@ DETAIL:  Key (id_pago_unico)=(211816) already exists.
 [2025-08-01 02:07:20,782] WARNING django.request - Unauthorized: /api/token/
 [2025-08-03 20:05:34,588] INFO django.request - [angel] Faltan columnas en archivo 'datos_para_prueba_de_carga.xlsx': ['entidadinterna', 'nombre_apellido', 'fecha_apertura']
 [2025-08-03 20:05:34,590] WARNING django.request - Bad Request: /carga-datos/api/
-[2025-08-03 20:09:13,457] INFO django.request - [angel] Previsualización cargada de 'datos_para_prueba_de_carga.xlsx' con 6 registros.
+[2025-08-03 20:09:13,457] INFO django.request - [angel] Previsualizaciï¿½n cargada de 'datos_para_prueba_de_carga.xlsx' con 6 registros.
 [2025-08-03 20:09:15,265] ERROR django.request - Error en api_confirmar_carga:
 Traceback (most recent call last):
   File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
@@ -652,3 +652,39 @@ LINE 1: ...b_bia"."propietario", "db_bia"."entidadoriginal", "db_bia"."...
 HINT:  Perhaps you meant to reference the column "db_bia.entidadinterna".
 
 [2025-08-05 01:23:24,518] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-04 02:07:26,528] WARNING django.request - Not Found: /main.0c522d0e3c1f963d6858.hot-update.json
+[2025-08-04 02:17:40,704] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-04 02:24:17,930] WARNING django.request - Not Found: /main.22cbbf7d63d0fd71cb95.hot-update.json
+[2025-08-04 02:30:13,879] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-04 02:30:16,770] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-04 02:30:18,068] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-04 02:30:19,230] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-04 02:30:20,380] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-04 02:33:00,516] WARNING django.request - Not Found: /main.30ae183483cb406a8980.hot-update.json
+[2025-08-04 02:35:22,256] WARNING django.request - Not Found: /main.0d0c10f25c83d43b0c6b.hot-update.json
+[2025-08-04 11:19:08,969] WARNING django.request - Not Found: /main.991b60f64bb8ff71245d.hot-update.json
+[2025-08-04 15:49:44,802] WARNING django.request - Not Found: /main.968a47e767cd42dbdd45.hot-update.json
+[2025-08-04 16:06:37,342] WARNING django.request - Not Found: /main.fbdab7954feab8e2e83f.hot-update.json
+[2025-08-04 16:35:12,292] WARNING django.request - Not Found: /main.67d5cf6d1d6204636619.hot-update.json
+[2025-08-04 16:35:12,330] WARNING django.request - Not Found: /main.67d5cf6d1d6204636619.hot-update.json
+[2025-08-04 16:36:56,065] WARNING django.request - Not Found: /main.7a9edadb47347035b968.hot-update.json
+[2025-08-04 16:36:56,077] WARNING django.request - Not Found: /main.7a9edadb47347035b968.hot-update.json
+[2025-08-04 17:10:29,076] WARNING django.request - Not Found: /main.84d9c17d01e31b998694.hot-update.json
+[2025-08-04 17:17:46,031] WARNING django.request - Not Found: /main.226ef6a12bf44f11c405.hot-update.json
+[2025-08-04 17:17:46,083] WARNING django.request - Not Found: /main.226ef6a12bf44f11c405.hot-update.json
+[2025-08-04 17:17:46,116] WARNING django.request - Not Found: /main.226ef6a12bf44f11c405.hot-update.json
+[2025-08-04 17:35:34,183] WARNING django.request - Not Found: /main.292ddff496217622993e.hot-update.json
+[2025-08-04 17:35:34,999] WARNING django.request - Not Found: /main.292ddff496217622993e.hot-update.json
+[2025-08-04 17:35:35,015] WARNING django.request - Not Found: /main.292ddff496217622993e.hot-update.json
+[2025-08-04 17:37:56,181] WARNING django.request - Unauthorized: /carga-datos/api/
+[2025-08-04 18:42:20,961] WARNING django.request - Not Found: /main.27a5245a3307d6a44efb.hot-update.json
+[2025-08-04 18:42:22,933] WARNING django.request - Not Found: /main.27a5245a3307d6a44efb.hot-update.json
+[2025-08-04 18:42:22,943] WARNING django.request - Not Found: /main.27a5245a3307d6a44efb.hot-update.json
+[2025-08-04 18:42:22,960] WARNING django.request - Not Found: /main.27a5245a3307d6a44efb.hot-update.json
+[2025-08-04 18:42:23,072] WARNING django.request - Not Found: /main.27a5245a3307d6a44efb.hot-update.json
+[2025-08-04 18:50:08,039] WARNING django.request - Not Found: /main.c305489c3a2d0d354657.hot-update.json
+[2025-08-04 18:50:08,046] WARNING django.request - Not Found: /main.c305489c3a2d0d354657.hot-update.json
+[2025-08-04 18:50:08,054] WARNING django.request - Not Found: /main.c305489c3a2d0d354657.hot-update.json
+[2025-08-04 18:50:08,064] WARNING django.request - Not Found: /main.c305489c3a2d0d354657.hot-update.json
+[2025-08-04 18:50:08,068] WARNING django.request - Not Found: /main.c305489c3a2d0d354657.hot-update.json
+[2025-08-04 19:19:28,117] WARNING django.request - Not Found: /api/certificado/generar/
