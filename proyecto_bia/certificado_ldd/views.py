@@ -11,25 +11,47 @@ from .models import BaseDeDatosBia, Certificate
 
 # Diccionario de logos según entidadinterna
 LOGOS_ENTIDADES = {
-    "Banco Galicia": "static/logos/galicia.png",
-    "Banco Nación": "static/logos/nacion.png",
-    "Banco Santander": "static/logos/santander.png",
+    "FP Azur Investment": "static/logos/azur.png",
+    "LD BIA": "static/logos/bia.png",
+    "LD CPSA": "static/logos/cpsa.png",
+    "LD EGEO": "static/logos/egeo.png",
+    "LF FBLASA": "static/logos/fblasa.png",
+
     # Agregá más entidades según necesites
 }
 
 # Diccionario de firmas autenticadas y responsables según entidadinterna
 FIRMAS_ENTIDADES = {
-    "Banco Galicia": {
-        "firma_path": "static/firmas/galicia.png",
-        "responsable": "Juan Pérez"
+    "FP Azur Investment": {
+        "firma_path": "static/firmas/azur.png",
+        "responsable": "Administrador/Fiduciario",
+        "entidad": "FP Azur Investment S.A./BIA S.R.L.",
     },
-    "Banco Nación": {
-        "firma_path": "static/firmas/nacion.png",
-        "responsable": "María López"
+    
+    "LD BIA": {
+        "firma_path": "static/firmas/bia.png",
+        "cargo": "Administrador/Apoderado",
+        "entidad": "BIA S.R.L.",
     },
-    "Banco Santander": {
-        "firma_path": "static/firmas/santander.png",
-        "responsable": "Carlos Gómez"
+    
+    "LD CPSA": {
+        "firma_path": "static/firmas/cpsa.png",
+        "responsable": "Federico Lequio",
+        "cargo": "Apoderado",
+        "entidad": "Sociedad Anónima Carnes Pampeanas SA",
+    },
+    
+    "LD EGEO": {
+        "firma_path": "static/firmas/egeo.png",
+        "responsable": "Administrador/Apoderado",
+        "entidad": "EGEO S.A.C.I Y A",
+
+    },
+        "LF FBLASA": {
+        "firma_path": "static/firmas/egeo.png",
+        "responsable": "Hernán Morosuk",
+        "cargo": "Apoderado",
+        "entidad": "FB Líneas Aéreas S.A.",
     },
     # Agregá más entidades según necesites
 }
@@ -116,20 +138,20 @@ def api_generar_certificado(request):
             logo_url = settings.STATIC_URL + logo_path.split("static/")[-1] if logo_path else None
 
             # Obtener firma y responsable
-            firma_info = FIRMAS_ENTIDADES.get(registro.entidadinterna)
-            firma_url = settings.STATIC_URL + firma_info["firma_path"].split("static/")[-1] if firma_info else None
-            responsable = firma_info["responsable"] if firma_info else "Socio/Gerente"
+            firma_info = FIRMAS_ENTIDADES.get(registro.entidadinterna, {})
+            firma_url = settings.STATIC_URL + firma_info["firma_path"].split("static/")[-1] if firma_info.get("firma_path") else None
 
-            # Render del HTML
             html = render_to_string(
                 'pdf_template.html',
                 {
                     'client': registro,
                     'logo_url': logo_url,
                     'firma_url': firma_url,
-                    'responsable': responsable
+                    'responsable': firma_info.get("responsable", "Socio/Gerente"),
+                    'cargo': firma_info.get("cargo", ""),
+                    'entidad_firma': firma_info.get("entidad", "")
                 }
-            )
+        )
 
             pdf_file = generate_pdf(html)
             if pdf_file:

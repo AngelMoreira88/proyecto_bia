@@ -3,26 +3,36 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
+  <title>Certificado de Libre de Deuda</title>
   <link rel="stylesheet" href="{% static 'css/styles-pdf.css' %}">
 </head>
 <body>
-  <!-- Encabezado con Logo y Título -->
+
+  <!-- LOGOS SUPERIORES -->
   <div class="header">
-    {% if logo_url %}
-      <img src="{{ logo_url }}" alt="Logo Entidad" style="max-height:80px;">
+    {% if logo_url and client.entidadinterna != "BIA" %}
+      <div class="logos">
+        <img src="{{ logo_url }}" alt="Logo Entidad" style="max-height: 70px; max-width: 45%;">
+        <img src="{% static 'images/bia.png' %}" alt="Logo BIA" style="max-height: 70px; max-width: 45%;">
+      </div>
     {% else %}
-      <img src="{% static 'images/logo.png' %}" alt="Logo Empresa">
+      <div class="logo-center">
+        <img src="{% static 'images/bia.png' %}" alt="Logo BIA" style="max-height: 80px;">
+      </div>
     {% endif %}
-    <h1>Certificado de Libre de Deuda</h1>
-    <hr>
   </div>
+
+  <hr>
+
+  <!-- TÍTULO -->
+  <h2 style="text-align: center;">Certificado de Libre de Deuda</h2>
 
   <!-- Fecha de emisión -->
   <div class="date">
-    <p>Fecha: <strong>{% now "d/m/Y" %}</strong></p>
+    <p>Fecha de emisión: <strong>{% now "d/m/Y" %}</strong></p>
   </div>
 
-  <!-- Contenido del certificado -->
+  <!-- CONTENIDO PRINCIPAL -->
   <div class="content">
     <p>
       Por medio del presente se certifica que
@@ -33,25 +43,28 @@
       (ID de operación <strong>{{ client.id_pago_unico }}</strong>),
       conforme a los registros internos y comprobantes archivados.
     </p>
+
     <p>
       Este certificado se expide a solicitud del interesado para los fines que estime convenientes,
-      sin que implique responsabilidad adicional por parte de la entidad en
-      cuanto a la veracidad de la información aquí contenida.
+      sin que implique responsabilidad adicional por parte de la entidad emisora respecto a
+      la veracidad futura de esta información.
     </p>
   </div>
 
-<!-- Sección de firma autenticada -->
-<div class="signature">
-  <p>Firma Autenticada:</p>
-  {% if firma_url %}
-    <img src="{{ firma_url }}" alt="Firma Autenticada">
-    <p><strong>{{ responsable }}</strong><br>
-       Representante Autorizado</p>
-  {% else %}
-    <img src="{% static 'images/firma.png' %}" alt="Firma Autenticada">
-    <p><strong>Nombre y apellido</strong><br>
-       Socio/Gerente</p>
-  {% endif %}
-</div>
+  <!-- FIRMA -->
+  <div class="signature">
+    <p>Firma autenticada:</p>
+    {% if firma_url %}
+      <img src="{{ firma_url }}" alt="Firma" style="height: 60px;"><br>
+      <strong>{{ responsable }}</strong><br>
+      {{ cargo }}<br>
+      {{ entidad_firma }}
+    {% else %}
+      <img src="{% static 'images/firma.png' %}" alt="Firma"><br>
+      <strong>Socio/Gerente</strong>
+    {% endif %}
+  </div>
+
 </body>
 </html>
+

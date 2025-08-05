@@ -590,3 +590,5 @@ django.db.utils.IntegrityError: insert or update on table "certificate" violates
 DETAIL:  Key (client_id)=(125483) is not present in table "certificado_ldd_basededatosbia".
 
 [2025-08-04 01:46:45,460] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-04 20:56:48,922] WARNING django.request - Not Found: /main.a1f3303e59ed15d2253d.hot-update.json
+[2025-08-04 21:29:34,995] WARNING django.request - Not Found: /api/certificado/generar/

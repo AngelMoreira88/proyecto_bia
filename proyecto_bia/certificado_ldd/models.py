@@ -1,6 +1,6 @@
 # certificado_ldd/models.py
 from django.db import models
-from carga_datos.models import BaseDeDatosBia  # ✅ importa desde app correcta
+from carga_datos.models import BaseDeDatosBia  # importa desde app carga_datos
 
 class Certificate(models.Model):
     client = models.OneToOneField(
