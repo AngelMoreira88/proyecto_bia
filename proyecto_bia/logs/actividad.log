@@ -592,3 +592,63 @@ DETAIL:  Key (client_id)=(125483) is not present in table "certificado_ldd_based
 [2025-08-04 01:46:45,460] WARNING django.request - Not Found: /api/certificado/generar/
 [2025-08-04 20:56:48,922] WARNING django.request - Not Found: /main.a1f3303e59ed15d2253d.hot-update.json
 [2025-08-04 21:29:34,995] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-04 21:50:53,117] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-04 21:51:10,695] ERROR django.request - Internal Server Error: /api/certificado/generar/
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedColumn: column db_bia.entidadinterna_id does not exist
+LINE 1: ...b_bia"."propietario", "db_bia"."entidadoriginal", "db_bia"."...
+                                                             ^
+HINT:  Perhaps you meant to reference the column "db_bia.entidadinterna".
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\certificado_ldd\views.py", line 127, in api_generar_certificado
+    for p in pendientes
+             ^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 400, in __iter__
+    self._fetch_all()
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 1928, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\sql\compiler.py", line 1574, in execute_sql
+    cursor.execute(sql, params)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: column db_bia.entidadinterna_id does not exist
+LINE 1: ...b_bia"."propietario", "db_bia"."entidadoriginal", "db_bia"."...
+                                                             ^
+HINT:  Perhaps you meant to reference the column "db_bia.entidadinterna".
+
+[2025-08-05 01:23:24,518] WARNING django.request - Not Found: /api/certificado/generar/

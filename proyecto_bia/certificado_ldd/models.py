@@ -15,3 +15,13 @@ class Certificate(models.Model):
     class Meta:
         db_table = 'certificate'
 
+class Entidad(models.Model):
+    nombre = models.CharField(max_length=100, unique=True)  # Debe coincidir con 'entidadinterna' en BaseDeDatosBia
+    logo = models.ImageField(upload_to='logos_entidades/', blank=True, null=True)
+    firma = models.ImageField(upload_to='firmas_entidades/', blank=True, null=True)
+    responsable = models.CharField(max_length=100)
+    cargo = models.CharField(max_length=100)
+    razon_social = models.CharField(max_length=200)
+
+    def __str__(self):
+        return self.nombre

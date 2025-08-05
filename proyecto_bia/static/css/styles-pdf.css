@@ -1,52 +1,66 @@
+/* Tipografía base */
 body {
-  font-family: Arial, sans-serif;
-  font-size: 13px;
-  line-height: 1.6;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12pt;
+  margin: 30px;
   color: #000;
-  padding: 30px 40px;
+  line-height: 1.6;
 }
 
-h1, h2, h3 {
-  text-align: center;
-  margin-bottom: 0.5em;
-}
-
-p {
-  margin: 0.5em 0;
-}
-
-hr {
-  border: 0;
-  border-top: 1px solid #999;
-  margin: 1em 0;
-}
-
-.header, .footer {
-  text-align: center;
+/* Cabecera con logos */
+.header {
   margin-bottom: 20px;
 }
 
-.date {
-  text-align: right;
-  font-size: 12px;
+.logos {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
+.logo-center {
+  text-align: center;
+}
+
+/* Línea divisoria */
+hr {
+  border: none;
+  border-top: 1px solid #999;
+  margin: 20px 0;
+}
+
+/* Título */
+h2 {
+  font-size: 18pt;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+/* Fecha de emisión */
+.date {
+  text-align: right;
+  margin-bottom: 20px;
+  font-size: 11pt;
+}
+
+/* Contenido principal */
 .content {
-  margin-top: 1.5em;
+  margin-top: 10px;
   text-align: justify;
 }
 
+/* Firma */
 .signature {
-  margin-top: 3em;
-  text-align: left;
+  margin-top: 50px;
+  text-align: center;
 }
 
 .signature img {
-  height: 60px;
-  margin-top: 0.5em;
+  margin-bottom: 5px;
 }
 
-img {
-  max-width: 100%;
-  height: auto;
+/* Para evitar que el contenido se corte mal en PDF */
+@page {
+  size: A4;
+  margin: 30mm 20mm 30mm 20mm;
 }

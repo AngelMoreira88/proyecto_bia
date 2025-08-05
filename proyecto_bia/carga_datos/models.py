@@ -1,10 +1,10 @@
 from django.db import models
 
 class BaseDeDatosBia(models.Model):
-    id_pago_unico        = models.CharField(max_length=100, primary_key=True)
+    id_pago_unico        = models.CharField(max_length=50, primary_key=True)
     propietario          = models.CharField(max_length=255, blank=True, null=True)
-    entidadoriginal     = models.CharField(max_length=255, blank=True, null=True)
-    entidadinterna      = models.CharField(max_length=255, blank=True, null=True)
+    entidadoriginal      = models.CharField(max_length=255, blank=True, null=True)
+    entidadinterna       = models.CharField(max_length=255)
     grupo                = models.CharField(max_length=50, blank=True, null=True)
     tramo                = models.CharField(max_length=50, blank=True, null=True)
     comision             = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
@@ -46,3 +46,4 @@ class BaseDeDatosBia(models.Model):
         # mantené esto; si no, podés borrarlo y Django usará el nombre por defecto.
         db_table = 'db_bia'
         managed  = True
+

@@ -10,14 +10,18 @@
 
   <!-- LOGOS SUPERIORES -->
   <div class="header">
-    {% if logo_url and client.entidadinterna != "BIA" %}
-      <div class="logos">
-        <img src="{{ logo_url }}" alt="Logo Entidad" style="max-height: 70px; max-width: 45%;">
-        <img src="{% static 'images/bia.png' %}" alt="Logo BIA" style="max-height: 70px; max-width: 45%;">
+    {% if entidad_otras and entidad_bia %}
+      <div class="logos" style="display: flex; justify-content: space-between; align-items: center;">
+        <img src="{{ entidad_otras.logo.url }}" alt="Logo Entidad" style="max-height: 70px; max-width: 45%;">
+        <img src="{{ entidad_bia.logo.url }}" alt="Logo BIA" style="max-height: 70px; max-width: 45%;">
       </div>
     {% else %}
-      <div class="logo-center">
-        <img src="{% static 'images/bia.png' %}" alt="Logo BIA" style="max-height: 80px;">
+      <div class="logo-center" style="text-align: center;">
+        {% if entidad_bia %}
+          <img src="{{ entidad_bia.logo.url }}" alt="Logo BIA" style="max-height: 80px;">
+        {% elif logo_url %}
+          <img src="{{ logo_url }}" alt="Logo Único" style="max-height: 80px;">
+        {% endif %}
       </div>
     {% endif %}
   </div>
@@ -52,7 +56,7 @@
   </div>
 
   <!-- FIRMA -->
-  <div class="signature">
+  <div class="signature" style="text-align: center; margin-top: 40px;">
     <p>Firma autenticada:</p>
     {% if firma_url %}
       <img src="{{ firma_url }}" alt="Firma" style="height: 60px;"><br>
@@ -60,11 +64,10 @@
       {{ cargo }}<br>
       {{ entidad_firma }}
     {% else %}
-      <img src="{% static 'images/firma.png' %}" alt="Firma"><br>
+      <img src="{% static 'images/firma.png' %}" alt="Firma" style="height: 60px;"><br>
       <strong>Socio/Gerente</strong>
     {% endif %}
   </div>
 
 </body>
 </html>
-
