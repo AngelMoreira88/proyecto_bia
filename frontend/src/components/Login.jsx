@@ -1,4 +1,3 @@
-// frontend/src/components/Login.jsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -8,11 +7,14 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
     try {
       const response = await axios.post('/api/token/', {
@@ -24,16 +26,27 @@ export default function Login() {
       localStorage.setItem('access_token', access);
       localStorage.setItem('refresh_token', refresh);
 
-      navigate('/');
+      // Establecer header global de axios (opcional)
+      axios.defaults.headers.common['Authorization'] = `Bearer ${access}`;
+
+      // 🔁 Notificar a otros componentes (como Header)
+      window.dispatchEvent(new Event('storage'));
+
+      // Redirigir al destino guardado o al home
+      const redirectPath = localStorage.getItem('redirectAfterLogin') || '/';
+      localStorage.removeItem('redirectAfterLogin');
+      navigate(redirectPath);
     } catch (err) {
       setError('Credenciales inválidas. Intenta nuevamente.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <>
       <Header />
-      
+
       <div className="container d-flex align-items-center justify-content-center min-vh-100">
         <div className="card p-4 shadow-sm" style={{ maxWidth: 400, width: '100%' }}>
           <h3 className="text-center text-primary mb-4">Iniciar sesión</h3>
@@ -71,8 +84,8 @@ export default function Login() {
               />
             </div>
 
-            <button type="submit" className="btn btn-primary w-100">
-              Ingresar
+            <button type="submit" className="btn btn-primary w-100" disabled={loading}>
+              {loading ? 'Ingresando...' : 'Ingresar'}
             </button>
           </form>
         </div>

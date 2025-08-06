@@ -20,7 +20,10 @@ export default function Home() {
         <div className="row h-100 m-0">
           {/* Columna izquierda centrada */}
           <div className="col-md-6 d-flex justify-content-center align-items-center">
-            <div className="text-start px-5" style={{ maxWidth: "500px" }}>
+            <div
+              className="text-center px-4"
+              style={{ maxWidth: "500px", width: "100%" }}
+            >
               <h2 className="text-primary fw-bold mb-3">
                 Bienvenido al sistema de Grupo BIA
               </h2>
@@ -29,15 +32,10 @@ export default function Home() {
                 rápida y segura.
               </p>
 
-              <div className="d-flex gap-2">
+              <div className="d-flex justify-content-center gap-2">
                 <Link to="/certificado" className="btn btn-primary">
                   Generar certificado
                 </Link>
-
-                {/* Botón volver (opcional) */}
-                {/* <Link to="/" className="btn btn-secondary">
-                  Volver atrás
-                </Link> */}
               </div>
             </div>
           </div>

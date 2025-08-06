@@ -1,7 +1,7 @@
 // frontend/src/components/GenerarCertificado.jsx
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { Link } from "react-router-dom";
 import bienvenidaImg from "../images/ImagenBienvenida.jpg";
 import Header from "./Header";
 
@@ -9,14 +9,11 @@ export default function GenerarCertificado() {
   const [dni, setDni] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const navigate = useNavigate(); // Hook para navegación
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-//    setPendientes([]);
-//    setCertificados([]);
 
     const formData = new FormData();
     formData.append("dni", dni);
@@ -46,32 +43,42 @@ export default function GenerarCertificado() {
     }
   };
 
-  const handleVolver = () => {
-    navigate("/"); // Ir al home
-  };
-
   return (
     <>
       <Header />
-      <div className="container-fluid" style={{ height: "calc(100vh - 88px)" }}>
-        <div className="row h-100">
+      <div
+        className="container-fluid p-0"
+        style={{
+          marginTop: "88px",
+          height: "calc(100vh - 88px)",
+          overflow: "hidden",
+        }}
+      >
+        <div className="row h-100 m-0">
           {/* Columna izquierda centrada */}
           <div className="col-md-6 d-flex justify-content-center align-items-center">
-            <div className="w-100 text-center px-4 px-md-5">
+            <div
+              className="w-100 text-center px-4 px-md-5"
+              style={{
+                maxWidth: "500px",
+                border: "1px solid #ccc",
+                borderRadius: "12px",
+                padding: "30px",
+                background: "white",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+              }}
+            >
               <h2 className="text-primary fw-bold mb-3">
                 Generar Certificado Libre de Deuda
               </h2>
-              <p className="text-muted mb-4">Ingresá tu DNI.</p>
+              <p className="text-muted mb-4">Ingresá tu DNI a continuación.</p>
 
               <form
                 onSubmit={handleSubmit}
-                className="mx-auto"
-                style={{ maxWidth: "400px" }}
+                style={{ maxWidth: "400px", margin: "0 auto" }}
               >
                 <div className="mb-3 text-start">
-                  <label htmlFor="dni" className="form-label">
-                    DNI
-                  </label>
+
                   <input
                     type="text"
                     id="dni"
@@ -91,13 +98,9 @@ export default function GenerarCertificado() {
                     {loading ? "Generando..." : "Generar"}
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={handleVolver}
-                    className="btn btn-secondary"
-                  >
-                    ← Ir al Home
-                  </button>
+                  <Link to="/" className="btn btn-secondary">
+                    Volver atrás
+                  </Link>
                 </div>
 
                 {error && (
@@ -109,13 +112,18 @@ export default function GenerarCertificado() {
             </div>
           </div>
 
-          {/* Columna derecha imagen */}
-          <div className="col-md-6 d-none d-md-block p-0">
+          {/* Columna derecha con imagen */}
+          <div className="col-md-6 p-0">
             <img
               src={bienvenidaImg}
-              alt="Certificado"
-              className="img-fluid w-100 h-100"
-              style={{ objectFit: "cover" }}
+              alt="Bienvenida"
+              className="img-fluid"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                display: "block",
+              }}
             />
           </div>
         </div>

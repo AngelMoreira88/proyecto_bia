@@ -14,12 +14,21 @@ import GenerarCertificado from './components/GenerarCertificado';
 import ConfirmarCarga     from './components/ConfirmarCarga';
 import ErroresValidacion  from './components/ErroresValidacion';
 import UploadForm         from './components/UploadForm';
-import PrivateRoute       from './components/PrivateRoute'; // ✅ Ya lo estás importando bien
+import Header from './components/Header';
 import 'bootstrap/dist/css/bootstrap.min.css';
+
+import { isLoggedIn }     from './services/auth';
+
+// Wrapper para rutas privadas
+function PrivateRoute({ children }) {
+  return isLoggedIn() ? children : <Navigate to="/login" replace />;
+}
 
 export default function App() {
   return (
     <BrowserRouter>
+
+
       <Routes>
         {/* Rutas públicas */}
         <Route path="/" element={<Home />} />
@@ -27,7 +36,7 @@ export default function App() {
         <Route path="/logout" element={<Logout />} />
         <Route path="/certificado" element={<GenerarCertificado />} />
 
-        {/* Rutas privadas */}
+        {/* Rutas de carga de datos (privadas) */}
         <Route
           path="/carga-datos/upload"
           element={
@@ -53,7 +62,7 @@ export default function App() {
           }
         />
 
-        {/* Ruta por defecto */}
+        {/* Cualquier otra ruta redirige a Home */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>

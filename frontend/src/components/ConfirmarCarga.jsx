@@ -1,21 +1,21 @@
 // frontend/src/components/ConfirmarCarga.jsx
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation }    from 'react-router-dom';
-import { confirmarCarga }              from '../services/api';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { confirmarCarga } from '../services/api';
+import Header from './Header';
 
 export default function ConfirmarCarga() {
   const [message, setMessage] = useState('');
-  const [error, setError]     = useState('');
-  const navigate              = useNavigate();
-  const location              = useLocation();
-
-  // Extraemos records del state que enviamos en el navigate()
-  const records = location.state?.records || [];
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
+    const records = location.state?.records || [];
+
     if (records.length === 0) {
-      setError('❌ No hay datos para confirmar');
+      setError('❌ No hay datos para confirmar.');
       return;
     }
 
@@ -24,22 +24,38 @@ export default function ConfirmarCarga() {
         const res = await confirmarCarga(records);
         if (res.data.success) {
           setMessage(`✅ Se crearon ${res.data.created_count} registros.`);
-          // Opcional: redirigir luego de un ratito
           setTimeout(() => navigate('/carga-datos/errores'), 2000);
         } else {
-          setError(res.data.error);
+          setError(res.data.error || 'Hubo un problema con la carga.');
         }
-      } catch (err) {
+      } catch {
         setError('❌ Error al confirmar la carga.');
       }
     })();
-  }, [navigate, records]);
+  }, [navigate, location.state]);
 
   return (
-    <div style={{ padding: '1rem' }}>
-      <h2>Confirmar Carga</h2>
-      {message && <p style={{ color: 'green' }}>{message}</p>}
-      {error   && <p style={{ color: 'red' }}>{error}</p>}
-    </div>
+    <>
+      <Header />
+      <div className="container d-flex flex-column justify-content-center align-items-center min-vh-100">
+        <div className="card shadow p-4" style={{ maxWidth: 600, width: '100%' }}>
+          <h2 className="text-center text-primary mb-4">Confirmar Carga</h2>
+
+          {message && (
+            <div className="alert alert-success text-center" role="alert">
+              {message}
+            </div>
+          )}
+
+          {error && (
+            <div className="alert alert-danger text-center" role="alert">
+              {error}
+            </div>
+          )}
+
+          <p className="text-muted text-center">Redirigiendo automáticamente...</p>
+        </div>
+      </div>
+    </>
   );
 }
