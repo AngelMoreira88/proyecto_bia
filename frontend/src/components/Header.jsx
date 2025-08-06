@@ -1,3 +1,4 @@
+// src/components/Header.jsx
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { isLoggedIn, logout } from '../services/auth';
@@ -16,13 +17,12 @@ export default function Header() {
     if (isLoggedIn()) {
       navigate('/carga-datos/upload');
     } else {
-      // Guardamos redirección deseada para después del login
       localStorage.setItem('redirectAfterLogin', '/carga-datos/upload');
       navigate('/login');
     }
   };
 
-  // Sync login desde otras pestañas o cuando dispatchamos manualmente
+  // Sincroniza login si cambia en otra pestaña o tras dispatchEvent('storage')
   useEffect(() => {
     const checkLogin = () => setLogged(isLoggedIn());
     window.addEventListener('storage', checkLogin);
@@ -63,17 +63,45 @@ export default function Header() {
               <Link className="text-decoration-none text-dark" to="/">
                 Home
               </Link>
+
               <Link className="text-decoration-none text-dark" to="/certificado">
                 Generar Certificado
               </Link>
-              <Link className="text-decoration-none text-dark" to="/carga-datos/upload">
-                Cargar Datos
+
+              {/* Dropdown Datos */}
+              <div className="dropdown">
+                <button
+                  className="btn btn-link text-dark dropdown-toggle p-0"
+                  type="button"
+                  id="datosDropdown"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  Datos
+                </button>
+                <ul className="dropdown-menu" aria-labelledby="datosDropdown">
+                  <li>
+                    <Link className="dropdown-item" to="/mostrar-datos">
+                      Modificar
+                    </Link>
+                  </li>
+                  <li>
+                    <Link className="dropdown-item" to="/carga-datos/upload">
+                      Cargar Excel
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+
+              <Link className="text-decoration-none text-dark" to="/profile">
+                Perfil
               </Link>
+
               <button
                 className="btn btn-outline-danger btn-sm"
                 onClick={handleLogout}
               >
-                Cerrar sesión
+                Salir
               </button>
             </>
           ) : (
