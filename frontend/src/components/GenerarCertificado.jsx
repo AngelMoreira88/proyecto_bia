@@ -1,4 +1,3 @@
-// frontend/src/components/GenerarCertificado.jsx
 import { useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
@@ -55,30 +54,29 @@ export default function GenerarCertificado() {
         }}
       >
         <div className="row h-100 m-0">
-          {/* Columna izquierda centrada */}
+          {/* Columna izquierda con formulario dentro de un recuadro */}
           <div className="col-md-6 d-flex justify-content-center align-items-center">
             <div
-              className="w-100 text-center px-4 px-md-5"
-              style={{
-                maxWidth: "500px",
-                border: "1px solid #ccc",
-                borderRadius: "12px",
-                padding: "30px",
-                background: "white",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
-              }}
+              className="w-100 px-4 px-md-5 py-4 border rounded shadow-sm bg-white"
+              style={{ maxWidth: "700px" }}
             >
-              <h2 className="text-primary fw-bold mb-3">
+              <h2
+                className="text-primary fw-bold mb-3 text-center"
+                style={{
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
                 Generar Certificado Libre de Deuda
               </h2>
-              <p className="text-muted mb-4">Ingresá tu DNI a continuación.</p>
 
-              <form
-                onSubmit={handleSubmit}
-                style={{ maxWidth: "400px", margin: "0 auto" }}
-              >
+              <p className="text-muted text-center mb-4">
+                Ingresá tu DNI a continuación.
+              </p>
+
+              <form onSubmit={handleSubmit} className="mx-auto" style={{ maxWidth: "400px" }}>
                 <div className="mb-3 text-start">
-
                   <input
                     type="text"
                     id="dni"
