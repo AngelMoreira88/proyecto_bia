@@ -5,3 +5,6 @@ __pycache__/
 /venvGrupoBIA/
 /frontend/src/notas personales.txt
 /media
+# .gitignore
+/media/certificados_generados/
+*.pdf

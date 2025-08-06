@@ -15,6 +15,8 @@ export default function GenerarCertificado() {
     e.preventDefault();
     setError("");
     setLoading(true);
+//    setPendientes([]);
+//    setCertificados([]);
 
     const formData = new FormData();
     formData.append("dni", dni);
