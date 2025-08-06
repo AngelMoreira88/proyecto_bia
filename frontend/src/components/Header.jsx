@@ -2,17 +2,20 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { isLoggedIn, logout } from '../services/auth';
+//Logo WEB: src="https://img1.wsimg.com/isteam/ip/11dbfe7c-906d-4e0a-a18f-617be49fc6cd/LOGO%20BIA-00d8200.png/:/rs=w:300,h:150/cg:true/qt=q:95"
 
 export default function Header() {
   const [logged, setLogged] = useState(isLoggedIn());
   const navigate = useNavigate();
 
+  // Cierra sesión y vuelve al home público
   const handleLogout = () => {
     logout();
     setLogged(false);
     navigate('/');
   };
 
+  // Al hacer click en “Panel Interno” si no está logueado
   const handlePanelInternoClick = () => {
     if (isLoggedIn()) {
       navigate('/carga-datos/upload');
@@ -22,7 +25,7 @@ export default function Header() {
     }
   };
 
-  // Sincroniza login si cambia en otra pestaña o tras dispatchEvent('storage')
+  // Escucha cambios de login desde otras pestañas o tras dispatchEvent('storage')
   useEffect(() => {
     const checkLogin = () => setLogged(isLoggedIn());
     window.addEventListener('storage', checkLogin);
@@ -45,30 +48,32 @@ export default function Header() {
     >
       <div
         className="d-flex justify-content-between align-items-center"
-        style={{ height: '100%', paddingLeft: '24px', paddingRight: '24px' }}
+        style={{ height: '100%', padding: '0 24px' }}
       >
         {/* Logo */}
-        <Link to="/">
+        <Link to={logged ? '/portal' : '/'}>
           <img
-            src="https://img1.wsimg.com/isteam/ip/11dbfe7c-906d-4e0a-a18f-617be49fc6cd/LOGO%20BIA-00d8200.png/:/rs=w:300,h:150,cg:true,m/cr=w:300,h:150/qt=q:95"
+            src="proyecto_bia/frontend/src/images/LogoBIA.png"
             alt="Logo Grupo BIA"
             style={{ height: '58px', objectFit: 'contain' }}
           />
         </Link>
 
-        {/* Navegación */}
+        {/* Navegación principal */}
         <nav className="d-none d-md-flex align-items-center gap-4">
           {logged ? (
             <>
-              <Link className="text-decoration-none text-dark" to="/">
+              {/* Home portal */}
+              <Link className="text-decoration-none text-dark" to="/portal">
                 Home
               </Link>
 
+              {/* Generar certificado */}
               <Link className="text-decoration-none text-dark" to="/certificado">
                 Generar Certificado
               </Link>
 
-              {/* Dropdown Datos */}
+              {/* Dropdown “Datos” */}
               <div className="dropdown">
                 <button
                   className="btn btn-link text-dark dropdown-toggle p-0"
@@ -81,8 +86,8 @@ export default function Header() {
                 </button>
                 <ul className="dropdown-menu" aria-labelledby="datosDropdown">
                   <li>
-                    <Link className="dropdown-item" to="/mostrar-datos">
-                      Modificar
+                    <Link className="dropdown-item" to="/datos/mostrar">
+                      Mostrar
                     </Link>
                   </li>
                   <li>
@@ -93,10 +98,12 @@ export default function Header() {
                 </ul>
               </div>
 
+              {/* Perfil */}
               <Link className="text-decoration-none text-dark" to="/profile">
                 Perfil
               </Link>
 
+              {/* Salir */}
               <button
                 className="btn btn-outline-danger btn-sm"
                 onClick={handleLogout}
@@ -106,6 +113,7 @@ export default function Header() {
             </>
           ) : (
             <>
+              {/* Invitado: solo Certificado y Panel Interno */}
               <Link className="text-decoration-none text-dark" to="/certificado">
                 Generar Certificado
               </Link>

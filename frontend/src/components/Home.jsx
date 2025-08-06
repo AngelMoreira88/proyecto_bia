@@ -24,8 +24,7 @@ export default function Home() {
               className="text-center px-4"
               style={{ maxWidth: "500px", width: "100%" }}
             >
-              <h2 className="text-primary fw-bold mb-3">
-                Bienvenido al sistema de Grupo BIA
+              <h2 className="text-primary fw-bold mb-3">                Bienvenido al sistema de Grupo BIA
               </h2>
               <p className="text-muted mb-4">
                 Desde aquí podés generar tu certificado libre de deuda de manera
