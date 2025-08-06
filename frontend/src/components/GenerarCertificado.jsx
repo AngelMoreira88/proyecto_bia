@@ -1,22 +1,20 @@
-
 // frontend/src/components/GenerarCertificado.jsx
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Link } from "react-router-dom";
 import bienvenidaImg from "../images/ImagenBienvenida.jpg";
 import Header from "./Header";
 
 export default function GenerarCertificado() {
   const [dni, setDni] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");  // aquí guardamos el mensaje
+  const [error, setError] = useState("");
+  const navigate = useNavigate(); // Hook para navegación
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
-    setPendientes([]);
-    setCertificados([]);
 
     const formData = new FormData();
     formData.append("dni", dni);
@@ -26,7 +24,6 @@ export default function GenerarCertificado() {
         responseType: "blob",
       });
 
-      // Si vino PDF, lo abrimos:
       const pdfBlob = new Blob([res.data], { type: "application/pdf" });
       const url = window.URL.createObjectURL(pdfBlob);
       window.open(url);
@@ -45,6 +42,10 @@ export default function GenerarCertificado() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleVolver = () => {
+    navigate("/"); // Ir al home
   };
 
   return (
@@ -67,6 +68,7 @@ export default function GenerarCertificado() {
               >
                 <div className="mb-3 text-start">
                   <label htmlFor="dni" className="form-label">
+                    DNI
                   </label>
                   <input
                     type="text"
@@ -87,9 +89,13 @@ export default function GenerarCertificado() {
                     {loading ? "Generando..." : "Generar"}
                   </button>
 
-                  <Link to="/" className="btn btn-secondary">
-                    Volver atrás
-                  </Link>
+                  <button
+                    type="button"
+                    onClick={handleVolver}
+                    className="btn btn-secondary"
+                  >
+                    ← Ir al Home
+                  </button>
                 </div>
 
                 {error && (
