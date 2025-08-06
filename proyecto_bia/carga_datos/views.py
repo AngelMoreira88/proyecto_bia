@@ -10,11 +10,10 @@ from .models import BaseDeDatosBia
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from .models import BaseDeDatosBia
-from rest_framework.response import Response
 from .views_helpers import limpiar_valor  # Helper de limpieza
 from django.db import IntegrityError
 from rest_framework import status
+from .serializers import BaseDeDatosBiaSerializer
 
 # Logger para registrar eventos importantes en el log de Django
 logger = logging.getLogger('django.request')
@@ -247,3 +246,12 @@ def api_errores_validacion(request):
         txt = "\n".join(errores)
         return HttpResponse(txt, content_type='text/plain')
     return Response({'success': True, 'errors': errores})
+
+@api_view(['GET'])
+def mostrar_datos(request):
+    dni = request.GET.get('dni')
+    qs = BaseDeDatosBia.objects.all()
+    if dni:
+        qs = qs.filter(dni=dni)
+    serializer = BaseDeDatosBiaSerializer(qs, many=True)
+    return Response(serializer.data)

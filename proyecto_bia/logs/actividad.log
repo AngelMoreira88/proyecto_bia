@@ -688,3 +688,604 @@ HINT:  Perhaps you meant to reference the column "db_bia.entidadinterna".
 [2025-08-04 18:50:08,064] WARNING django.request - Not Found: /main.c305489c3a2d0d354657.hot-update.json
 [2025-08-04 18:50:08,068] WARNING django.request - Not Found: /main.c305489c3a2d0d354657.hot-update.json
 [2025-08-04 19:19:28,117] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-06 12:47:13,557] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-06 13:11:42,183] WARNING django.request - Bad Request: /api/token/
+[2025-08-06 13:15:48,077] WARNING django.request - Not Found: /main.065aac45677dac01656b.hot-update.json
+[2025-08-06 13:22:06,225] WARNING django.request - Not Found: /main.2e500846b676b3b21bcc.hot-update.json
+[2025-08-06 13:26:57,090] WARNING django.request - Not Found: /main.66c073b34206e076ada7.hot-update.json
+[2025-08-06 13:38:02,057] WARNING django.request - Not Found: /main.227ebaee7c5d0fadb784.hot-update.json
+[2025-08-06 13:38:02,063] WARNING django.request - Not Found: /main.227ebaee7c5d0fadb784.hot-update.json
+[2025-08-06 13:38:02,080] WARNING django.request - Not Found: /main.227ebaee7c5d0fadb784.hot-update.json
+[2025-08-06 13:40:46,111] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-06 13:46:39,509] WARNING django.request - Unauthorized: /carga-datos/api/
+[2025-08-06 13:47:12,471] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-06 13:47:47,894] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-08-06 13:47:48,653] ERROR django.request - Error en api_confirmar_carga:
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211816) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/carga_datos/views.py", line 213, in api_confirmar_carga
+    BaseDeDatosBia.objects.bulk_create(registros, batch_size=100)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 818, in bulk_create
+    returned_columns = self._batched_insert(
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1875, in _batched_insert
+    self._insert(
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211816) already exists.
+
+
+[2025-08-06 13:47:48,653] ERROR django.request - Error en api_confirmar_carga:
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211816) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/carga_datos/views.py", line 213, in api_confirmar_carga
+    BaseDeDatosBia.objects.bulk_create(registros, batch_size=100)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 818, in bulk_create
+    returned_columns = self._batched_insert(
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1875, in _batched_insert
+    self._insert(
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211816) already exists.
+
+
+[2025-08-06 13:47:48,653] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-06 13:47:48,654] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-06 13:52:13,548] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-06 14:00:07,313] WARNING django.request - Unauthorized: /api/token/
+[2025-08-06 14:00:34,834] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-06 14:09:50,741] WARNING django.request - Unauthorized: /api/token/
+[2025-08-06 14:10:39,999] WARNING django.request - Not Found: /main.e227e5d230e518355950.hot-update.json
+[2025-08-06 14:11:38,997] WARNING django.request - Not Found: /main.69849ccee39926e8725a.hot-update.json
+[2025-08-06 14:24:23,817] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-06 14:25:00,392] WARNING django.request - Unauthorized: /api/token/
+[2025-08-06 14:32:12,077] WARNING django.request - Not Found: /main.869b8969a6f9d790fe9a.hot-update.json
+[2025-08-06 14:46:57,127] WARNING django.request - Unauthorized: /api/token/
+[2025-08-06 14:48:10,749] WARNING django.request - Unauthorized: /api/token/
+[2025-08-06 14:59:20,370] WARNING django.request - Unauthorized: /api/token/
+[2025-08-06 15:05:02,040] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA.xlsx' con 14 registros.
+[2025-08-06 15:05:02,698] ERROR django.request - Error en api_confirmar_carga:
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211816) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/carga_datos/views.py", line 213, in api_confirmar_carga
+    BaseDeDatosBia.objects.bulk_create(registros, batch_size=100)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 818, in bulk_create
+    returned_columns = self._batched_insert(
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1875, in _batched_insert
+    self._insert(
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211816) already exists.
+
+
+[2025-08-06 15:05:02,699] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-06 15:05:02,731] ERROR django.request - Error en api_confirmar_carga:
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211816) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/carga_datos/views.py", line 213, in api_confirmar_carga
+    BaseDeDatosBia.objects.bulk_create(registros, batch_size=100)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 818, in bulk_create
+    returned_columns = self._batched_insert(
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1875, in _batched_insert
+    self._insert(
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211816) already exists.
+
+
+[2025-08-06 15:05:02,731] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-06 15:08:33,163] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-06 15:09:52,016] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-06 15:31:34,604] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA - Carga Test.xlsx' con 1 registros.
+[2025-08-06 15:31:35,316] ERROR django.request - Error en api_confirmar_carga:
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211241) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/carga_datos/views.py", line 213, in api_confirmar_carga
+    BaseDeDatosBia.objects.bulk_create(registros, batch_size=100)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 818, in bulk_create
+    returned_columns = self._batched_insert(
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1875, in _batched_insert
+    self._insert(
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211241) already exists.
+
+
+[2025-08-06 15:31:35,318] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-06 15:31:37,646] WARNING django.request - Not Found: /carga-datos/api/errores/
+[2025-08-06 15:31:38,018] WARNING django.request - Not Found: /carga-datos/api/errores/
+[2025-08-06 15:32:51,244] ERROR django.request - Error en api_confirmar_carga:
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211241) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/carga_datos/views.py", line 213, in api_confirmar_carga
+    BaseDeDatosBia.objects.bulk_create(registros, batch_size=100)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 818, in bulk_create
+    returned_columns = self._batched_insert(
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1875, in _batched_insert
+    self._insert(
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211241) already exists.
+
+
+[2025-08-06 15:32:51,245] ERROR django.request - Error en api_confirmar_carga:
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211241) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/carga_datos/views.py", line 213, in api_confirmar_carga
+    BaseDeDatosBia.objects.bulk_create(registros, batch_size=100)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 818, in bulk_create
+    returned_columns = self._batched_insert(
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1875, in _batched_insert
+    self._insert(
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211241) already exists.
+
+
+[2025-08-06 15:32:51,247] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-06 15:32:51,247] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-06 15:33:18,028] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-06 15:34:18,292] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA - Carga Test.xlsx' con 1 registros.
+[2025-08-06 15:34:19,004] ERROR django.request - Error en api_confirmar_carga:
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211241) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/carga_datos/views.py", line 213, in api_confirmar_carga
+    BaseDeDatosBia.objects.bulk_create(registros, batch_size=100)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 818, in bulk_create
+    returned_columns = self._batched_insert(
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1875, in _batched_insert
+    self._insert(
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211241) already exists.
+
+
+[2025-08-06 15:34:19,004] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-06 15:34:21,368] WARNING django.request - Not Found: /carga-datos/api/errores/
+[2025-08-06 15:34:21,711] WARNING django.request - Not Found: /carga-datos/api/errores/
+[2025-08-06 15:35:26,226] INFO django.request - [angel] Previsualización cargada de 'Base de Datos BIA - Carga Test.xlsx' con 1 registros.
+[2025-08-06 15:35:26,901] ERROR django.request - Error en api_confirmar_carga:
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211241) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/carga_datos/views.py", line 213, in api_confirmar_carga
+    BaseDeDatosBia.objects.bulk_create(registros, batch_size=100)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 818, in bulk_create
+    returned_columns = self._batched_insert(
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1875, in _batched_insert
+    self._insert(
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211241) already exists.
+
+
+[2025-08-06 15:35:26,901] ERROR django.request - Error en api_confirmar_carga:
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211241) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/carga_datos/views.py", line 213, in api_confirmar_carga
+    BaseDeDatosBia.objects.bulk_create(registros, batch_size=100)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 818, in bulk_create
+    returned_columns = self._batched_insert(
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1875, in _batched_insert
+    self._insert(
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/models/sql/compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/venvGrupoBIA/lib/python3.12/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "db_bia_pkey"
+DETAIL:  Key (id_pago_unico)=(211241) already exists.
+
+
+[2025-08-06 15:35:26,902] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-06 15:35:26,902] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-06 15:36:33,154] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-06 15:37:29,432] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-06 15:52:01,177] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-06 16:01:29,884] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-06 16:17:29,213] WARNING django.request - Not Found: /main.fa734fa8d180142971ee.hot-update.json
+[2025-08-06 17:00:44,382] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-06 17:01:52,402] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-06 17:10:46,409] WARNING django.request - Unauthorized: /api/token/
+[2025-08-06 18:21:21,450] WARNING django.request - Not Found: /main.7c4fcaf64985b99b793e.hot-update.json
+[2025-08-06 19:51:24,517] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-06 20:01:19,140] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-06 20:01:41,760] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-06 20:04:55,429] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:04:56,091] WARNING django.request - Not Found: /datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:05:07,840] WARNING django.request - Not Found: /main.5bf135aa41270f1a8e23.hot-update.json
+[2025-08-06 20:05:07,942] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:05:07,969] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:05:41,731] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:05:42,091] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:05:42,688] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:05:55,175] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:05:57,296] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:05:58,853] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:05:59,607] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:06:00,993] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:06:18,738] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:06:49,650] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:06:50,138] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:06:50,578] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:06:50,823] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:06:51,054] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:07:07,970] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:07:28,082] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:07:28,086] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:07:37,300] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:07:38,025] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:07:38,772] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:07:39,018] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:07:44,060] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:07:44,078] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:07:47,418] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:07:50,475] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:07:56,516] WARNING django.request - Not Found: /carga-datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:07:58,995] WARNING django.request - Not Found: /datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:08:20,102] WARNING django.request - Not Found: /datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:10:09,814] WARNING django.request - Not Found: /main.05d45fdc705d3ea3384a.hot-update.json
+[2025-08-06 20:10:09,923] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:10:10,018] WARNING django.request - Not Found: /datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:10:11,081] WARNING django.request - Not Found: /main.05d45fdc705d3ea3384a.hot-update.json
+[2025-08-06 20:10:11,263] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:10:13,284] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:10:23,805] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:10:28,525] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:10:31,208] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:10:32,617] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:10:34,204] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:10:39,392] WARNING django.request - Not Found: /carga-datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:10:43,734] WARNING django.request - Not Found: /datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:11:17,216] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-06 20:11:26,255] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:11:27,881] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:11:30,609] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:11:31,202] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:11:31,898] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:11:33,143] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:11:49,533] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:12:14,064] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:12:18,334] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:12:20,623] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:12:26,763] WARNING django.request - Not Found: /carga-datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:12:30,387] WARNING django.request - Not Found: /datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:12:33,062] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:12:36,166] WARNING django.request - Not Found: /datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:12:40,879] WARNING django.request - Not Found: /carga-datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:12:42,980] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-06 20:12:43,679] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png

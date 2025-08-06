@@ -5,7 +5,8 @@ from .views import (
     errores_validacion,
     api_cargar_excel,
     api_confirmar_carga,
-   api_errores_validacion,
+    api_errores_validacion,
+    mostrar_datos
 )
 
 urlpatterns = [
@@ -18,4 +19,6 @@ urlpatterns = [
     path('api/',            api_cargar_excel,      name='api_cargar'),
     path('api/confirmar/',  api_confirmar_carga,   name='api_confirmar'),
     path('api/errores/',    api_errores_validacion,name='api_errores'),
+
+    path('api/datos/mostrar/', mostrar_datos, name='/datos/mostrar'),
 ]
