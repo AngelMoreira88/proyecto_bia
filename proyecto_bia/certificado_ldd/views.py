@@ -6,8 +6,8 @@ from django.core.files.base import ContentFile
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Q
-from .models import Certificate, Entidad
 from carga_datos.models import BaseDeDatosBia
+from .models import Certificate, Entidad
 from rest_framework import viewsets
 from .serializers import EntidadSerializer
 
@@ -35,25 +35,6 @@ def generate_pdf(html):
     result = ContentFile(b"")
     pisa_status = pisa.CreatePDF(html, dest=result, link_callback=link_callback)
     return result if not pisa_status.err else None
-
-
-def obtener_entidad_info(nombre_entidad):
-    entidad = Entidad.objects.filter(nombre__iexact=nombre_entidad.strip()).first()
-    if entidad:
-        return {
-            "logo_url": entidad.logo.url if entidad.logo else None,
-            "firma_url": entidad.firma_path.url if entidad.firma_path else None,
-            "responsable": entidad.responsable,
-            "cargo": entidad.cargo,
-            "entidad_firma": entidad.nombre,
-        }
-    return {
-        "logo_url": None,
-        "firma_url": None,
-        "responsable": "Socio/Gerente",
-        "cargo": "",
-        "entidad_firma": nombre_entidad,
-    }
 
 
 @csrf_exempt
@@ -95,19 +76,25 @@ def api_generar_certificado(request):
         certificate, created = Certificate.objects.get_or_create(client=registro)
 
         if created or not certificate.pdf_file:
-            entidad_info = obtener_entidad_info(registro.entidadinterna)
+            entidad = registro.entidad_obj
+
+            firma_url = responsable = cargo = None
+            if entidad:
+                if entidad.firma:
+                    firma_url = entidad.firma.url
+                responsable = entidad.responsable
+                cargo = entidad.cargo
 
             html = render_to_string(
                 'pdf_template.html',
                 {
                     'client': registro,
-                    'logo_url': entidad_info['logo_url'],
-                    'firma_url': entidad_info['firma_url'],
-                    'responsable': entidad_info['responsable'],
-                    'cargo': entidad_info['cargo'],
-                    'entidad_firma': entidad_info['entidad_firma'],
-                    'entidad_bia': Entidad.objects.filter(nombre__icontains="bia").first(),
-                    'entidad_otras': Entidad.objects.exclude(nombre__icontains="bia").filter(nombre=registro.entidadinterna).first(),
+                    'firma_url': firma_url,
+                    'responsable': responsable or "Socio/Gerente",
+                    'cargo': cargo or "",
+                    'entidad_firma': entidad,  # ← objeto completo con firma y más
+                    'entidad_bia': entidad if entidad and "bia" in entidad.nombre.lower() else None,
+                    'entidad_otras': entidad if entidad and "bia" not in entidad.nombre.lower() else None,
                 }
             )
 

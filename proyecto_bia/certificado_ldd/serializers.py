@@ -16,3 +16,4 @@ class BaseDeDatosBiaSerializer(serializers.ModelSerializer):
     class Meta:
         model = BaseDeDatosBia
         fields = '__all__'
+

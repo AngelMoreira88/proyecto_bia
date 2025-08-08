@@ -9,17 +9,22 @@ body {
 
 /* Cabecera con logos */
 .header {
-  margin-bottom: 20px;
-}
-
-.logos {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 20px;
+}
+
+.header img {
+  max-height: 70px;
+  max-width: 45%;
+  object-fit: contain;
 }
 
 .logo-center {
-  text-align: center;
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
 }
 
 /* Línea divisoria */
@@ -51,12 +56,15 @@ h2 {
 
 /* Firma */
 .signature {
-  margin-top: 50px;
+  margin-top: 60px;
   text-align: center;
+  font-size: 11pt;
+  color: #333;
 }
 
 .signature img {
   margin-bottom: 5px;
+  max-height: 60px;
 }
 
 /* Para evitar que el contenido se corte mal en PDF */

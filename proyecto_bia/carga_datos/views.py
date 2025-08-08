@@ -248,10 +248,22 @@ def api_errores_validacion(request):
     return Response({'success': True, 'errors': errores})
 
 @api_view(['GET'])
-def mostrar_datos(request):
+@permission_classes([IsAuthenticated])
+def mostrar_datos_bia(request):
     dni = request.GET.get('dni')
-    qs = BaseDeDatosBia.objects.all()
-    if dni:
-        qs = qs.filter(dni=dni)
+    id_pago = request.GET.get('id_pago_unico')
+    if not dni or not id_pago:
+        return Response(
+            {'error': "Faltan parámetros 'dni' o 'id_pago_unico'"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    qs = BaseDeDatosBia.objects.filter(dni=dni, id_pago_unico=id_pago)
+    if not qs.exists():
+        return Response(
+            {'error': "No se encontró ningún registro para esos parámetros"},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
     serializer = BaseDeDatosBiaSerializer(qs, many=True)
-    return Response(serializer.data)
+    return Response(serializer.data, status=status.HTTP_200_OK)

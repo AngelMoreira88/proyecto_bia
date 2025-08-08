@@ -6,19 +6,18 @@ from .views import (
     api_cargar_excel,
     api_confirmar_carga,
     api_errores_validacion,
-    mostrar_datos
-)
+    mostrar_datos_bia,
+    )
 
 urlpatterns = [
     # vistas web “clásicas”
-    path('', cargar_excel,       name='cargar_excel'),
-    path('confirmar/', confirmar_carga,   name='confirmar_carga'),
-    path('errores/',  errores_validacion, name='errores_validacion'),
+    path('',           cargar_excel,       name='cargar_excel'),
+    path('confirmar/', confirmar_carga,    name='confirmar_carga'),
+    path('errores/',   errores_validacion, name='errores_validacion'),
 
-    # endpoints REST para React / JWT
-    path('api/',            api_cargar_excel,      name='api_cargar'),
-    path('api/confirmar/',  api_confirmar_carga,   name='api_confirmar'),
-    path('api/errores/',    api_errores_validacion,name='api_errores'),
-
-    path('api/datos/mostrar/', mostrar_datos, name='/datos/mostrar'),
+    # endpoints REST (JWT)
+    path('api/cargar/',       api_cargar_excel,      name='api_cargar'),
+    path('api/confirmar/',    api_confirmar_carga,   name='api_confirmar'),
+    path('api/errores/',      api_errores_validacion,name='api_errores'),
+    path('api/mostrar-datos-bia/', mostrar_datos_bia, name='mostrar_datos_bia'),
 ]

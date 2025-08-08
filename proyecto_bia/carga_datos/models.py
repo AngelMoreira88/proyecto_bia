@@ -41,9 +41,11 @@ class BaseDeDatosBia(models.Model):
     total_plan           = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     saldo                = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
 
-    class Meta:
-        # Si querés que la tabla se llame db_bia en lugar de carga_datos_basededatosbia,
-        # mantené esto; si no, podés borrarlo y Django usará el nombre por defecto.
-        db_table = 'db_bia'
-        managed  = True
+    @property
+    def entidad_obj(self):
+        from certificado_ldd.models import Entidad  # importación local para evitar ciclos
+        return Entidad.objects.filter(nombre__iexact=self.entidadinterna).first()
 
+    class Meta:
+        db_table = 'db_bia'
+        managed = True

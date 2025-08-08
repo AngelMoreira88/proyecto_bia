@@ -9,19 +9,16 @@
 <body>
 
   <!-- LOGOS SUPERIORES -->
-  <div class="header">
-    {% if entidad_otras and entidad_bia %}
-      <div class="logos" style="display: flex; justify-content: space-between; align-items: center;">
-        <img src="{{ entidad_otras.logo.url }}" alt="Logo Entidad" style="max-height: 70px; max-width: 45%;">
-        <img src="{{ entidad_bia.logo.url }}" alt="Logo BIA" style="max-height: 70px; max-width: 45%;">
-      </div>
-    {% else %}
-      <div class="logo-center" style="text-align: center;">
-        {% if entidad_bia %}
-          <img src="{{ entidad_bia.logo.url }}" alt="Logo BIA" style="max-height: 80px;">
-        {% elif logo_url %}
-          <img src="{{ logo_url }}" alt="Logo Único" style="max-height: 80px;">
-        {% endif %}
+  <div class="header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    {% if entidad_otras and entidad_otras.logo %}
+      <img src="{{ entidad_otras.logo.url }}" alt="Logo {{ entidad_otras.nombre }}" style="max-height: 70px; max-width: 45%;">
+    {% endif %}
+
+    {% if entidad_bia and entidad_bia.logo %}
+      <img src="{{ entidad_bia.logo.url }}" alt="Logo BIA" style="max-height: 70px; max-width: 45%;">
+    {% elif not entidad_otras %}
+      <div style="text-align: center; width: 100%;">
+        <img src="{% static 'images/bia.png' %}" alt="Logo BIA" style="max-height: 80px;">
       </div>
     {% endif %}
   </div>
@@ -56,15 +53,16 @@
   </div>
 
   <!-- FIRMA -->
-  <div class="signature" style="text-align: center; margin-top: 40px;">
+  <div class="signature" style="margin-top: 40px;">
     <p>Firma autenticada:</p>
-    {% if firma_url %}
-      <img src="{{ firma_url }}" alt="Firma" style="height: 60px;"><br>
-      <strong>{{ responsable }}</strong><br>
-      {{ cargo }}<br>
-      {{ entidad_firma }}
+
+    {% if entidad_firma and entidad_firma.firma %}
+      <img src="{{ entidad_firma.firma.url }}" alt="Firma {{ entidad_firma.nombre }}" style="height: 60px;"><br>
+      <strong>{{ entidad_firma.responsable }}</strong><br>
+      {{ entidad_firma.cargo }}<br>
+      {{ entidad_firma.nombre }}
     {% else %}
-      <img src="{% static 'images/firma.png' %}" alt="Firma" style="height: 60px;"><br>
+      <img src="{% static 'images/firma.png' %}" alt="Firma"><br>
       <strong>Socio/Gerente</strong>
     {% endif %}
   </div>

@@ -1289,3 +1289,246 @@ DETAIL:  Key (id_pago_unico)=(211241) already exists.
 [2025-08-06 20:12:40,879] WARNING django.request - Not Found: /carga-datos/proyecto_bia/frontend/src/images/LogoBIA.png
 [2025-08-06 20:12:42,980] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
 [2025-08-06 20:12:43,679] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-07 08:39:59,018] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-07 08:40:00,300] WARNING django.request - Not Found: /main.a3b6a997568d4441796a.hot-update.json
+[2025-08-07 08:40:00,925] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-07 08:40:15,949] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-07 08:40:22,623] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-07 08:40:24,676] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-07 08:40:26,010] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-07 08:40:31,508] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-07 08:40:32,757] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-07 08:40:36,577] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-07 08:40:43,794] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-07 08:40:51,014] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-07 08:40:59,761] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-07 08:41:01,646] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-07 08:41:02,731] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-07 08:41:33,797] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-07 09:39:40,442] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:18:10,937] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:18:16,414] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:21:13,970] WARNING django.request - Not Found: /carga-datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:21:19,311] WARNING django.request - Not Found: /datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:21:26,825] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:21:29,883] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:21:32,215] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:21:37,887] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:21:42,246] WARNING django.request - Not Found: /datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:21:44,884] WARNING django.request - Not Found: /carga-datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:21:52,595] WARNING django.request - Not Found: /datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:21:56,869] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-08 00:21:59,076] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-08 00:23:44,752] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:23:47,353] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:23:52,287] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:23:54,011] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:23:55,773] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:23:57,054] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:24:06,703] ERROR django.request - Internal Server Error: /api/certificado/generar/
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "carga_datos_basededatosbia" does not exist
+LINE 1: SELECT 1 AS "a" FROM "carga_datos_basededatosbia" WHERE "car...
+                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\certificado_ldd\views.py", line 50, in api_generar_certificado
+    if not registros.exists():
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 1288, in exists
+    return self.query.has_results(using=self.db)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\sql\query.py", line 660, in has_results
+    return compiler.has_results()
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\sql\compiler.py", line 1542, in has_results
+    return bool(self.execute_sql(SINGLE))
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\sql\compiler.py", line 1574, in execute_sql
+    cursor.execute(sql, params)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "carga_datos_basededatosbia" does not exist
+LINE 1: SELECT 1 AS "a" FROM "carga_datos_basededatosbia" WHERE "car...
+                             ^
+
+[2025-08-08 00:24:11,893] ERROR django.request - Internal Server Error: /api/certificado/generar/
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "carga_datos_basededatosbia" does not exist
+LINE 1: SELECT 1 AS "a" FROM "carga_datos_basededatosbia" WHERE "car...
+                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\certificado_ldd\views.py", line 50, in api_generar_certificado
+    if not registros.exists():
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 1288, in exists
+    return self.query.has_results(using=self.db)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\sql\query.py", line 660, in has_results
+    return compiler.has_results()
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\sql\compiler.py", line 1542, in has_results
+    return bool(self.execute_sql(SINGLE))
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\sql\compiler.py", line 1574, in execute_sql
+    cursor.execute(sql, params)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "carga_datos_basededatosbia" does not exist
+LINE 1: SELECT 1 AS "a" FROM "carga_datos_basededatosbia" WHERE "car...
+                             ^
+
+[2025-08-08 00:26:47,675] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:26:48,600] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:26:54,932] ERROR django.request - Internal Server Error: /api/certificado/generar/
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UndefinedTable: relation "carga_datos_basededatosbia" does not exist
+LINE 1: SELECT 1 AS "a" FROM "carga_datos_basededatosbia" WHERE "car...
+                             ^
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\certificado_ldd\views.py", line 50, in api_generar_certificado
+    if not registros.exists():
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 1288, in exists
+    return self.query.has_results(using=self.db)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\sql\query.py", line 660, in has_results
+    return compiler.has_results()
+           ^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\sql\compiler.py", line 1542, in has_results
+    return bool(self.execute_sql(SINGLE))
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\sql\compiler.py", line 1574, in execute_sql
+    cursor.execute(sql, params)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.ProgrammingError: relation "carga_datos_basededatosbia" does not exist
+LINE 1: SELECT 1 AS "a" FROM "carga_datos_basededatosbia" WHERE "car...
+                             ^
+
+[2025-08-08 00:29:18,784] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:29:20,583] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:29:21,624] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:29:22,667] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:29:26,250] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-08 00:30:27,196] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:30:29,695] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:30:37,378] WARNING django.request - Not Found: /carga-datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:30:42,571] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:30:48,123] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:30:50,437] WARNING django.request - Not Found: /carga-datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:30:56,937] WARNING django.request - Not Found: /datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:31:01,743] WARNING django.request - Not Found: /carga-datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:31:04,062] WARNING django.request - Not Found: /datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:31:04,753] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:31:10,179] WARNING django.request - Not Found: /datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:31:23,923] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-08 00:32:00,156] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-08 00:48:42,054] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:48:44,277] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:48:45,942] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:48:47,544] WARNING django.request - Not Found: /datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:49:01,538] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-08 00:49:03,967] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-08 00:49:17,344] WARNING django.request - Not Found: /carga-datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:49:18,182] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:49:19,626] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:49:20,896] WARNING django.request - Not Found: /proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:49:21,995] WARNING django.request - Not Found: /carga-datos/proyecto_bia/frontend/src/images/LogoBIA.png
+[2025-08-08 00:55:26,704] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-08 01:39:20,625] WARNING django.request - Unauthorized: /api/token/
+[2025-08-08 01:39:44,940] WARNING django.request - Unauthorized: /api/token/
+[2025-08-08 01:41:03,955] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-08 01:41:15,483] WARNING django.request - Not Found: /api/mostrar-datos-bia/
