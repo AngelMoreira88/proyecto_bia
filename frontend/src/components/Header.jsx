@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { isLoggedIn, logout } from '../services/auth';
-//Logo WEB: src="https://img1.wsimg.com/isteam/ip/11dbfe7c-906d-4e0a-a18f-617be49fc6cd/LOGO%20BIA-00d8200.png/:/rs=w:300,h:150/cg:true/qt=q:95"
 
 export default function Header() {
   const [logged, setLogged] = useState(isLoggedIn());
@@ -53,8 +52,8 @@ export default function Header() {
         {/* Logo */}
         <Link to={logged ? '/portal' : '/'}>
           <img
-            src="proyecto_bia/frontend/src/images/LogoBIA.png"
-            alt="Logo Grupo BIA"
+            src="/images/LogoBIA2.png"
+            alt="Logo BIA"
             style={{ height: '58px', objectFit: 'contain' }}
           />
         </Link>

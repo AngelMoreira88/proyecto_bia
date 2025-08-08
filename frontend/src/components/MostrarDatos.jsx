@@ -23,10 +23,7 @@ export default function Mostrar() {
     setLoading(true);
     try {
       const res = await api.get('/api/mostrar-datos-bia/', {
-        params: {
-          dni: query,
-          id_pago_unico: query,
-        }
+        params: { dni: query, id_pago_unico: query }
       });
       setDatos(res.data);
       if (res.data.length === 0) {
@@ -39,14 +36,14 @@ export default function Mostrar() {
     }
   };
 
-  // Inicia edición de una fila
+  // Pone la fila en modo edición
   const handleEdit = (row) => {
     setEditingId(row.id);
     setFormData({ ...row });
     setError('');
   };
 
-  // Maneja cambios en inputs inline
+  // Actualiza campo en edición
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -68,8 +65,11 @@ export default function Mostrar() {
       <Header />
 
       <div
-        className="container d-flex flex-column align-items-center pt-5"
-        style={{ paddingTop: '100px', minHeight: 'calc(100vh - 100px)' }}
+        className="container d-flex flex-column align-items-center justify-content-center"
+        style={{
+          marginTop: '100px',
+          height: 'calc(100vh - 100px)'
+        }}
       >
         <div className="card shadow-sm w-100" style={{ maxWidth: 800 }}>
           <div className="card-body">
@@ -77,7 +77,7 @@ export default function Mostrar() {
               Mostrar / Editar Datos
             </h3>
 
-            <form onSubmit={handleBuscar} className="d-flex gap-2 mb-3">
+            <form onSubmit={handleBuscar} className="d-flex gap-2 mb-4">
               <input
                 type="text"
                 className="form-control"
@@ -91,13 +91,13 @@ export default function Mostrar() {
             </form>
 
             {error && (
-              <div className="alert alert-danger" role="alert">
+              <div className="alert alert-danger w-100" role="alert">
                 {error}
               </div>
             )}
 
             {datos.length > 0 && (
-              <div className="table-responsive">
+              <div className="table-responsive mt-3">
                 <table className="table table-striped">
                   <thead>
                     <tr>
@@ -108,7 +108,7 @@ export default function Mostrar() {
                     </tr>
                   </thead>
                   <tbody>
-                    {datos.map((row) => (
+                    {datos.map(row => (
                       <tr key={row.id}>
                         {Object.entries(row).map(([field, val]) => (
                           <td key={field}>
@@ -116,7 +116,7 @@ export default function Mostrar() {
                               <input
                                 type="text"
                                 className="form-control form-control-sm"
-                                value={formData[field]}
+                                value={formData[field] ?? ''}
                                 onChange={e => handleChange(field, e.target.value)}
                               />
                             ) : (

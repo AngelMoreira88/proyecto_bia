@@ -8,3 +8,4 @@ __pycache__/
 # .gitignore
 /media/certificados_generados/
 *.pdf
+/proyecto_bia/proyecto_bia/logs/actividad.log

@@ -1,7 +1,7 @@
 // frontend/src/components/HomePortalBia.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
-import bienvenidaImg from '../images/ImagenBienvenida.jpg';
+//import bienvenidaImg from '../images/ImagenBienvenida.jpg';
 import Header from './Header';
 
 export default function HomePortalBia() {
@@ -37,7 +37,7 @@ export default function HomePortalBia() {
           {/* Columna de imagen */}
           <div className="col-md-6 p-0">
             <img
-              src={bienvenidaImg}
+              src="/images/PuertoMadero.png"
               alt="Bienvenida Portal"
               className="img-fluid"
               style={{

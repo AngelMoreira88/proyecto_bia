@@ -1,7 +1,6 @@
 // frontend/src/components/Home.jsx
 import React from "react";
 import { Link } from "react-router-dom";
-import bienvenidaImg from "../images/ImagenBienvenida.jpg";
 import Header from "./Header";
 
 export default function Home() {
@@ -42,7 +41,7 @@ export default function Home() {
           {/* Columna derecha con imagen */}
           <div className="col-md-6 p-0">
             <img
-              src={bienvenidaImg}
+              src="/images/PuertoMadero.png"
               alt="Bienvenida"
               className="img-fluid"
               style={{
