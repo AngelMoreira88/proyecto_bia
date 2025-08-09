@@ -130,5 +130,5 @@ def api_generar_certificado(request):
     })
 
 class EntidadViewSet(viewsets.ModelViewSet):
-    queryset = Entidad.objects.all()
+    queryset = Entidad.objects.all().order_by('nombre')
     serializer_class = EntidadSerializer
