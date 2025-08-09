@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { isLoggedIn, logout } from '../services/auth';
+//Logo WEB: src="https://img1.wsimg.com/isteam/ip/11dbfe7c-906d-4e0a-a18f-617be49fc6cd/LOGO%20BIA-00d8200.png/:/rs=w:300,h:150/cg:true/qt=q:95"
 
 export default function Header() {
   const [logged, setLogged] = useState(isLoggedIn());
@@ -14,7 +15,7 @@ export default function Header() {
     navigate('/');
   };
 
-  // Al hacer click en “Panel Interno” si no está logueado
+  // Redirige al Panel Interno o al login si no está autenticado
   const handlePanelInternoClick = () => {
     if (isLoggedIn()) {
       navigate('/carga-datos/upload');
@@ -24,7 +25,7 @@ export default function Header() {
     }
   };
 
-  // Escucha cambios de login desde otras pestañas o tras dispatchEvent('storage')
+  // Mantiene el estado de login actualizado incluso en otras pestañas
   useEffect(() => {
     const checkLogin = () => setLogged(isLoggedIn());
     window.addEventListener('storage', checkLogin);
@@ -52,81 +53,88 @@ export default function Header() {
         {/* Logo */}
         <Link to={logged ? '/portal' : '/'}>
           <img
-            src="/images/LogoBIA2.png"
-            alt="Logo BIA"
+            src="proyecto_bia/frontend/src/images/LogoBIA.png"
+            alt="Logo Grupo BIA"
             style={{ height: '58px', objectFit: 'contain' }}
           />
         </Link>
 
-        {/* Navegación principal */}
-        <nav className="d-none d-md-flex align-items-center gap-4">
-          {logged ? (
-            <>
-              {/* Home portal */}
-              <Link className="text-decoration-none text-dark" to="/portal">
-                Home
-              </Link>
+        {/* Toggle móvil */}
+        <button
+          className="navbar-toggler d-md-none btn btn-outline-secondary"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#mainNav"
+          aria-controls="mainNav"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          ☰
+        </button>
 
-              {/* Generar certificado */}
-              <Link className="text-decoration-none text-dark" to="/certificado">
-                Generar Certificado
-              </Link>
+        {/* Navegación */}
+        <div className="collapse d-md-flex" id="mainNav">
+          <nav className="d-flex align-items-center gap-4">
+            {logged ? (
+              <>
+                <Link to="/portal" className="text-decoration-none text-dark">
+                  Home
+                </Link>
+                <Link to="/certificado" className="text-decoration-none text-dark">
+                  Generar Certificado
+                </Link>
 
-              {/* Dropdown “Datos” */}
-              <div className="dropdown">
+                <div className="dropdown">
+                  <button
+                    className="btn btn-link text-dark dropdown-toggle p-0"
+                    type="button"
+                    id="datosDropdown"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                  >
+                    Datos
+                  </button>
+                  <ul className="dropdown-menu" aria-labelledby="datosDropdown">
+                    <li>
+                      <Link className="dropdown-item" to="/datos/mostrar">
+                        Mostrar
+                      </Link>
+                    </li>
+                    <li>
+                      <Link className="dropdown-item" to="/carga-datos/upload">
+                        Cargar Excel
+                      </Link>
+                    </li>
+                  </ul>
+                </div>
+
+                <Link to="/profile" className="text-decoration-none text-dark">
+                  Perfil
+                </Link>
                 <button
-                  className="btn btn-link text-dark dropdown-toggle p-0"
-                  type="button"
-                  id="datosDropdown"
-                  data-bs-toggle="dropdown"
-                  aria-expanded="false"
+                  className="btn btn-outline-danger btn-sm"
+                  onClick={handleLogout}
                 >
-                  Datos
+                  Salir
                 </button>
-                <ul className="dropdown-menu" aria-labelledby="datosDropdown">
-                  <li>
-                    <Link className="dropdown-item" to="/datos/mostrar">
-                      Mostrar
-                    </Link>
-                  </li>
-                  <li>
-                    <Link className="dropdown-item" to="/carga-datos/upload">
-                      Cargar Excel
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-
-              {/* Perfil */}
-              <Link className="text-decoration-none text-dark" to="/profile">
-                Perfil
-              </Link>
-
-              {/* Salir */}
-              <button
-                className="btn btn-outline-danger btn-sm"
-                onClick={handleLogout}
-              >
-                Salir
-              </button>
-            </>
-          ) : (
-            <>
-              {/* Invitado: solo Certificado y Panel Interno */}
-              <Link className="text-decoration-none text-dark" to="/certificado">
-                Generar Certificado
-              </Link>
-              <span
-                className="text-decoration-none text-dark"
-                role="button"
-                style={{ cursor: 'pointer' }}
-                onClick={handlePanelInternoClick}
-              >
-                Panel Interno
-              </span>
-            </>
-          )}
-        </nav>
+              </>
+            ) : (
+              <>
+                <Link to="/certificado" className="text-decoration-none text-dark">
+                  Generar Certificado
+                </Link>
+                <span
+                  className="text-decoration-none text-dark"
+                  role="button"
+                  style={{ cursor: 'pointer' }}
+                  onClick={handlePanelInternoClick}
+                >
+                  Panel Interno
+                </span>
+              </>
+            )}
+          </nav>
+        </div>
       </div>
     </header>
   );

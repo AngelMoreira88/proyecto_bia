@@ -1,13 +1,10 @@
+// src/App.jsx
 import React from 'react';
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-} from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 
+import Header             from './components/Header';           
 import Home               from './components/Home';
-import HomePortalBia      from './components/HomePortalBIA';  // <-- nuevo import
+import HomePortalBia      from './components/HomePortalBIA';
 import Login              from './components/Login';
 import Logout             from './components/Logout';
 import GenerarCertificado from './components/GenerarCertificado';
@@ -22,6 +19,9 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 export default function App() {
   return (
     <BrowserRouter>
+      {/* AHORA EL HEADER SE RENDERIZA EN TODAS LAS RUTAS */}
+      <Header />
+
       <Routes>
         {/* Página pública “Home normal” */}
         <Route path="/" element={<Home />} />
