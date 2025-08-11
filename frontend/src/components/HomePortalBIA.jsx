@@ -1,36 +1,65 @@
 // frontend/src/components/HomePortalBia.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-//import bienvenidaImg from '../images/ImagenBienvenida.jpg';
 import Header from './Header';
+import { isLoggedIn } from '../services/auth';
+import EntidadDashboard from './EntidadDashboard/EntidadDashboard';
 
 export default function HomePortalBia() {
+  const [showEntidades, setShowEntidades] = useState(false);
+  const logged = isLoggedIn();
+
   return (
     <>
       <Header />
 
-      {/* Empujamos todo hacia abajo 100px */}
+      {/* Contenido principal */}
       <div
         className="container-fluid p-0"
         style={{
-          marginTop: '100px',
-          height: 'calc(100vh - 100px)',
-          overflow: 'hidden',
+          marginTop: '100px', // separa del header fijo
         }}
       >
-        <div className="row h-100 m-0">
+        {/* Sección de bienvenida (hero) */}
+        <div className="row m-0" style={{ minHeight: '60vh' }}>
           {/* Columna de texto centrado */}
           <div className="col-md-6 d-flex justify-content-center align-items-center">
-            <div className="text-center px-4" style={{ maxWidth: '500px' }}>
+            <div className="text-center px-4" style={{ maxWidth: '520px' }}>
               <h2 className="text-primary fw-bold mb-3">
                 Bienvenido al Portal de Grupo BIA
               </h2>
               <p className="text-muted mb-4">
                 Desde aquí podés acceder a todas las funcionalidades internas.
               </p>
-              <Link to="/carga-datos/upload" className="btn btn-primary px-4">
-                Ir al Panel Interno
-              </Link>
+
+              {logged ? (
+                <div className="d-flex flex-wrap gap-2 justify-content-center">
+                  {/* Toggle del panel de Entidades */}
+                  <button
+                    className="btn btn-outline-primary"
+                    onClick={() => setShowEntidades((v) => !v)}
+                    aria-expanded={showEntidades}
+                    aria-controls="panel-entidades"
+                  >
+                    {showEntidades ? 'Ocultar Entidades' : 'Gestionar Entidades'}
+                  </button>
+
+                  {/* Otras acciones internas */}
+                  <Link to="/carga-datos/upload" className="btn btn-primary">
+                    Cargar Excel
+                  </Link>
+                  <Link to="/datos/mostrar" className="btn btn-outline-secondary">
+                    Mostrar Datos
+                  </Link>
+                  <Link to="/certificado" className="btn btn-outline-secondary">
+                    Generar Certificado
+                  </Link>
+                </div>
+              ) : (
+                <Link to="/login" className="btn btn-primary px-4">
+                  Iniciar sesión
+                </Link>
+              )}
             </div>
           </div>
 
@@ -45,10 +74,31 @@ export default function HomePortalBia() {
                 height: '100%',
                 objectFit: 'cover',
                 display: 'block',
+                minHeight: '320px',
               }}
             />
           </div>
         </div>
+
+        {/* Panel de Entidades (solo si está logeado y activado el toggle) */}
+        {logged && showEntidades && (
+          <section id="panel-entidades" className="container my-4">
+            <div className="card shadow-sm">
+              <div className="card-header d-flex justify-content-between align-items-center">
+                <h5 className="m-0">Gestión de Entidades</h5>
+                <button
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={() => setShowEntidades(false)}
+                >
+                  Cerrar
+                </button>
+              </div>
+              <div className="card-body">
+                <EntidadDashboard />
+              </div>
+            </div>
+          </section>
+        )}
       </div>
     </>
   );

@@ -1,76 +1,61 @@
-import { useEffect, useState } from 'react';
+// src/components/EntidadDashboard/EntidadDashboard.jsx
+import { useState } from 'react';
 import axios from 'axios';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { isLoggedIn } from '@/services/auth';  // ✅ Agregá esto
+import { isLoggedIn } from '../../services/auth';
+import EntidadList from './EntidadList';
 
 export default function EntidadDashboard() {
-  const [entidades, setEntidades] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const [listKey, setListKey] = useState(0); // fuerza refresco de EntidadList tras guardar
   const [formData, setFormData] = useState({
     nombre: '',
     responsable: '',
     cargo: '',
     razon_social: '',
     logo: null,
-    firma: null
+    firma: null,
   });
 
-  const fetchEntidades = async () => {
-    const res = await axios.get('/api/entidades/');
-    setEntidades(res.data);
-  };
-
-  useEffect(() => {
-    fetchEntidades();
-  }, []);
-
-  const handleChange = e => {
+  const handleChange = (e) => {
     const { name, value, files } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: files ? files[0] : value
+      [name]: files ? files[0] : value,
     }));
   };
 
-  const handleSubmit = async e => {
-    e.preventDefault();
-    const payload = new FormData();
-    Object.entries(formData).forEach(([key, value]) => {
-      if (value) payload.append(key, value);
-    });
-
-    const url = editingId
-      ? `/api/entidades/${editingId}/`
-      : `/api/entidades/`;
-
-    const method = editingId ? 'put' : 'post';
-
-    await axios({
-      method,
-      url,
-      data: payload,
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
-
+  const resetForm = () => {
     setFormData({
       nombre: '',
       responsable: '',
       cargo: '',
       razon_social: '',
       logo: null,
-      firma: null
+      firma: null,
     });
     setEditingId(null);
-    fetchEntidades();
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    const payload = new FormData();
+    Object.entries(formData).forEach(([k, v]) => {
+      if (v) payload.append(k, v);
+    });
+
+    const url = editingId ? `/api/entidades/${editingId}/` : `/api/entidades/`;
+    const method = editingId ? 'put' : 'post';
+
+    await axios({
+      method,
+      url,
+      data: payload,
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+
+    resetForm();
+    setListKey((n) => n + 1); // re-monta EntidadList → vuelve a hacer fetch
   };
 
   const handleEdit = (ent) => {
@@ -80,97 +65,120 @@ export default function EntidadDashboard() {
       cargo: ent.cargo || '',
       razon_social: ent.razon_social || '',
       logo: null,
-      firma: null
+      firma: null,
     });
     setEditingId(ent.id);
+    // scroll suave al formulario
+    const formEl = document.getElementById('entidad-form');
+    if (formEl) formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const handleCancelEdit = () => {
-    setFormData({
-      nombre: '',
-      responsable: '',
-      cargo: '',
-      razon_social: '',
-      logo: null,
-      firma: null
-    });
-    setEditingId(null);
-  };
+  const handleCancelEdit = () => resetForm();
 
   return (
-    <div className="p-6 space-y-8">
-      {/* Mostrar formulario solo si el usuario está logueado */}
+    <div className="container py-3">
+      {/* FORM: visible solo si el usuario está logeado */}
       {isLoggedIn() && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{editingId ? 'Editar entidad' : 'Registrar nueva entidad'}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmit} className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Nombre</Label>
-                <Input name="nombre" value={formData.nombre} onChange={handleChange} required />
-              </div>
-              <div>
-                <Label>Responsable</Label>
-                <Input name="responsable" value={formData.responsable} onChange={handleChange} required />
-              </div>
-              <div>
-                <Label>Cargo</Label>
-                <Input name="cargo" value={formData.cargo} onChange={handleChange} required />
-              </div>
-              <div>
-                <Label>Razón social</Label>
-                <Input name="razon_social" value={formData.razon_social} onChange={handleChange} />
-              </div>
-              <div>
-                <Label>Logo</Label>
-                <Input type="file" name="logo" onChange={handleChange} />
-              </div>
-              <div>
-                <Label>Firma</Label>
-                <Input type="file" name="firma" onChange={handleChange} />
+        <div className="card mb-4 shadow-sm" id="entidad-form">
+          <div className="card-header d-flex justify-content-between align-items-center">
+            <strong>{editingId ? 'Editar entidad' : 'Registrar nueva entidad'}</strong>
+            {editingId && (
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={handleCancelEdit}
+              >
+                Cancelar edición
+              </button>
+            )}
+          </div>
+
+          <div className="card-body">
+            <form onSubmit={handleSubmit} className="row g-3">
+              <div className="col-md-6">
+                <label className="form-label">Nombre</label>
+                <input
+                  className="form-control"
+                  name="nombre"
+                  value={formData.nombre}
+                  onChange={handleChange}
+                  required
+                />
               </div>
 
-              <div className="col-span-2 flex gap-4 mt-4">
-                <Button type="submit">
+              <div className="col-md-6">
+                <label className="form-label">Responsable</label>
+                <input
+                  className="form-control"
+                  name="responsable"
+                  value={formData.responsable}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="col-md-6">
+                <label className="form-label">Cargo</label>
+                <input
+                  className="form-control"
+                  name="cargo"
+                  value={formData.cargo}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="col-md-6">
+                <label className="form-label">Razón social</label>
+                <input
+                  className="form-control"
+                  name="razon_social"
+                  value={formData.razon_social}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="col-md-6">
+                <label className="form-label">Logo</label>
+                <input
+                  type="file"
+                  className="form-control"
+                  name="logo"
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="col-md-6">
+                <label className="form-label">Firma</label>
+                <input
+                  type="file"
+                  className="form-control"
+                  name="firma"
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="col-12 d-flex gap-2">
+                <button type="submit" className="btn btn-primary">
                   {editingId ? 'Actualizar entidad' : 'Guardar entidad'}
-                </Button>
+                </button>
                 {editingId && (
-                  <Button type="button" variant="ghost" onClick={handleCancelEdit}>
-                    Cancelar edición
-                  </Button>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={handleCancelEdit}
+                  >
+                    Cancelar
+                  </button>
                 )}
               </div>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
-      <Separator />
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {entidades.map(ent => (
-          <Card key={ent.id}>
-            <CardHeader>
-              <CardTitle>{ent.nombre}</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p><strong>Responsable:</strong> {ent.responsable}</p>
-              <p><strong>Cargo:</strong> {ent.cargo}</p>
-              <p><strong>Razón Social:</strong> {ent.razon_social}</p>
-              {ent.logo && <img src={ent.logo} alt="logo" className="w-24 h-auto" />}
-              {ent.firma && <img src={ent.firma} alt="firma" className="w-24 h-auto" />}
-              {isLoggedIn() && (
-                <Button variant="outline" onClick={() => handleEdit(ent)}>
-                  Editar
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* LISTA: usa EntidadList y permite editar filas → rellena el form de arriba */}
+      <EntidadList key={listKey} onEdit={handleEdit} />
     </div>
   );
 }
-
