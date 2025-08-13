@@ -53,7 +53,7 @@ export default function Header() {
         {/* Logo */}
         <Link to={logged ? '/portal' : '/'}>
           <img
-            src="proyecto_bia/frontend/src/images/LogoBIA.png"
+            src="/images/LogoBIA2.png"
             alt="Logo Grupo BIA"
             style={{ height: '58px', objectFit: 'contain' }}
           />

@@ -10,32 +10,42 @@ from carga_datos.models import BaseDeDatosBia
 from .models import Certificate, Entidad
 from rest_framework import viewsets
 from .serializers import EntidadSerializer
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from .models import BaseDeDatosBia
+from django.db.models import Q
+from rest_framework.permissions import AllowAny
+from .serializers import BaseDeDatosBiaSerializer  # ajusta al nombre real
+from io import BytesIO
 
-
+# Función para manejar los enlaces de los archivos estáticos y medios
 def link_callback(uri, rel):
-    if uri.startswith(settings.STATIC_URL):
-        path_relative = uri.replace(settings.STATIC_URL, '', 1)
-        for static_dir in settings.STATICFILES_DIRS:
-            candidate = os.path.join(static_dir, path_relative)
-            if os.path.exists(candidate):
-                return candidate
-        raise Exception(f"No se encontró el archivo estático: {path_relative}")
+    s_url = settings.STATIC_URL
+    s_root = getattr(settings, 'STATIC_ROOT', None)
+    if not s_root:
+        s_root = settings.STATICFILES_DIRS[0]
 
-    if uri.startswith(settings.MEDIA_URL):
-        path_relative = uri.replace(settings.MEDIA_URL, '', 1)
-        absolute_path = os.path.join(settings.MEDIA_ROOT, path_relative)
-        if os.path.exists(absolute_path):
-            return absolute_path
-        raise Exception(f"No se encontró el archivo media: {path_relative}")
+    m_url  = getattr(settings, 'MEDIA_URL', None)
+    m_root = getattr(settings, 'MEDIA_ROOT', None)
 
-    return uri
+    if uri.startswith(s_url):
+        path = os.path.join(s_root, uri.replace(s_url, ''))
+    elif m_url and uri.startswith(m_url):
+        path = os.path.join(m_root, uri.replace(m_url, ''))
+    else:
+        return uri  # permitir http/https absolutas
 
+    if not os.path.isfile(path):
+        raise Exception(f"No se encontró el archivo estático: {path}")
+    return path
 
 def generate_pdf(html):
-    result = ContentFile(b"")
+    result = BytesIO()
     pisa_status = pisa.CreatePDF(html, dest=result, link_callback=link_callback)
-    return result if not pisa_status.err else None
-
+    if pisa_status.err:
+        return None
+    return result.getvalue()
 
 @csrf_exempt
 def api_generar_certificado(request):
@@ -101,7 +111,7 @@ def api_generar_certificado(request):
             pdf_file = generate_pdf(html)
             if pdf_file:
                 filename = f"certificado_{registro.id_pago_unico}.pdf"
-                certificate.pdf_file.save(filename, pdf_file)
+                certificate.pdf_file.save(filename, ContentFile(pdf_file))
                 certificate.save()
 
         certificados.append(certificate)
@@ -132,3 +142,30 @@ def api_generar_certificado(request):
 class EntidadViewSet(viewsets.ModelViewSet):
     queryset = Entidad.objects.all().order_by('nombre')
     serializer_class = EntidadSerializer
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def mostrar_datos_bia(request):
+    dni = request.GET.get('dni')
+    id_pago = request.GET.get('id_pago_unico')
+
+    if not (dni or id_pago):
+        return Response(
+            {'detail': 'Debes proporcionar al menos dni o id_pago_unico'},
+            status=400
+        )
+
+    # Construimos un filtro OR: dni=dni OR id_pago_unico=id_pago
+    q = Q()
+    if dni:
+        q |= Q(dni=dni)
+    if id_pago:
+        q |= Q(id_pago_unico=id_pago)
+
+    registro = BaseDeDatosBia.objects.filter(q).first()
+    if not registro:
+        return Response({'detail': 'No encontrado'}, status=404)
+
+    data = BaseDeDatosBiaSerializer(registro).data
+    return Response(data)
