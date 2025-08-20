@@ -13,8 +13,10 @@ import ErroresValidacion  from './components/ErroresValidacion';
 import UploadForm         from './components/UploadForm';
 import PrivateRoute       from './components/PrivateRoute';
 import MostrarDatos       from './components/MostrarDatos';
+import Entidades from "./components/Entidades";
 
 import 'bootstrap/dist/css/bootstrap.min.css';
+import './styles/theme-bia.css';
 
 export default function App() {
   return (
@@ -79,6 +81,15 @@ export default function App() {
           }
         />
 
+        <Route
+          path="/entidades"
+          element={
+            <PrivateRoute>
+              <Entidades />
+            </PrivateRoute>
+          }
+        />
+       
         {/* Cualquier otra ruta redirige a la Home pública */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

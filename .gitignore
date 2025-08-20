@@ -9,3 +9,10 @@ __pycache__/
 /media/certificados_generados/
 *.pdf
 /proyecto_bia/proyecto_bia/logs/actividad.log
+
+# React build
+/build/
+
+# Logs
+*.log
+/proyecto_bia/logs/

@@ -79,13 +79,15 @@ export default function EntidadDashboard() {
     <div className="container py-3">
       {/* FORM: visible solo si el usuario está logeado */}
       {isLoggedIn() && (
-        <div className="card mb-4 shadow-sm" id="entidad-form">
-          <div className="card-header d-flex justify-content-between align-items-center">
-            <strong>{editingId ? 'Editar entidad' : 'Registrar nueva entidad'}</strong>
+        <div className="card mb-4 shadow-sm border-0 rounded-4" id="entidad-form">
+          <div className="card-header bg-bia-subtle border-bia rounded-top-4 d-flex justify-content-between align-items-center">
+            <strong className="text-bia">
+              {editingId ? 'Editar entidad' : 'Registrar nueva entidad'}
+            </strong>
             {editingId && (
               <button
                 type="button"
-                className="btn btn-sm btn-outline-secondary"
+                className="btn btn-sm btn-outline-bia"
                 onClick={handleCancelEdit}
               >
                 Cancelar edición
@@ -159,13 +161,13 @@ export default function EntidadDashboard() {
               </div>
 
               <div className="col-12 d-flex gap-2">
-                <button type="submit" className="btn btn-primary">
+                <button type="submit" className="btn btn-bia">
                   {editingId ? 'Actualizar entidad' : 'Guardar entidad'}
                 </button>
                 {editingId && (
                   <button
                     type="button"
-                    className="btn btn-outline-secondary"
+                    className="btn btn-outline-bia"
                     onClick={handleCancelEdit}
                   >
                     Cancelar

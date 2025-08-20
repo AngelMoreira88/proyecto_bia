@@ -1,0 +1,227 @@
+/* ===========================
+   Tema puntual BIA (opción B)
+   =========================== */
+
+/* Tokens del color corporativo */
+:root {
+  --bia-blue: #1D48A6;     /* RGB 29,72,166 */
+  --bia-blue-600: #163e8a; /* hover */
+  --bia-blue-700: #12306c; /* active */
+  --header-h: 100px;       /* altura del header fijo */
+}
+
+/* Botón sólido BIA: usar junto a .btn */
+.btn-bia {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--bia-blue);
+  --bs-btn-border-color: var(--bia-blue);
+
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--bia-blue-600);
+  --bs-btn-hover-border-color: var(--bia-blue-600);
+
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--bia-blue-700);
+  --bs-btn-active-border-color: var(--bia-blue-700);
+
+  --bs-btn-disabled-color: #fff;
+  --bs-btn-disabled-bg: var(--bia-blue);
+  --bs-btn-disabled-border-color: var(--bia-blue);
+
+  --bs-btn-focus-shadow-rgb: 29, 72, 166; /* glow de focus */
+}
+
+/* Variante contorno */
+.btn-outline-bia {
+  --bs-btn-color: var(--bia-blue);
+  --bs-btn-border-color: var(--bia-blue);
+
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--bia-blue);
+  --bs-btn-hover-border-color: var(--bia-blue);
+
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--bia-blue-600);
+  --bs-btn-active-border-color: var(--bia-blue-600);
+
+  --bs-btn-disabled-color: var(--bia-blue);
+  --bs-btn-disabled-bg: transparent;
+  --bs-btn-disabled-border-color: var(--bia-blue);
+
+  --bs-btn-focus-shadow-rgb: 29, 72, 166;
+}
+
+/* Utilitarios */
+.text-bia      { color: var(--bia-blue) !important; }
+.border-bia    { border-color: var(--bia-blue) !important; }
+.bg-bia-subtle { background-color: rgba(29,72,166,.08) !important; }
+
+.link-bia { color: var(--bia-blue); text-decoration: none; }
+.link-bia:hover { color: var(--bia-blue-600); text-decoration: underline; }
+
+/* ===========================
+   Header elegante (glass)
+   =========================== */
+.header-glass {
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,.85) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  height: var(--header-h);
+}
+
+/* Solo los links del menú heredan el alto del header (¡no botones!) */
+.header-glass .nav-link {
+  line-height: calc(var(--header-h) - 24px);
+}
+
+/* Botones en header: compactos, no se estiran con el alto del header */
+.header-glass .btn {
+  line-height: 1.1 !important;
+  padding: .2rem .55rem !important;
+  font-size: .85rem !important;
+  border-radius: .45rem;
+}
+
+/* Panel Interno: apenas más grande (S) y que gane dentro del header */
+.btn-nav-compact-s {
+  padding: .28rem .7rem;
+  font-size: .9rem;
+  line-height: 1.1;
+  border-radius: .48rem;
+}
+.header-glass .btn-nav-compact-s {
+  padding: .28rem .7rem !important;
+  font-size: .9rem !important;
+  line-height: 1.1 !important;
+}
+
+/* Logo responsive más grande */
+.brand-logo { height: 44px; }
+@media (min-width: 768px) {
+  .brand-logo { height: 64px; }
+}
+
+/* ===========================
+   Nav underline: 1 sola línea azul y sin negrita
+   =========================== */
+.nav-underline .nav-link {
+  position: relative;
+  border-bottom: none !important;  /* quita la línea nativa de Bootstrap */
+  font-weight: 400 !important;     /* sin negrita */
+}
+.nav-underline .nav-link.active {
+  border-bottom: none !important;
+  font-weight: 400 !important;
+  color: inherit;                  /* no cambia el color del texto */
+}
+
+/* Tu única línea azul (hover/activo) */
+.nav-underline .nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: .35rem;                  /* ajustá a gusto: .25rem / .4rem */
+  width: 0;
+  height: 2px;
+  background: var(--bia-blue);
+  transition: width .2s ease;
+}
+.nav-underline .nav-link:hover::after,
+.nav-underline .nav-link:focus::after,
+.nav-underline .nav-link.active::after {
+  width: 100%;
+}
+
+/* Offcanvas ancho cómodo en mobile */
+.offcanvas-nav { width: min(86vw, 360px); }
+
+/* Dropdown moderno */
+.dropdown-menu-modern {
+  border: 1px solid rgba(16,24,40,.06);
+  border-radius: 1rem;
+  box-shadow:
+    0 12px 28px rgba(16,24,40,.08),
+    0 4px 12px rgba(16,24,40,.06);
+}
+
+/* Ítem tipo "card" dentro del dropdown */
+.modern-item {
+  padding: .6rem .7rem;
+  border: 1px solid transparent;
+  border-radius: .75rem;
+  color: inherit;
+  transition: background-color .15s ease, border-color .15s ease, transform .05s ease;
+}
+.modern-item:hover,
+.modern-item:focus {
+  background-color: rgba(29,72,166,.06);
+  border-color: rgba(29,72,166,.15);
+  text-decoration: none;
+}
+.modern-title { font-weight: 600; }
+
+/* Icono en cápsula sutil con color BIA */
+.modern-icon {
+  width: 36px; height: 36px;
+  border-radius: .75rem;
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  background: rgba(29,72,166,.12);
+  color: var(--bia-blue);
+}
+
+/* Abrir por hover solo en desktop; en mobile se mantiene por click */
+@media (min-width: 992px) {
+  .dropdown-hover:hover > .dropdown-menu { display: block; }
+  .dropdown-hover .dropdown-toggle::after { display: none; } /* ocultar caret si querés */
+}
+
+/* Nav underline: 1 sola línea azul y sin negrita (por si aún no lo tenías) */
+.nav-underline .nav-link {
+  position: relative;
+  border-bottom: none !important;
+  font-weight: 400 !important;
+}
+.nav-underline .nav-link.active {
+  border-bottom: none !important;
+  font-weight: 400 !important;
+  color: inherit;
+}
+.nav-underline .nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0; bottom: .35rem;
+  width: 0; height: 2px;
+  background: var(--bia-blue);
+  transition: width .2s ease;
+}
+.nav-underline .nav-link:hover::after,
+.nav-underline .nav-link:focus::after,
+.nav-underline .nav-link.active::after { width: 100%; }
+
+/* Dropzone BIA */
+.dropzone-bia {
+  border: 2px dashed rgba(29,72,166,.35);
+  border-radius: 16px;
+  padding: 18px;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .05s ease;
+  background: #fff;
+}
+.dropzone-bia:hover { border-color: var(--bia-blue); }
+.dropzone-bia.dragover {
+  background-color: rgba(29,72,166,.06);
+  border-color: var(--bia-blue);
+  box-shadow: 0 0 0 3px rgba(29,72,166,.14) inset;
+}
+
+/* Reuso del “icon badge” del dropdown moderno */
+.modern-icon {
+  width: 42px; height: 42px;
+  border-radius: .9rem;
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  background: rgba(29,72,166,.12);
+  color: var(--bia-blue);
+}
