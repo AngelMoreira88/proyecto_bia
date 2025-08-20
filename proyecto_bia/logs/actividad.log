@@ -1,0 +1,49 @@
+[2025-08-13 23:53:57,818] WARNING django.request - Not Found: /api/entidades/
+[2025-08-13 23:53:57,843] WARNING django.request - Not Found: /api/entidades/
+[2025-08-19 00:02:08,920] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-19 00:04:35,744] ERROR django.request - Internal Server Error: /api/certificado/generar/
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\certificado_ldd\views.py", line 121, in api_generar_certificado
+    with open(cert.pdf_file.path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\moreiracristian\\Documents\\moreira\\GrupoBIA\\proyecto_bia\\proyecto_bia\\media\\certificados_generados\\certificado_125478.pdf'
+[2025-08-19 00:04:38,931] ERROR django.request - Internal Server Error: /api/certificado/generar/
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\certificado_ldd\views.py", line 121, in api_generar_certificado
+    with open(cert.pdf_file.path, 'rb') as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\moreiracristian\\Documents\\moreira\\GrupoBIA\\proyecto_bia\\proyecto_bia\\media\\certificados_generados\\certificado_125478.pdf'
+[2025-08-19 00:06:18,463] WARNING django.request - Not Found: /api/entidades/
+[2025-08-19 00:06:18,487] WARNING django.request - Not Found: /api/entidades/
+[2025-08-19 00:07:46,168] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-20 01:14:05,900] WARNING django.request - Not Found: /api/entidades/
+[2025-08-20 01:14:05,912] WARNING django.request - Not Found: /api/entidades/
+[2025-08-20 01:14:13,228] WARNING django.request - Not Found: /api/entidades/
+[2025-08-20 01:14:19,007] WARNING django.request - Not Found: /api/entidades/sugerencias/
+[2025-08-20 01:14:30,864] WARNING django.request - Not Found: /api/entidades/
+[2025-08-20 01:14:35,588] WARNING django.request - Not Found: /api/entidades/
+[2025-08-20 01:15:19,345] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-20 01:15:21,806] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-20 01:15:24,951] WARNING django.request - Not Found: /api/entidades/
+[2025-08-20 01:15:24,962] WARNING django.request - Not Found: /api/entidades/
+[2025-08-20 01:15:56,390] WARNING django.request - Not Found: /api/entidades/
+[2025-08-20 01:15:56,399] WARNING django.request - Not Found: /api/entidades/
+[2025-08-20 01:16:27,815] WARNING django.request - Not Found: /api/mostrar-datos-bia/

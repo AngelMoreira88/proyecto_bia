@@ -2,45 +2,46 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Certificado de Libre de Deuda</title>
-  <link rel="stylesheet" href="{% static 'css/styles-pdf.css' %}">
+  <link rel="stylesheet" href="{% static 'css/styles-pdf.css' %}" />
 </head>
 <body>
 
   <!-- LOGOS SUPERIORES -->
-  <div class="header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
     {% if entidad_otras and entidad_otras.logo %}
-      <img src="{{ entidad_otras.logo.url }}" alt="Logo {{ entidad_otras.nombre }}" style="max-height: 70px; max-width: 45%;">
+      <img src="{{ entidad_otras.logo.url }}" alt="Logo {{ entidad_otras.nombre }}" style="max-height:70px;max-width:45%;" />
     {% endif %}
 
     {% if entidad_bia and entidad_bia.logo %}
-      <img src="{{ entidad_bia.logo.url }}" alt="Logo BIA" style="max-height: 70px; max-width: 45%;">
+      <img src="{{ entidad_bia.logo.url }}" alt="Logo BIA" style="max-height:70px;max-width:45%;" />
     {% elif not entidad_otras %}
-      <div style="text-align: center; width: 100%;">
-        <img src="{% static 'images/bia.png' %}" alt="Logo BIA" style="max-height: 80px;">
+      <div style="text-align:center;width:100%;">
+        <img src="{% static 'images/bia.png' %}" alt="Logo BIA" style="max-height:80px;" />
       </div>
     {% endif %}
   </div>
 
-  <hr>
+  <hr />
 
   <!-- TÍTULO -->
-  <h2 style="text-align: center;">Certificado de Libre de Deuda</h2>
+  <h2 style="text-align:center;margin:10px 0 0;">Certificado de Libre de Deuda</h2>
 
   <!-- Fecha de emisión -->
-  <div class="date">
-    <p>Fecha de emisión: <strong>{% now "d/m/Y" %}</strong></p>
+  <div class="date" style="text-align:right;margin:8px 0 18px;">
+    <small>Fecha de emisión: <strong>{% now "d/m/Y" %}</strong></small>
   </div>
 
   <!-- CONTENIDO PRINCIPAL -->
-  <div class="content">
+  <div class="content" style="font-size:14px;line-height:1.5;">
     <p>
-      Por medio del presente se certifica que
-      <strong>{{ client.nombre_apellido }}</strong>,
-      con DNI <strong>{{ client.dni }}</strong>,
-      se encuentra <strong>libre de cualquier obligación o deuda pendiente</strong>
-      con la entidad <strong>{{ client.entidadinterna }}</strong>
+      Por medio de la presente se deja constancia que
+      <strong>{{ client.nombre_apellido }}</strong>, con DNI
+      <strong>{{ client.dni }}</strong>, ha cancelado la deuda que mantenía con la empresa
+      <strong>{{ client.propietario|default:"(sin dato)" }}</strong>,
+      por el crédito originado en
+      <strong>{{ client.entidadinterna|default:"(sin dato)" }}</strong>
       (ID de operación <strong>{{ client.id_pago_unico }}</strong>),
       conforme a los registros internos y comprobantes archivados.
     </p>
@@ -53,17 +54,19 @@
   </div>
 
   <!-- FIRMA -->
-  <div class="signature" style="margin-top: 40px;">
-    <p>Firma autenticada:</p>
+  <div class="signature" style="margin-top:40px;text-align:left;">
+    <p style="margin:0 0 6px;">Firma autenticada:</p>
 
-    {% if entidad_firma and entidad_firma.firma %}
-      <img src="{{ entidad_firma.firma.url }}" alt="Firma {{ entidad_firma.nombre }}" style="height: 60px;"><br>
-      <strong>{{ entidad_firma.responsable }}</strong><br>
-      {{ entidad_firma.cargo }}<br>
-      {{ entidad_firma.nombre }}
+    {% if firma_url %}
+      <img src="{{ firma_url }}" alt="Firma" style="height:60px;" /><br />
+      <strong>{{ responsable }}</strong><br />
+      <span>{{ cargo }}</span><br />
+      <span>{{ entidad_firma }}</span>
     {% else %}
-      <img src="{% static 'images/firma.png' %}" alt="Firma"><br>
-      <strong>Socio/Gerente</strong>
+      <img src="{% static 'images/firma.png' %}" alt="Firma" style="height:60px;" /><br />
+      <strong>{{ responsable|default:"Socio/Gerente" }}</strong><br />
+      <span>{{ cargo|default:"" }}</span><br />
+      <span>{{ entidad_firma|default:"" }}</span>
     {% endif %}
   </div>
 

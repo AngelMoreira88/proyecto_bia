@@ -1,10 +1,25 @@
+# carga_datos/models.py
 from django.db import models
+from django.db.models.functions import Lower
 
 class BaseDeDatosBia(models.Model):
-    id_pago_unico        = models.CharField(max_length=50, primary_key=True)
-    propietario          = models.CharField(max_length=255, blank=True, null=True)
-    entidadoriginal      = models.CharField(max_length=255, blank=True, null=True)
-    entidadinterna       = models.CharField(max_length=255)
+    id_pago_unico   = models.CharField(max_length=50, primary_key=True)
+
+    creditos        = models.CharField(max_length=255, blank=True, null=True)
+
+    propietario     = models.CharField(max_length=255, blank=True, null=True, db_index=True)
+    entidadoriginal = models.CharField(max_length=255, blank=True, null=True)
+    entidadinterna  = models.CharField(max_length=255, db_index=True)
+
+    # FK canónica a Entidad (emisora). Al principio puede ser null; después la volvés obligatoria.
+    entidad         = models.ForeignKey(
+        'certificado_ldd.Entidad',
+        on_delete=models.PROTECT,
+        related_name='registros',
+        null=True,
+        blank=True,
+    )
+
     grupo                = models.CharField(max_length=50, blank=True, null=True)
     tramo                = models.CharField(max_length=50, blank=True, null=True)
     comision             = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
@@ -41,11 +56,24 @@ class BaseDeDatosBia(models.Model):
     total_plan           = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     saldo                = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
 
+    # Compatibilidad temporal
     @property
     def entidad_obj(self):
-        from certificado_ldd.models import Entidad  # importación local para evitar ciclos
+        if self.entidad_id:
+            return self.entidad
+        from certificado_ldd.models import Entidad
+        # preferir propietario; si no, entidadinterna
+        if self.propietario:
+            ent = Entidad.objects.filter(nombre__iexact=self.propietario).first()
+            if ent:
+                return ent
         return Entidad.objects.filter(nombre__iexact=self.entidadinterna).first()
 
     class Meta:
         db_table = 'db_bia'
-        managed = True
+        managed  = True
+        # (Opcional, PostgreSQL) índices funcionales para búsquedas case-insensitive
+        indexes = [
+            models.Index(Lower('propietario'), name='idx_bdb_prop_lower'),
+            models.Index(Lower('entidadinterna'), name='idx_bdb_entint_lower'),
+        ]
