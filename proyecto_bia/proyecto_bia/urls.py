@@ -21,6 +21,8 @@ urlpatterns = [
     # path('carga-datos/', include('carga_datos.urls')),
     path('api/', include('certificado_ldd.urls')),
     path('api/', include('carga_datos.urls')),
+    path('api/', include(('certificado_ldd.urls', 'certificado_ldd'), namespace='certificado_ldd')),
+    path('api/', include(('carga_datos.urls', 'carga_datos'), namespace='carga_datos')),
 
     # 4) Login/Logout
     path('accounts/login/',  auth_views.LoginView.as_view(),  name='login'),

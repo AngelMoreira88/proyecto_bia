@@ -7,7 +7,10 @@ from .views import (
     api_confirmar_carga,
     api_errores_validacion,
     mostrar_datos_bia,
+    actualizar_datos_bia,
+    exportar_datos_bia_csv
     )
+
 
 urlpatterns = [
     # vistas web “clásicas”
@@ -16,8 +19,10 @@ urlpatterns = [
     path('errores/',   errores_validacion, name='errores_validacion'),
 
     # endpoints REST (JWT)
-    path('api/cargar/',       api_cargar_excel,      name='api_cargar'),
-    path('api/confirmar/',    api_confirmar_carga,   name='api_confirmar'),
-    path('api/errores/',      api_errores_validacion,name='api_errores'),
-    path('api/mostrar-datos-bia/', mostrar_datos_bia, name='mostrar_datos_bia'),
+    path('cargar/',       api_cargar_excel,      name='api_cargar'),
+    path('confirmar/',    api_confirmar_carga,   name='api_confirmar'),
+    path('errores/',      api_errores_validacion,name='api_errores'),
+    path('mostrar-datos-bia/', mostrar_datos_bia, name='mostrar_datos_bia'),
+    path('mostrar-datos-bia/<int:pk>/', actualizar_datos_bia, name='actualizar_datos_bia'),
+    path('exportar-datos-bia.csv', exportar_datos_bia_csv, name='exportar_datos_bia_csv'),
 ]

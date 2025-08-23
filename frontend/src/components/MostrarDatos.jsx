@@ -1,4 +1,4 @@
-// frontend/src/components/Mostrar.jsx
+// frontend/src/components/MostrarDatos.jsx
 import React, { useMemo, useState } from 'react';
 import api from '../services/api';
 
@@ -6,10 +6,10 @@ export default function Mostrar() {
   const [query, setQuery] = useState('');
   const [datos, setDatos] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [saving, setSaving]   = useState(false);
-  const [error, setError]     = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const [editingId, setEditingId] = useState(null);
-  const [formData, setFormData]   = useState({});
+  const [formData, setFormData] = useState({});
 
   // columnas: unión de claves de todas las filas (id primero si existe)
   const columnas = useMemo(() => {
@@ -44,7 +44,7 @@ export default function Mostrar() {
     return q.length > 0 && dni.length > 0 && q === dni;
   }, [query, originalRow]);
 
-  // Buscar por DNI o id_pago_unico
+  // Buscar por DNI o id_pago_unico (soporta payload paginado o array)
   const handleBuscar = async (e) => {
     e.preventDefault();
     setError('');
@@ -58,11 +58,19 @@ export default function Mostrar() {
     setLoading(true);
     try {
       const res = await api.get('/api/mostrar-datos-bia/', {
-        params: { dni: query, id_pago_unico: query },
+        params: { dni: query, id_pago_unico: query, page: 1 }, // page opcional
       });
-      const data = Array.isArray(res.data) ? res.data : [];
+
+      const payload = res.data || {};
+      const results = Array.isArray(payload.results)
+        ? payload.results
+        : (Array.isArray(payload) ? payload : []);
+
+      // Garantiza un 'id' siempre presente (usa id_pago_unico si no hay id)
+      const data = results.map(r => ({ id: r.id ?? r.id_pago_unico, ...r }));
+
       setDatos(data);
-      if (data.length === 0) setError('No se encontraron registros');
+      if ((payload.count ?? data.length) === 0) setError('No se encontraron registros');
     } catch {
       setError('Error al consultar la base de datos');
     } finally {
@@ -90,7 +98,7 @@ export default function Mostrar() {
     setSaving(true);
     try {
       await api.put(`/api/mostrar-datos-bia/${id}/`, formData);
-      setDatos(prev => prev.map(d => (d.id === id ? { ...formData } : d)));
+      setDatos(prev => prev.map(d => (d.id === id ? { ...d, ...formData } : d)));
       setEditingId(null);
       setFormData({});
     } catch {
@@ -100,13 +108,31 @@ export default function Mostrar() {
     }
   };
 
+  // Exporta TODOS los datos (sin filtros) como CSV
+  const handleExportCsv = async () => {
+    try {
+      const res = await api.get('/api/exportar-datos-bia.csv', { responseType: 'blob' });
+      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `db_bia_${new Date().toISOString().replace(/[-:T.Z]/g,'').slice(0,14)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      setError('No se pudo exportar el CSV');
+    }
+  };
+
   return (
     <div className="container" style={{ marginTop: '100px', paddingBottom: '24px' }}>
       {/* Encabezado */}
       <div className="mb-3">
         <h2 className="text-bia fw-bold mb-1">Listar por DNI</h2>
         <small className="text-secondary">
-          Consultá por DNI o ID de pago único y, si corresponde, editá campos puntuales.
+          Consultá por DNI o ID de pago único.
         </small>
       </div>
 
@@ -116,18 +142,30 @@ export default function Mostrar() {
           <div className="d-flex flex-wrap gap-2 align-items-center justify-content-between">
             <strong className="text-bia m-0">Búsqueda</strong>
 
-            {/* Botón global de Guardar (solo si: editando + hay cambios + DNI coincide con el query) */}
-            {editingId !== null && hasChanges && dniCoincide && (
+            {/* Acciones de cabecera (derecha) */}
+            <div className="d-flex gap-2">
               <button
-                className="btn btn-sm btn-bia"
-                onClick={() => handleSave(editingId)}
-                disabled={saving}
-                title="Guardar cambios de la fila editada"
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={handleExportCsv}
+                title="Descargar todos los registros en CSV"
               >
-                {saving && <span className="spinner-border spinner-border-sm me-2" />}
-                Guardar cambios
+                Exportar CSV
               </button>
-            )}
+
+              {/* Botón global de Guardar (solo si: editando + hay cambios + DNI coincide con el query) */}
+              {editingId !== null && hasChanges && dniCoincide && (
+                <button
+                  className="btn btn-sm btn-bia"
+                  onClick={() => handleSave(editingId)}
+                  disabled={saving}
+                  title="Guardar cambios de la fila editada"
+                >
+                  {saving && <span className="spinner-border spinner-border-sm me-2" />}
+                  Guardar cambios
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

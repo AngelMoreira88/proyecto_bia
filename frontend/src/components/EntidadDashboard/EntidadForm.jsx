@@ -46,12 +46,20 @@ export default function EntidadForm({ selectedEntidad, onSave, onCancel }) {
       if (formData[key]) data.append(key, formData[key]);
     }
     try {
-      const url = selectedEntidad ? `/api/entidades/${selectedEntidad.id}/` : '/api/entidades/';
+      const url = selectedEntidad
+        ? `/api/entidades/${selectedEntidad.id}/`
+        : '/api/entidades/';
       const method = selectedEntidad ? 'put' : 'post';
-      const response = await api({ method, url, data, headers: { 'Content-Type': 'multipart/form-data' } });
+      const response = await api({
+        method,
+        url,
+        data,
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       onSave && onSave(response.data);
     } catch (error) {
       console.error('Error al guardar la entidad:', error);
+      alert('No se pudo guardar la entidad.');
     }
   };
 

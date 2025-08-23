@@ -110,3 +110,12 @@ FileNotFoundError: [Errno 2] No such file or directory: 'C:\\Users\\moreiracrist
 [2025-08-23 04:40:33,627] WARNING django.request - Not Found: /api/certificado/generar/
 [2025-08-23 04:43:32,721] WARNING django.request - Not Found: /api/entidades/sugerencias/
 [2025-08-23 04:44:11,080] WARNING django.request - Not Found: /api/entidades/sugerencias/
+[2025-08-23 10:54:29,118] WARNING django.request - Not Found: /api/generar/
+[2025-08-23 10:54:42,764] WARNING django.request - Unauthorized: /api/entidades/
+[2025-08-23 10:54:42,787] WARNING django.request - Unauthorized: /api/entidades/
+[2025-08-23 10:54:52,331] WARNING django.request - Not Found: /api/generar/
+[2025-08-23 11:08:43,669] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-23 15:31:53,965] WARNING django.request - Unauthorized: /api/entidades/
+[2025-08-23 15:31:53,973] WARNING django.request - Unauthorized: /api/entidades/
+[2025-08-23 15:42:59,435] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-23 15:43:22,953] WARNING django.request - Not Found: /api/mostrar-datos-bia/

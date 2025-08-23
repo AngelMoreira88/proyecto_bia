@@ -3,10 +3,9 @@ from django.db import models
 from django.db.models.functions import Lower
 
 class BaseDeDatosBia(models.Model):
-    id_pago_unico   = models.CharField(max_length=50, primary_key=True)
-
+    id = models.BigAutoField(primary_key=True)  # PK técnica recomendada
+    id_pago_unico   = models.CharField(max_length=50, db_index=True, null=True, blank=True, unique=True)
     creditos        = models.CharField(max_length=255, blank=True, null=True)
-
     propietario     = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     entidadoriginal = models.CharField(max_length=255, blank=True, null=True)
     entidadinterna  = models.CharField(max_length=255, db_index=True)
@@ -23,7 +22,7 @@ class BaseDeDatosBia(models.Model):
     grupo                = models.CharField(max_length=50, blank=True, null=True)
     tramo                = models.CharField(max_length=50, blank=True, null=True)
     comision             = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
-    dni                  = models.CharField(max_length=20)
+    dni                  = models.CharField(max_length=20, db_index=True, null=True, blank=True)
     cuit                 = models.CharField(max_length=20, blank=True, null=True)
     nombre_apellido      = models.CharField(max_length=255, blank=True, null=True)
     fecha_apertura       = models.DateField(blank=True, null=True)

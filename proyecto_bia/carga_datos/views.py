@@ -4,34 +4,41 @@ import unicodedata
 from io import StringIO
 
 import pandas as pd
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 
-from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.response import Response
-
 from django.db import IntegrityError, transaction
 from django.db.models import Q
+from django.core.validators import RegexValidator
+from django.apps import apps  # <- import perezoso de modelos de otras apps
+
+from rest_framework import status
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.pagination import PageNumberPagination
 
 from .forms import ExcelUploadForm
 from .models import BaseDeDatosBia
 from .serializers import BaseDeDatosBiaSerializer
 from .views_helpers import limpiar_valor  # si ya lo tenés
 
-# --- IMPORTANTE para la opción 3 ---
-from certificado_ldd.models import Entidad
-
 logger = logging.getLogger('django.request')
+digits_only = RegexValidator(r"^\d+$", "Solo dígitos.")
+
+# =========================
+# PARA DESCARGAR CSV
+# =========================
+import csv
+from django.http import StreamingHttpResponse
+from django.utils import timezone
 
 # =========================
 # CONFIGURACIÓN IMPORTANTE
 # =========================
 # Si True: si no existe la Entidad (por propietario o entidadinterna), se crea automáticamente.
 CREATE_MISSING_ENTIDADES = True
-
 
 # ==========
 # UTILIDADES
@@ -85,25 +92,31 @@ def validar_columnas_obligatorias(df_columns):
             faltantes.append(columnas_modelo[i])
     return faltantes
 
-
 # ==============================
 # RESOLVER FK ENTIDAD (OPCIÓN 3)
 # ==============================
+def _get_entidad_model():
+    """Importa Entidad de forma perezosa para evitar ciclos de import."""
+    return apps.get_model('certificado_ldd', 'Entidad')
+
 def _build_entidad_cache():
     """
     Devuelve un dict clave-normalizada -> Entidad
     """
+    Entidad = _get_entidad_model()
     cache = {}
     for e in Entidad.objects.all():
         cache[normalizar_valor_nombre(e.nombre)] = e
     return cache
 
-def _resolver_entidad(propietario: str, entidadinterna: str, cache: dict, create_missing: bool) -> Entidad | None:
+def _resolver_entidad(propietario: str, entidadinterna: str, cache: dict, create_missing: bool):
     """
     Prioriza 'propietario'; si no, 'entidadinterna'.
     Usa cache para no pegar mil consultas.
     Si create_missing=True, crea Entidad cuando no exista.
     """
+    Entidad = _get_entidad_model()
+
     for candidato in (propietario, entidadinterna):
         cand = (candidato or "").strip()
         if not cand:
@@ -119,7 +132,6 @@ def _resolver_entidad(propietario: str, entidadinterna: str, cache: dict, create
             return ent
         # no crear => None (seguimos al siguiente candidato o devolvemos None)
     return None
-
 
 # ==============
 # VISTAS WEB UI
@@ -171,7 +183,6 @@ def confirmar_carga(request):
 
     request.session.pop('datos_cargados', None)
     return render(request, 'upload_form.html', {'form': ExcelUploadForm(), 'mensaje': mensaje})
-
 
 @login_required
 def cargar_excel(request):
@@ -244,7 +255,6 @@ def cargar_excel(request):
 
     return render(request, 'upload_form.html', {'form': form, 'mensaje': mensaje})
 
-
 # =========
 # API REST
 # =========
@@ -309,7 +319,6 @@ def api_cargar_excel(request):
         logger.exception(f"[{request.user}] Error inesperado en carga: {e}")
         return Response({'success': False, 'errors': [f"Error al procesar archivo: {str(e)}"]}, status=500)
 
-
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def api_confirmar_carga(request):
@@ -364,7 +373,6 @@ def api_confirmar_carga(request):
         logger.error("Error en api_confirmar_carga:\n%s", traceback.format_exc())
         return Response({'success': False, 'error': str(e)}, status=500)
 
-
 # =========================
 # ERRORES VALIDACIÓN (web)
 # =========================
@@ -384,7 +392,6 @@ def errores_validacion(request):
 
     return render(request, 'errores_validacion.html', {'errores': errores})
 
-
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def api_errores_validacion(request):
@@ -396,24 +403,96 @@ def api_errores_validacion(request):
         return HttpResponse(txt, content_type='text/plain')
     return Response({'success': True, 'errors': errores})
 
-
+# =========================
+# CONSULTA / EDICIÓN BIA
+# =========================
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def mostrar_datos_bia(request):
-    dni = request.GET.get('dni')
-    id_pago = request.GET.get('id_pago_unico')
-    if not dni or not id_pago:
-        return Response(
-            {'error': "Faltan parámetros 'dni' o 'id_pago_unico'"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
+    """
+    GET /api/mostrar-datos-bia/?dni=...&id_pago_unico=...
+    Devuelve coincidencias por dni OR id_pago_unico (paginado).
+    """
+    dni = (request.query_params.get('dni') or '').strip()
+    idp = (request.query_params.get('id_pago_unico') or '').strip()
 
-    qs = BaseDeDatosBia.objects.filter(dni=dni, id_pago_unico=id_pago)
-    if not qs.exists():
-        return Response(
-            {'error': "No se encontró ningún registro para esos parámetros"},
-            status=status.HTTP_404_NOT_FOUND
-        )
+    if not dni and not idp:
+        return Response({"detail": "Debes enviar un dni o un id_pago_unico"}, status=400)
 
-    serializer = BaseDeDatosBiaSerializer(qs, many=True)
-    return Response(serializer.data, status=status.HTTP_200_OK)
+    # Validaciones simples (ajustá si tus campos permiten letras)
+    if dni and not dni.isdigit():
+        return Response({"detail": "dni inválido. Use solo dígitos."}, status=400)
+    if idp and not idp.isdigit():
+        return Response({"detail": "id_pago_unico inválido. Use solo dígitos."}, status=400)
+
+    qs = BaseDeDatosBia.objects.filter(Q(dni=dni) | Q(id_pago_unico=idp)).order_by('id')
+
+    paginator = PageNumberPagination()
+    page = paginator.paginate_queryset(qs, request)
+    ser = BaseDeDatosBiaSerializer(page, many=True)
+    return paginator.get_paginated_response(ser.data)
+
+NO_EDITABLES = {'id'}  # podés sumar 'dni', 'id_pago_unico'
+
+@api_view(['PUT', 'PATCH'])
+@permission_classes([IsAuthenticated])
+def actualizar_datos_bia(request, pk: int):
+    """
+    PUT/PATCH /api/mostrar-datos-bia/<id>/
+    Actualiza parcialmente o totalmente el registro.
+    Bloquea cambios de 'id' y (opcional) valida dni/id_pago_unico.
+    """
+    obj = get_object_or_404(BaseDeDatosBia, pk=pk)
+
+    # si te mandan dni/id_pago_unico distinto, bloquear
+    if 'dni' in request.data and str(request.data['dni']).strip() != str(obj.dni or '').strip():
+        return Response({"detail": "El DNI del cuerpo no coincide con el registro."}, status=403)
+    if 'id_pago_unico' in request.data and str(request.data['id_pago_unico']).strip() != str(obj.id_pago_unico or '').strip():
+        return Response({"detail": "El id_pago_unico del cuerpo no coincide con el registro."}, status=403)
+
+    clean = {k: v for k, v in request.data.items() if k not in NO_EDITABLES}
+    ser = BaseDeDatosBiaSerializer(obj, data=clean, partial=True)
+    ser.is_valid(raise_exception=True)
+    ser.save()
+    return Response(ser.data, status=200)
+
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def exportar_datos_bia_csv(request):
+    """
+    GET /api/exportar-datos-bia.csv
+    Exporta toda la tabla db_bia en CSV (opcionalmente filtrada por dni / id_pago_unico).
+    """
+    dni = (request.query_params.get('dni') or '').strip()
+    idp = (request.query_params.get('id_pago_unico') or '').strip()
+
+    # Campos a exportar: todos los fields del modelo (incluye 'id' y 'entidad_id' si existe)
+    fields = [f.name for f in BaseDeDatosBia._meta.fields]
+
+    # Query base + filtros opcionales
+    qs = BaseDeDatosBia.objects.all().order_by('id')
+    if dni:
+        qs = qs.filter(dni=dni)
+    if idp:
+        qs = qs.filter(id_pago_unico=idp)
+
+    # Stream CSV sin cargar todo en memoria (patrón Echo)
+    class Echo:
+        def write(self, value):  # csv.writer pide un "file-like object" con write()
+            return value
+
+    def row_iter():
+        pseudo_buffer = Echo()
+        writer = csv.writer(pseudo_buffer)
+        # Header
+        yield writer.writerow(fields)
+        # Filas
+        for row in qs.values_list(*fields).iterator(chunk_size=2000):
+            yield writer.writerow(['' if v is None else str(v) for v in row])
+
+    ts = timezone.localtime().strftime('%Y%m%d_%H%M%S')
+    response = StreamingHttpResponse(row_iter(), content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = f'attachment; filename="db_bia_{ts}.csv"'
+    return response

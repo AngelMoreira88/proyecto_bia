@@ -1,7 +1,8 @@
+// frontend/src/components/GenerarCertificado.jsx
 import { useState } from "react";
-import axios from "axios";
 import { Link } from "react-router-dom";
 import Header from "./Header";
+import api from "../services/api";
 
 export default function GenerarCertificado() {
   const [dni, setDni] = useState("");
@@ -13,26 +14,59 @@ export default function GenerarCertificado() {
     setError("");
     setLoading(true);
 
+    const dniTrim = (dni || "").trim();
+    if (!dniTrim) {
+      setError("Ingresá un DNI válido.");
+      setLoading(false);
+      return;
+    }
+
     const formData = new FormData();
-    formData.append("dni", dni);
+    formData.append("dni", dniTrim);
 
     try {
-      const res = await axios.post("/api/certificado/generar/", formData, {
+      const res = await api.post("/api/generar/", formData, {
         responseType: "blob",
       });
+
+      const dispo = res.headers?.["content-disposition"] || "";
+      const matchName = dispo.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
+      const filename = matchName ? decodeURIComponent(matchName[1]) : "certificado.pdf";
+
       const pdfBlob = new Blob([res.data], { type: "application/pdf" });
       const url = window.URL.createObjectURL(pdfBlob);
+
+      // Abrir en nueva pestaña
       window.open(url);
+
+      // (Opcional) descarga automática
+      // const a = document.createElement("a");
+      // a.href = url;
+      // a.download = filename;
+      // document.body.appendChild(a);
+      // a.click();
+      // a.remove();
+
+      setTimeout(() => window.URL.revokeObjectURL(url), 60000);
     } catch (err) {
-      if (err.response && err.response.data) {
-        try {
-          const text = await err.response.data.text();
-          const json = JSON.parse(text);
-          setError(json.error || json.detail || "Error inesperado");
-        } catch {
-          setError("Error inesperado");
+      try {
+        const data = err?.response?.data;
+        if (data && data instanceof Blob) {
+          const text = await data.text();
+          try {
+            const json = JSON.parse(text);
+            setError(json.error || json.detail || "Error inesperado al generar el certificado.");
+          } catch {
+            setError(text || "Error inesperado al generar el certificado.");
+          }
+        } else if (err?.response?.data?.detail) {
+          setError(err.response.data.detail);
+        } else if (err?.response?.status === 404) {
+          setError("Endpoint no encontrado. Verificá que la ruta sea /api/generar/ en el backend.");
+        } else {
+          setError("No se pudo generar el certificado. Verificá el DNI e intentá nuevamente.");
         }
-      } else {
+      } catch {
         setError("No se pudo conectar con el servidor.");
       }
     } finally {
@@ -48,7 +82,7 @@ export default function GenerarCertificado() {
         style={{ marginTop: "88px", height: "calc(100vh - 88px)", overflow: "hidden" }}
       >
         <div className="row h-100 m-0">
-          {/* Columna izquierda con formulario dentro de un recuadro */}
+          {/* Columna izquierda con formulario */}
           <div className="col-md-6 d-flex justify-content-center align-items-center">
             <div
               className="w-100 px-4 px-md-5 py-4 border rounded shadow-sm bg-white"
@@ -65,6 +99,7 @@ export default function GenerarCertificado() {
 
               <form onSubmit={handleSubmit} className="mx-auto" style={{ maxWidth: "400px" }}>
                 <div className="mb-3 text-start">
+                  <label htmlFor="dni" className="form-label"></label>
                   <input
                     type="text"
                     id="dni"
@@ -72,6 +107,8 @@ export default function GenerarCertificado() {
                     value={dni}
                     onChange={(e) => setDni(e.target.value)}
                     required
+                    inputMode="numeric"
+                    autoComplete="off"
                   />
                 </div>
 
@@ -80,7 +117,6 @@ export default function GenerarCertificado() {
                     {loading ? "Generando..." : "Generar"}
                   </button>
 
-                  {/* Si preferís que NO sea azul, dejá btn-secondary como estaba */}
                   <Link to="/" className="btn btn-outline-bia">
                     Volver al Menú
                   </Link>

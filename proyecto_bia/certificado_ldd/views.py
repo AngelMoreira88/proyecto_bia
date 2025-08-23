@@ -204,31 +204,3 @@ class EntidadViewSet(viewsets.ModelViewSet):
     serializer_class = EntidadSerializer
     # Si querés restringir creación/edición a usuarios logueados:
     permission_classes = [IsAuthenticated]
-
-
-# ---------------- API: Mostrar datos BIA ----------------
-@api_view(["GET"])
-@permission_classes([AllowAny])  # o [IsAuthenticated] si debe ser privado
-def mostrar_datos_bia(request):
-    """
-    Devuelve un registro por dni o id_pago_unico (el primero que matchee).
-    Si querés devolver TODOS los registros del DNI, cambiá .first() por .all() y many=True en el serializer.
-    """
-    dni = request.GET.get("dni")
-    id_pago = request.GET.get("id_pago_unico")
-
-    if not (dni or id_pago):
-        return Response({"detail": "Debes proporcionar al menos dni o id_pago_unico"}, status=400)
-
-    q = Q()
-    if dni:
-        q |= Q(dni=dni)
-    if id_pago:
-        q |= Q(id_pago_unico=id_pago)
-
-    registro = BaseDeDatosBia.objects.filter(q).first()
-    if not registro:
-        return Response({"detail": "No encontrado"}, status=404)
-
-    data = BaseDeDatosBiaSerializer(registro).data
-    return Response(data, status=200)
