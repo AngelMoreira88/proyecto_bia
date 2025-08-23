@@ -5,7 +5,7 @@ from rest_framework.routers import DefaultRouter
 from .views import EntidadViewSet, api_generar_certificado, mostrar_datos_bia
 
 router = DefaultRouter()
-router.register(r'entidades', EntidadViewSet)
+router.register(r'entidades', EntidadViewSet, basename='entidad')
 
 urlpatterns = (
     router.urls  # rutas /entidades/ y /entidades/{pk}/

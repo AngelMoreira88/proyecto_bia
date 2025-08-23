@@ -14,11 +14,13 @@ urlpatterns = [
     path('api/token/',         TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(),    name='token_refresh'),
 
-    # 2) Luego monta tu API de certificados bajo /api/certificado/
-    path('api/certificado/', include('certificado_ldd.urls')),
+    # # 2) Luego monta tu API de certificados bajo /api/certificado/
+    # path('api/certificado/', include('certificado_ldd.urls')),
 
-    # 3) Tu app interna de carga
-    path('carga-datos/', include('carga_datos.urls')),
+    # # 3) Tu app interna de carga
+    # path('carga-datos/', include('carga_datos.urls')),
+    path('api/', include('certificado_ldd.urls')),
+    path('api/', include('carga_datos.urls')),
 
     # 4) Login/Logout
     path('accounts/login/',  auth_views.LoginView.as_view(),  name='login'),
