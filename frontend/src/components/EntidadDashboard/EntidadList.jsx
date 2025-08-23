@@ -1,6 +1,6 @@
-// src/components/EntidadDashboard/EntidadList.jsx
+// frontend/src/components/EntidadDashboard/EntidadList.jsx
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../../services/api';
 import { isLoggedIn } from '../../services/auth';
 
 export default function EntidadList({ onEdit }) {
@@ -12,17 +12,19 @@ export default function EntidadList({ onEdit }) {
   const fetchEntidades = async () => {
     try {
       setLoading(true);
-      const res = await axios.get('/api/entidades/');
+      const res = await api.get('/api/entidades/');
       setItems(res.data);
       setErr(null);
-    } catch {
+    } catch (e) {
       setErr('No se pudo cargar el listado de entidades');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchEntidades(); }, []);
+  useEffect(() => {
+    fetchEntidades();
+  }, []);
 
   const filtered = items.filter((e) => {
     const hay = (s) => (s || '').toString().toLowerCase();
@@ -36,9 +38,9 @@ export default function EntidadList({ onEdit }) {
   });
 
   return (
-    <div className="card shadow-sm border-0 rounded-4">
-      <div className="card-header bg-bia-subtle border-bia rounded-top-4 d-flex flex-wrap gap-2 align-items-center justify-content-between">
-        <strong className="m-0 text-bia">Entidades registradas</strong>
+    <div className="card shadow-sm">
+      <div className="card-header d-flex flex-wrap gap-2 align-items-center justify-content-between">
+        <strong className="m-0">Entidades registradas</strong>
         <div className="d-flex gap-2">
           <input
             className="form-control form-control-sm"
@@ -47,7 +49,7 @@ export default function EntidadList({ onEdit }) {
             onChange={(e) => setQ(e.target.value)}
             style={{ minWidth: 260 }}
           />
-          <button className="btn btn-sm btn-outline-bia" onClick={fetchEntidades}>
+          <button className="btn btn-sm btn-outline-secondary" onClick={fetchEntidades}>
             Refrescar
           </button>
         </div>
@@ -55,16 +57,14 @@ export default function EntidadList({ onEdit }) {
 
       <div className="card-body p-0">
         {loading ? (
-          <div className="p-3 text-muted d-flex align-items-center">
-            <span className="spinner-border spinner-border-sm me-2" /> Cargando…
-          </div>
+          <div className="p-3 text-muted">Cargando…</div>
         ) : err ? (
           <div className="p-3 text-danger">{err}</div>
         ) : filtered.length === 0 ? (
           <div className="p-3 text-muted">Sin resultados.</div>
         ) : (
           <div className="table-responsive">
-            <table className="table table-sm table-hover align-middle mb-0">
+            <table className="table table-sm align-middle mb-0">
               <thead className="table-light">
                 <tr>
                   <th>Nombre</th>
@@ -98,8 +98,11 @@ export default function EntidadList({ onEdit }) {
                       )}
                     </td>
                     {isLoggedIn() && onEdit && (
-                      <td className="text-end">
-                        <button className="btn btn-sm btn-outline-bia" onClick={() => onEdit(e)}>
+                      <td>
+                        <button
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={() => onEdit(e)}
+                        >
                           Editar
                         </button>
                       </td>
