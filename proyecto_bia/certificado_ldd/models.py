@@ -7,7 +7,7 @@ from carga_datos.models import BaseDeDatosBia
 
 class Certificate(models.Model):
     # OneToOne al PK (id) de BaseDeDatosBia
-    client = models.OneToOneField(BaseDeDatosBia, on_delete=models.CASCADE, db_column='client_id')
+    client = models.OneToOneField(BaseDeDatosBia, on_delete=models.CASCADE, related_name='certificate', db_column='client_id')
     pdf_file = models.FileField(upload_to='certificados_generados/')
     generated_at = models.DateTimeField(auto_now_add=True)
 
