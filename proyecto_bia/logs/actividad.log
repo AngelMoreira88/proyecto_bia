@@ -323,3 +323,7 @@ Traceback (most recent call last):
     resp = HttpResponse(pdf, content_type="application/pdf")
            ^^^^^^^^^^^^
 NameError: name 'HttpResponse' is not defined. Did you mean: 'JsonResponse'?
+[2025-08-24 17:17:43,279] WARNING django.request - Not Found: /main.0abbbcf65d4c8087502c.hot-update.json
+[2025-08-24 17:18:01,897] WARNING django.request - Not Found: /api/generar-certificado/
+[2025-08-24 17:32:23,495] ERROR django.request - Internal Server Error: /api/generar-certificado/
+[2025-08-24 17:41:31,661] WARNING django.request - Not Found: /api/generar-certificado/

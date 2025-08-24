@@ -4,42 +4,70 @@
 <head>
   <meta charset="UTF-8" />
   <title>Certificado de Libre de Deuda</title>
+  <!-- Si tenés CSS para PDF, mantenelo muy sencillo por xhtml2pdf -->
   <link rel="stylesheet" href="{% static 'css/styles-pdf.css' %}" />
+  <style>
+    /* Refuerzos inline-friendly para xhtml2pdf */
+    .logos-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .logo-left, .logo-right { max-height: 70px; max-width: 45%; }
+    .logo-center { text-align: center; margin-bottom: 20px; }
+    .logo-center img { max-height: 80px; }
+    .title { text-align: center; margin: 10px 0 0; }
+    .date { text-align: right; margin: 8px 0 18px; font-size: 10pt; }
+    .content { font-size: 12pt; line-height: 1.5; }
+    .signature { margin-top: 40px; text-align: center; }
+    .signature img { height: 60px; }
+    .hr { border: 0; height: 1px; background: #999; }
+  </style>
 </head>
 <body>
 
-  <!-- LOGOS SUPERIORES -->
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
-    {% if entidad_otras and entidad_otras.logo %}
-      <img src="{{ entidad_otras.logo.url }}" alt="Logo {{ entidad_otras.nombre }}" style="max-height:70px;max-width:45%;" />
-    {% endif %}
-
-    {% if entidad_bia and entidad_bia.logo %}
-      <img src="{{ entidad_bia.logo.url }}" alt="Logo BIA" style="max-height:70px;max-width:45%;" />
-    {% elif not entidad_otras %}
-      <div style="text-align:center;width:100%;">
-        <img src="{% static 'images/bia.png' %}" alt="Logo BIA" style="max-height:80px;" />
+  {# ================== LOGOS SUPERIORES ================== #}
+  {# Caso A: propietario NO es BIA -> izquierda: BIA | derecha: entidad propietaria #}
+  {% if entidad_otras %}
+    <div class="logos-row">
+      <div>
+        {% if entidad_bia and entidad_bia.logo %}
+          <img src="{{ entidad_bia.logo.url }}" alt="Logo BIA" class="logo-left" />
+        {% else %}
+          <img src="{% static 'images/bia.png' %}" alt="Logo BIA" class="logo-left" />
+        {% endif %}
       </div>
-    {% endif %}
+      <div>
+        {% if entidad_otras.logo %}
+          <img src="{{ entidad_otras.logo.url }}" alt="Logo {{ entidad_otras.nombre }}" class="logo-right" />
+        {% endif %}
+      </div>
+    </div>
+  {% else %}
+    {# Caso B: propietario ES BIA -> BIA centrado #}
+    <div class="logo-center">
+      {% if entidad_bia and entidad_bia.logo %}
+        <img src="{{ entidad_bia.logo.url }}" alt="Logo BIA" />
+      {% else %}
+        <img src="{% static 'images/bia.png' %}" alt="Logo BIA" />
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <hr class="hr" />
+
+  {# ================== TÍTULO ================== #}
+  <h2 class="title">Certificado de Libre de Deuda</h2>
+
+  {# ================== FECHA ================== #}
+  <div class="date">
+    Fecha de emisión: <strong>{% now "d/m/Y" %}</strong>
   </div>
 
-  <hr />
-
-  <!-- TÍTULO -->
-  <h2 style="text-align:center;margin:10px 0 0;">Certificado de Libre de Deuda</h2>
-
-  <!-- Fecha de emisión -->
-  <div class="date" style="text-align:right;margin:8px 0 18px;">
-    <small>Fecha de emisión: <strong>{% now "d/m/Y" %}</strong></small>
-  </div>
-
-  <!-- CONTENIDO PRINCIPAL -->
-  <div class="content" style="font-size:14px;line-height:1.5;">
+  {# ================== CUERPO ================== #}
+  <div class="content">
     <p>
       Por medio de la presente se deja constancia que
       <strong>{{ client.nombre_apellido }}</strong>, con DNI
-      <strong>{{ client.dni }}</strong>, ha cancelado la deuda que mantenía con la empresa
-      <strong>{{ client.propietario|default:"(sin dato)" }}</strong>,
+      <strong>{{ client.dni }}</strong>, ha cancelado la deuda que mantenía con
+      <strong>{{ client.propietario|default:"(sin dato)" }}</strong>
+      {% if entidad_bia and not entidad_otras %}(administrado por BIA S.R.L.){% endif %},
       por el crédito originado en
       <strong>{{ client.entidadinterna|default:"(sin dato)" }}</strong>
       (ID de operación <strong>{{ client.id_pago_unico }}</strong>),
@@ -48,25 +76,30 @@
 
     <p>
       Este certificado se expide a solicitud del interesado para los fines que estime convenientes,
-      sin que implique responsabilidad adicional por parte de la entidad emisora respecto a
+      sin que implique responsabilidad adicional por parte de la entidad emisora respecto de
       la veracidad futura de esta información.
     </p>
   </div>
 
-  <!-- FIRMA -->
-  <div class="signature" style="margin-top:40px;text-align:center;">
-    <p style="margin:0 0 6px;">Firma autenticada:</p>
+  {# ================== FIRMA (centrado) ================== #}
+  <div class="signature">
+    <p style="margin: 0 0 6px;">Firma autenticada:</p>
 
     {% if firma_url %}
-      <img src="{{ firma_url }}" alt="Firma" style="height:60px;" /><br />
-      <strong>{{ responsable }}</strong><br />
-      <span>{{ cargo }}</span><br />
-      <span>{{ entidad_firma }}</span>
-    {% else %}
-      <img src="{% static 'images/firma.png' %}" alt="Firma" style="height:60px;" /><br />
+      <img src="{{ firma_url }}" alt="Firma" /><br />
       <strong>{{ responsable|default:"Socio/Gerente" }}</strong><br />
       <span>{{ cargo|default:"" }}</span><br />
-      <span>{{ entidad_firma|default:"" }}</span>
+      <span>
+        {{ entidad_firma|default:entidad_otras.razon_social|default:entidad_otras.nombre|default:entidad_bia.razon_social|default:entidad_bia.nombre|default:"" }}
+      </span>
+    {% else %}
+      {# Fallback si no hay firma en Entidad #}
+      <img src="{% static 'images/firma.png' %}" alt="Firma" /><br />
+      <strong>{{ responsable|default:"Socio/Gerente" }}</strong><br />
+      <span>{{ cargo|default:"" }}</span><br />
+      <span>
+        {{ entidad_firma|default:entidad_otras.razon_social|default:entidad_otras.nombre|default:entidad_bia.razon_social|default:entidad_bia.nombre|default:"" }}
+      </span>
     {% endif %}
   </div>
 

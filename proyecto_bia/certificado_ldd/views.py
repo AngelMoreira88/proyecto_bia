@@ -1,15 +1,14 @@
 # certificado_ldd/views.py
+import logging
 import os
-import unicodedata
 from io import BytesIO
 
 from django.conf import settings
-from django.db.models import Q
-from django.http import FileResponse, JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.template.loader import render_to_string
 from django.views.decorators.csrf import csrf_exempt
-from django.core.files.base import ContentFile
 
+from django.core.files.base import ContentFile
 from xhtml2pdf import pisa
 
 from rest_framework import viewsets
@@ -18,6 +17,8 @@ from rest_framework.permissions import IsAuthenticated
 from carga_datos.models import BaseDeDatosBia
 from .models import Certificate, Entidad
 from .serializers import EntidadSerializer
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------- PDF helpers ----------------
@@ -36,12 +37,10 @@ def link_callback(uri, rel):
 
     if uri.startswith(s_url):
         relpath = uri.replace(s_url, "", 1)
-        # 1) STATIC_ROOT (si hay collectstatic)
         if s_root:
             candidate = os.path.join(s_root, relpath)
             if os.path.exists(candidate):
                 return candidate
-        # 2) STATICFILES_DIRS (modo dev)
         for d in s_dirs:
             candidate = os.path.join(d, relpath)
             if os.path.exists(candidate):
@@ -56,7 +55,7 @@ def link_callback(uri, rel):
                 return candidate
         raise Exception(f"Archivo media no encontrado: {relpath}")
 
-    # urls absolutas http(s) o rutas ya válidas
+    # urls absolutas http(s) o rutas válidas
     return uri
 
 
@@ -76,7 +75,6 @@ def get_entidad_emisora(registro: BaseDeDatosBia) -> Entidad | None:
     """
     1) Buscar Entidad por PROPIETARIO (emisora).
     2) Si no, buscar por ENTIDAD INTERNA.
-    3) Si nada, None → el template usará fallback (logo BIA estático).
     """
     propietario = (registro.propietario or "").strip()
     interna = (registro.entidadinterna or "").strip()
@@ -89,12 +87,21 @@ def get_entidad_emisora(registro: BaseDeDatosBia) -> Entidad | None:
     return ent
 
 
-# --------- utilidades simples ---------
-def _norm(s: str) -> str:
-    s = (s or "").strip().lower()
-    s = "".join(c for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) != "Mn")
-    s = " ".join(s.split())
-    return s
+def _is_cancelado(reg: BaseDeDatosBia) -> bool:
+    """
+    Negocio: solo dos estados posibles en 'estado': 'cancelado' o 'entidad externa'.
+    """
+    return (reg.estado or "").strip().lower() == "cancelado"
+
+
+def _row_minimal(reg: BaseDeDatosBia) -> dict:
+    """Campos mínimos para listar al cliente."""
+    return {
+        "id_pago_unico": reg.id_pago_unico,
+        "propietario": reg.propietario,
+        "entidadinterna": reg.entidadinterna,
+        "estado": reg.estado,
+    }
 
 
 # ---------------- API: Generar certificado ----------------
@@ -102,17 +109,16 @@ def _norm(s: str) -> str:
 def api_generar_certificado(request):
     """
     POST form-data: dni
-
-    Lógica:
-      - Reúne todos los registros del DNI.
-      - 'Certificables' = registros con estado = 'cancelado'.
-      - 'Deudas' = registros con estado != 'cancelado' (ej. 'entidad externa').
-
-      Respuestas:
-        * Si no hay 'cancelado' y sí hay deudas -> estado='pendiente' (+deudas)
-        * Si hay 'cancelado' y también deudas -> estado='parcial' (+certificados emitidos y +deudas)
-        * Si sólo hay 1 'cancelado' y no hay deudas -> devuelve el PDF directo (FileResponse)
-        * Si hay >1 'cancelado' y no hay deudas -> estado='varios_cancelados' (+links)
+    Reglas:
+      - Certifica por cada registro (id_pago_unico) que tenga estado == "cancelado".
+      - Si además existen registros NO cancelados, responde estado="parcial" con:
+          * certificados: [{id_pago_unico, propietario, entidadinterna, url_pdf}]
+          * deudas:       [{id_pago_unico, propietario, entidadinterna, estado}]
+      - Si todos están cancelados:
+          * 1 registro => devuelve el PDF directo (attachment)
+          * >1        => JSON con la lista de certificados
+      - Si ninguno está cancelado:
+          * estado="pendiente" con la lista de deudas (campos mínimos)
     """
     if request.method != "POST":
         return JsonResponse({"error": "Método no permitido"}, status=405)
@@ -121,124 +127,159 @@ def api_generar_certificado(request):
     if not dni:
         return JsonResponse({"error": "Debe ingresar un DNI"}, status=400)
 
-    registros = BaseDeDatosBia.objects.filter(dni=dni)
-    if not registros.exists():
-        return JsonResponse({"error": "No se encontraron registros para el DNI ingresado."}, status=404)
+    try:
+        registros = BaseDeDatosBia.objects.filter(dni=dni)
+        if not registros.exists():
+            return JsonResponse(
+                {"error": "No se encontraron registros para el DNI ingresado."},
+                status=404,
+            )
 
-    # Separar por estado (sólo existen 'cancelado' y 'entidad externa')
-    cancelados_qs = registros.filter(estado__iexact="cancelado").order_by("id")
-    deudas_qs = registros.exclude(estado__iexact="cancelado").order_by("id")
+        # Separar por estado
+        cancelados = [r for r in registros if _is_cancelado(r)]
+        pendientes = [r for r in registros if not _is_cancelado(r)]
 
-    # Estructura de deudas (campos solicitados)
-    deudas = [
-        {
-            "id_pago_unico": r.id_pago_unico,
-            "propietario": r.propietario,
-            "entidadinterna": r.entidadinterna,
-            "estado": r.estado,
-        }
-        for r in deudas_qs
-    ]
-
-    # Si no hay cancelados
-    if not cancelados_qs.exists():
-        return JsonResponse(
-            {
-                "estado": "pendiente",
-                "mensaje": "Existen deudas pendientes. No se puede emitir el/los certificado(s).",
-                "deudas": deudas,
-            },
-            status=200,
-        )
-
-    # Generar/asegurar un certificado por CADA registro cancelado (id_pago_unico)
-    certificados_meta = []
-    certificados_objs = []
-
-    for reg in cancelados_qs:
-        cert, created = Certificate.objects.get_or_create(client=reg)
-        if created or not cert.pdf_file:
-            emisora = get_entidad_emisora(reg)
-
-            firma_url = None
-            responsable = cargo = razon_social = None
-            if emisora:
-                if emisora.firma:
-                    firma_url = emisora.firma.url
-                responsable = emisora.responsable
-                cargo = emisora.cargo
-                razon_social = emisora.razon_social or emisora.nombre
-
-            entidad_bia = None
-            entidad_otras = None
-            if emisora and "bia" in (emisora.nombre or "").lower():
-                entidad_bia = emisora
-            elif emisora:
-                entidad_otras = emisora
-
-            html = render_to_string(
-                "pdf_template.html",
+        # Si NO hay cancelados => informar formalmente
+        if not cancelados:
+            return JsonResponse(
                 {
-                    "client": reg,
-                    "firma_url": firma_url,
-                    "responsable": responsable or "Socio/Gerente",
-                    "cargo": cargo or "",
-                    "entidad_firma": razon_social or (reg.propietario or reg.entidadinterna or ""),
-                    "entidad_bia": entidad_bia,
-                    "entidad_otras": entidad_otras,
+                    "estado": "pendiente",
+                    "mensaje": (
+                        "No se registran deudas canceladas para el DNI ingresado. "
+                        "Aún existen obligaciones pendientes con las entidades listadas."
+                    ),
+                    "deudas": [_row_minimal(r) for r in pendientes],
                 },
+                status=200,
             )
-            pdf_bytes = generate_pdf(html)
-            if pdf_bytes:
-                filename = f"certificado_{reg.id_pago_unico}.pdf"
-                cert.pdf_file.save(filename, ContentFile(pdf_bytes))
-                cert.save()
 
-        certificados_meta.append(
-            {
-                "id_pago_unico": reg.id_pago_unico,
-                "propietario": reg.propietario,
-                "entidadinterna": reg.entidadinterna,
-                "url_pdf": request.build_absolute_uri(cert.pdf_file.url) if cert.pdf_file else "",
-            }
-        )
-        certificados_objs.append(cert)
+        # Asegurar/generar certificado para cada registro cancelado (por id_pago_unico)
+        certificados_meta = []
+        certificados_objs = []
 
-    # Si además hay deudas → parcial
-    if deudas:
+        for reg in cancelados:
+            cert, created = Certificate.objects.get_or_create(client=reg)
+
+            # Generar o regenerar si no hay archivo asociado físicamente
+            need_generate = (
+                created
+                or not cert.pdf_file
+                or not getattr(cert.pdf_file, "path", None)
+                or not os.path.exists(cert.pdf_file.path)
+            )
+
+            if need_generate:
+                emisora = get_entidad_emisora(reg)
+
+                # Datos de firma y entidad emisora
+                firma_url = None
+                responsable = cargo = razon_social = None
+                if emisora:
+                    if emisora.firma:
+                        firma_url = emisora.firma.url
+                    responsable = emisora.responsable
+                    cargo = emisora.cargo
+                    razon_social = emisora.razon_social or emisora.nombre
+
+                # BIA a la izquierda siempre; si el propietario no es BIA, la otra entidad a la derecha.
+                # Si el propietario ES BIA, el logo de BIA centrado (el template maneja ambos casos).
+                entidad_bia = Entidad.objects.filter(nombre__iexact="BIA").first()
+                entidad_otras = None
+                if emisora:
+                    if "bia" in emisora.nombre.lower():
+                        entidad_bia = emisora  # usa la BIA encontrada en BD del propio registro
+                        entidad_otras = None
+                    else:
+                        entidad_otras = emisora  # propietaria distinta a BIA
+
+                html = render_to_string(
+                    "pdf_template.html",
+                    {
+                        "client": reg,
+                        "firma_url": firma_url,
+                        "responsable": responsable or "Socio/Gerente",
+                        "cargo": cargo or "",
+                        "entidad_firma": razon_social or (reg.propietario or reg.entidadinterna or ""),
+                        "entidad_bia": entidad_bia,
+                        "entidad_otras": entidad_otras,
+                    },
+                )
+                pdf_bytes = generate_pdf(html)
+                if not pdf_bytes:
+                    logger.warning("No se pudo generar PDF para id_pago_unico=%s", reg.id_pago_unico)
+                else:
+                    filename = f"certificado_{reg.id_pago_unico}.pdf"
+                    cert.pdf_file.save(filename, ContentFile(pdf_bytes))
+                    cert.save()
+
+            # URL absoluta (evita que el front abra el SPA del puerto 3000)
+            url = ""
+            try:
+                if cert.pdf_file:
+                    url = request.build_absolute_uri(cert.pdf_file.url)
+            except Exception:
+                logger.exception("Error construyendo URL de certificado (id_pago_unico=%s)", reg.id_pago_unico)
+
+            certificados_meta.append(
+                {
+                    "id_pago_unico": reg.id_pago_unico,
+                    "propietario": reg.propietario,
+                    "entidadinterna": reg.entidadinterna,
+                    "url_pdf": url,
+                }
+            )
+            certificados_objs.append(cert)
+
+        # Hay pendientes además de cancelados => PARCIAL
+        if pendientes:
+            return JsonResponse(
+                {
+                    "estado": "parcial",
+                    "mensaje": (
+                        "Se emitieron certificados para las obligaciones canceladas. "
+                        "Aún registra deudas con otras entidades."
+                    ),
+                    "certificados": certificados_meta,
+                    "deudas": [_row_minimal(r) for r in pendientes],
+                },
+                status=200,
+            )
+
+        # Todos cancelados
+        if len(certificados_objs) == 1:
+            cert = certificados_objs[0]
+            # Seguridad: si por algún motivo no hay archivo, devolvemos JSON en vez de 500
+            if not cert.pdf_file or not getattr(cert.pdf_file, "path", None) or not os.path.exists(cert.pdf_file.path):
+                logger.error("Certificado sin archivo físico (id_pago_unico=%s)", cert.client.id_pago_unico)
+                return JsonResponse(
+                    {
+                        "estado": "error",
+                        "error": "No fue posible adjuntar el PDF del certificado. Intente nuevamente.",
+                    },
+                    status=500,
+                )
+            with open(cert.pdf_file.path, "rb") as f:
+                pdf = f.read()
+            resp = HttpResponse(pdf, content_type="application/pdf")
+            resp["Content-Disposition"] = f'attachment; filename="certificado_{cert.client.id_pago_unico}.pdf"'
+            return resp
+
+        # Varios cancelados => lista para descargar/ver
         return JsonResponse(
             {
-                "estado": "parcial",
-                "mensaje": "Se emitieron certificados para las deudas canceladas. Aún registrás deudas en otras entidades.",
+                "estado": "varios_cancelados",
+                "mensaje": "Se encuentran disponibles varios certificados para descargar.",
                 "certificados": certificados_meta,
-                "deudas": deudas,
             },
             status=200,
         )
 
-    # Sin deudas y:
-    if len(certificados_objs) == 1:
-        # Devolver el único PDF en streaming
-        cert = certificados_objs[0]
-        try:
-            return FileResponse(
-                open(cert.pdf_file.path, "rb"),
-                as_attachment=True,
-                filename=f"certificado_{cert.client.id_pago_unico}.pdf",
-                content_type="application/pdf",
-            )
-        except FileNotFoundError:
-            return JsonResponse({"error": "El archivo del certificado no está disponible en el servidor."}, status=500)
-
-    # Múltiples certificados sin deudas pendientes: devolver links
-    return JsonResponse(
-        {
-            "estado": "varios_cancelados",
-            "mensaje": "Se emitieron varios certificados. Puede descargar cada uno.",
-            "certificados": certificados_meta,
-        },
-        status=200,
-    )
+    except Exception as e:
+        logger.exception("Fallo inesperado en api_generar_certificado (dni=%s)", dni)
+        return JsonResponse(
+            {"error": "Ocurrió un error inesperado generando el/los certificado(s).", "detail": str(e)},
+            status=500,
+        )
 
 
 # ---------------- API: Entidades (CRUD) ----------------
