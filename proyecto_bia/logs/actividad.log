@@ -327,3 +327,109 @@ NameError: name 'HttpResponse' is not defined. Did you mean: 'JsonResponse'?
 [2025-08-24 17:18:01,897] WARNING django.request - Not Found: /api/generar-certificado/
 [2025-08-24 17:32:23,495] ERROR django.request - Internal Server Error: /api/generar-certificado/
 [2025-08-24 17:41:31,661] WARNING django.request - Not Found: /api/generar-certificado/
+[2025-08-24 18:19:36,725] WARNING django.request - Not Found: /carga-datos/api/
+[2025-08-24 18:43:06,393] WARNING django.request - Not Found: /carga-datos/api/
+[2025-08-24 18:45:13,565] WARNING django.request - Not Found: /api/generar-certificado/
+[2025-08-24 18:45:52,815] WARNING django.request - Not Found: /api/generar-certificado/
+[2025-08-24 18:47:16,404] WARNING django.request - Not Found: /carga-datos/api/
+[2025-08-24 18:48:27,836] WARNING django.request - Not Found: /carga-datos/api/cargar/
+[2025-08-24 18:49:08,432] WARNING django.request - Not Found: /main.72c92acc9c4ee497a5b0.hot-update.json
+[2025-08-24 18:49:42,645] WARNING django.request - Not Found: /carga-datos/api/cargar/
+[2025-08-24 18:51:48,463] WARNING django.request - Unauthorized: /api/entidades/
+[2025-08-24 18:51:48,478] WARNING django.request - Unauthorized: /api/entidades/
+[2025-08-24 18:52:08,511] WARNING django.request - Not Found: /carga-datos/api/cargar/
+[2025-08-24 18:57:08,973] WARNING django.request - Not Found: /carga-datos/api/ping/
+[2025-08-24 18:59:09,893] WARNING django.request - Not Found: /carga-datos/api/cargar/
+[2025-08-24 19:01:41,505] WARNING django.request - Not Found: /carga-datos/api/cargar/
+[2025-08-24 19:17:09,621] WARNING django.request - Not Found: /api/generar-certificado/
+[2025-08-24 19:20:39,030] WARNING django.request - Not Found: /api/generar-certificado/
+[2025-08-24 19:21:45,177] WARNING django.request - Not Found: /api/generar-certificado/
+[2025-08-24 19:22:10,890] WARNING django.request - Not Found: /api/generar-certificado/
+[2025-08-24 19:28:06,335] WARNING django.request - Not Found: /api/generar-certificado/
+[2025-08-24 19:30:40,090] WARNING django.request - Unauthorized: /carga-datos/api/cargar/
+[2025-08-24 19:41:11,481] INFO django.request - [angel] Faltan columnas en archivo 'clientes_ficticios_50.xlsx': ['entidad']
+[2025-08-24 19:41:11,482] WARNING django.request - Bad Request: /carga-datos/api/cargar/
+[2025-08-24 20:04:29,877] WARNING django.request - Unauthorized: /carga-datos/api/cargar/
+[2025-08-24 20:04:48,717] INFO django.request - [angel] Previsualización cargada de 'clientes_ficticios_50.xlsx' con 50 registros.
+[2025-08-24 20:04:50,053] ERROR django.request - Error en api_confirmar_carga:
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.UniqueViolation: duplicate key value violates unique constraint "uq_entidad_nombre_ci"
+DETAIL:  Key (lower(nombre::text))=(linares, villar and aguilera) already exists.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views.py", line 346, in api_confirmar_carga
+    ent = _resolver_entidad(
+          ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views.py", line 130, in _resolver_entidad
+    ent = Entidad.objects.create(nombre=cand, responsable="", cargo="")
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 679, in create
+    obj.save(force_insert=True, using=self.db)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\base.py", line 892, in save
+    self.save_base(
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\base.py", line 998, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\base.py", line 1161, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\base.py", line 1202, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\sql\compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: duplicate key value violates unique constraint "uq_entidad_nombre_ci"
+DETAIL:  Key (lower(nombre::text))=(linares, villar and aguilera) already exists.
+
+
+[2025-08-24 20:04:50,067] ERROR django.request - Internal Server Error: /carga-datos/api/confirmar/
+[2025-08-24 20:04:56,992] WARNING django.request - Not Found: /carga-datos/api/errores/
+[2025-08-24 20:04:57,684] WARNING django.request - Not Found: /carga-datos/api/errores/
+[2025-08-24 20:09:27,030] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-24 20:09:39,745] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-24 20:09:41,288] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-24 20:09:41,893] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-24 20:09:42,083] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-24 20:09:42,243] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-24 20:09:42,377] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-24 20:10:17,112] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-24 20:10:44,933] WARNING django.request - Not Found: /api/mostrar-datos-bia/
+[2025-08-24 20:15:18,737] WARNING django.request - Not Found: /api/entidades/
+[2025-08-24 20:15:18,769] WARNING django.request - Not Found: /api/entidades/
+[2025-08-24 20:15:23,228] WARNING django.request - Not Found: /api/entidades/
+[2025-08-24 20:16:18,408] WARNING django.request - Not Found: /api/generar-certificado/
+[2025-08-24 20:29:07,231] WARNING django.request - Not Found: /api/generar-certificado/
+[2025-08-24 20:29:34,460] WARNING django.request - Not Found: /api/generar-certificado/
+[2025-08-24 20:46:15,684] WARNING django.request - Not Found: /main.bbaf881659e426e72fe5.hot-update.json

@@ -1,28 +1,39 @@
+# carga_datos/urls.py
 from django.urls import path
+from django.http import JsonResponse
 from .views import (
+    # Vistas web (si las usás)
     cargar_excel,
     confirmar_carga,
     errores_validacion,
+    # API
     api_cargar_excel,
     api_confirmar_carga,
     api_errores_validacion,
     mostrar_datos_bia,
     actualizar_datos_bia,
-    exportar_datos_bia_csv
-    )
+    exportar_datos_bia_csv,
+)
 
+def ping(_request):
+    return JsonResponse({"ok": True, "app": "carga_datos"})
 
 urlpatterns = [
-    # vistas web “clásicas”
-    path('',           cargar_excel,       name='cargar_excel'),
-    path('confirmar/', confirmar_carga,    name='confirmar_carga'),
-    path('errores/',   errores_validacion, name='errores_validacion'),
+    # ---------------------------
+    # WEB (navegación)
+    # ---------------------------
+    path('',                   cargar_excel,       name='cargar_excel'),
+    path('confirmar-web/',     confirmar_carga,    name='confirmar_carga_web'),
+    path('errores-web/',       errores_validacion, name='errores_validacion_web'),
 
-    # endpoints REST (JWT)
-    path('cargar/',       api_cargar_excel,      name='api_cargar'),
-    path('confirmar/',    api_confirmar_carga,   name='api_confirmar'),
-    path('errores/',      api_errores_validacion,name='api_errores'),
-    path('mostrar-datos-bia/', mostrar_datos_bia, name='mostrar_datos_bia'),
-    path('mostrar-datos-bia/<int:pk>/', actualizar_datos_bia, name='actualizar_datos_bia'),
-    path('exportar-datos-bia.csv', exportar_datos_bia_csv, name='exportar_datos_bia_csv'),
+    # ---------------------------
+    # API (consumida por frontend)
+    # ---------------------------
+    path('api/ping/',                       ping,                   name='api_ping'),
+    path('api/cargar/',                     api_cargar_excel,       name='api_cargar'),
+    path('api/confirmar/',                  api_confirmar_carga,    name='api_confirmar'),
+    path('api/errores/',                    api_errores_validacion, name='api_errores'),
+    path('api/mostrar-datos-bia/',          mostrar_datos_bia,      name='api_mostrar_datos_bia'),
+    path('api/mostrar-datos-bia/<int:pk>/', actualizar_datos_bia,   name='api_actualizar_datos_bia'),
+    path('api/exportar-datos-bia.csv',      exportar_datos_bia_csv, name='api_exportar_datos_bia_csv'),
 ]
