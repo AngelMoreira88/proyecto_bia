@@ -16,3 +16,5 @@ __pycache__/
 # Logs
 *.log
 /proyecto_bia/logs/
+proyecto_bia/proyecto_bia/logs/actividad.log
+proyecto_bia/logs/actividad.log
