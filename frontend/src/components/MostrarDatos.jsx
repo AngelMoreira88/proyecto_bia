@@ -1,6 +1,10 @@
 // frontend/src/components/MostrarDatos.jsx
 import React, { useMemo, useState } from 'react';
-import api from '../services/api';
+import {
+  listarDatosBia,
+  actualizarDatoBia,
+  exportarDatosBiaCSV,
+} from '../services/api';
 
 export default function Mostrar() {
   const [query, setQuery] = useState('');
@@ -19,7 +23,7 @@ export default function Mostrar() {
     return arr.includes('id') ? ['id', ...arr.filter(c => c !== 'id')] : arr;
   }, [datos]);
 
-  const NO_EDITABLES = new Set(['id']);
+  const NO_EDITABLES = new Set(['id']); // agregá más si hace falta, ej. 'id_pago_unico'
 
   // Fila original que se está editando (si existe)
   const originalRow = useMemo(
@@ -44,34 +48,41 @@ export default function Mostrar() {
     return q.length > 0 && dni.length > 0 && q === dni;
   }, [query, originalRow]);
 
-  // Buscar por DNI o id_pago_unico (soporta payload paginado o array)
+  // Normaliza payload a array de filas
+  const normalizeResults = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    if (payload && Array.isArray(payload.results)) return payload.results;
+    if (payload && Array.isArray(payload.items)) return payload.items;
+    return [];
+  };
+
+  // Buscar por DNI o id_pago_unico
   const handleBuscar = async (e) => {
     e.preventDefault();
     setError('');
     setDatos([]);
     setEditingId(null);
     setFormData({});
-    if (!query.trim()) {
+
+    const q = String(query).trim();
+    if (!q) {
       setError('Ingresá un DNI o ID válido');
       return;
     }
+
     setLoading(true);
     try {
-      const res = await api.get('/api/mostrar-datos-bia/', {
-        params: { dni: query, id_pago_unico: query, page: 1 }, // page opcional
-      });
-
+      const res = await listarDatosBia({ dni: q, id_pago_unico: q, page: 1 });
       const payload = res.data || {};
-      const results = Array.isArray(payload.results)
-        ? payload.results
-        : (Array.isArray(payload) ? payload : []);
+      const results = normalizeResults(payload);
 
       // Garantiza un 'id' siempre presente (usa id_pago_unico si no hay id)
       const data = results.map(r => ({ id: r.id ?? r.id_pago_unico, ...r }));
 
       setDatos(data);
       if ((payload.count ?? data.length) === 0) setError('No se encontraron registros');
-    } catch {
+    } catch (err) {
+      console.error(err);
       setError('Error al consultar la base de datos');
     } finally {
       setLoading(false);
@@ -93,15 +104,32 @@ export default function Mostrar() {
     setFormData({});
   };
 
+  const getChangedFields = () => {
+    if (!originalRow) return {};
+    const changed = {};
+    Object.keys(formData).forEach((k) => {
+      if ((formData[k] ?? '') !== (originalRow[k] ?? '') && !NO_EDITABLES.has(k)) {
+        changed[k] = formData[k];
+      }
+    });
+    return changed;
+  };
+
   const handleSave = async (id) => {
     setError('');
+    const changes = getChangedFields();
+    if (!Object.keys(changes).length) {
+      setEditingId(null);
+      return;
+    }
     setSaving(true);
     try {
-      await api.put(`/api/mostrar-datos-bia/${id}/`, formData);
-      setDatos(prev => prev.map(d => (d.id === id ? { ...d, ...formData } : d)));
+      await actualizarDatoBia(id, changes); // PATCH
+      setDatos(prev => prev.map(d => (d.id === id ? { ...d, ...changes } : d)));
       setEditingId(null);
       setFormData({});
-    } catch {
+    } catch (err) {
+      console.error(err);
       setError('Error al guardar los cambios');
     } finally {
       setSaving(false);
@@ -111,7 +139,7 @@ export default function Mostrar() {
   // Exporta TODOS los datos (sin filtros) como CSV
   const handleExportCsv = async () => {
     try {
-      const res = await api.get('/api/exportar-datos-bia.csv', { responseType: 'blob' });
+      const res = await exportarDatosBiaCSV(); // GET blob
       const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -122,6 +150,7 @@ export default function Mostrar() {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (e) {
+      console.error(e);
       setError('No se pudo exportar el CSV');
     }
   };

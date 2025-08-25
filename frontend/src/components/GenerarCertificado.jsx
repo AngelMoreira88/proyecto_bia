@@ -4,50 +4,126 @@ import { Link } from "react-router-dom";
 import Header from "./Header";
 import api from "../services/api";
 
+const ENDPOINTS = [
+  "/api/certificado/generar/",             // ✅ oficial
+  "/api/certificado/generar-certificado/", // alias del app
+  "/api/generar-certificado/",             // alias plano de compat (si lo dejaste en proyecto)
+];
+
 export default function GenerarCertificado() {
   const [dni, setDni] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [msg, setMsg] = useState(null); // {type:'success'|'info'|'warning'|'danger', text:string}
+  const [deudas, setDeudas] = useState([]);
+  const [varios, setVarios] = useState([]);
+
+  const postConFallback = async (payload) => {
+    let lastErr = null;
+    for (const url of ENDPOINTS) {
+      try {
+        // responseType blob para soportar PDF directo y JSON
+        const res = await api.post(url, payload, { responseType: "blob" });
+        return res;
+      } catch (err) {
+        lastErr = err;
+        // si fue 404 probamos el siguiente
+        if (err?.response?.status !== 404) throw err;
+      }
+    }
+    throw lastErr;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setLoading(true);
+    setMsg(null);
+    setDeudas([]);
+    setVarios([]);
 
-    const dniTrim = (dni || "").trim();
+    const dniTrim = (dni || "").replace(/\D/g, "").trim(); // solo dígitos
     if (!dniTrim) {
-      setError("Ingresá un DNI válido.");
-      setLoading(false);
+      setMsg({ type: "warning", text: "Ingresá un DNI válido (solo números)." });
       return;
     }
 
-    const formData = new FormData();
-    formData.append("dni", dniTrim);
-
+    setLoading(true);
     try {
-      const res = await api.post("/api/generar/", formData, {
-        responseType: "blob",
-      });
+      // Podés enviar JSON o FormData; dejamos FormData por compatibilidad amplia
+      const formData = new FormData();
+      formData.append("dni", dniTrim);
 
-      const dispo = res.headers?.["content-disposition"] || "";
-      const matchName = dispo.match(/filename\*?=(?:UTF-8'')?["']?([^"';]+)["']?/i);
-      const filename = matchName ? decodeURIComponent(matchName[1]) : "certificado.pdf";
+      const res = await postConFallback(formData);
+      const ct = (res.headers?.["content-type"] || "").toLowerCase();
 
-      const pdfBlob = new Blob([res.data], { type: "application/pdf" });
-      const url = window.URL.createObjectURL(pdfBlob);
+      if (ct.includes("application/pdf")) {
+        // PDF directo: abrir en nueva pestaña
+        const pdfBlob = new Blob([res.data], { type: "application/pdf" });
+        const url = window.URL.createObjectURL(pdfBlob);
+        window.open(url, "_blank", "noopener");
+        setMsg({
+          type: "success",
+          text:
+            "El certificado se abrió en una nueva pestaña. Si no lo ves, revisá el bloqueador de ventanas emergentes.",
+        });
+        // liberar URL temporal más tarde
+        setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+        return;
+      }
 
-      // Abrir en nueva pestaña
-      window.open(url);
+      // Blob con JSON
+      if (ct.includes("application/json")) {
+        const text = await res.data.text();
+        const payload = JSON.parse(text);
 
-      // (Opcional) descarga automática
-      // const a = document.createElement("a");
-      // a.href = url;
-      // a.download = filename;
-      // document.body.appendChild(a);
-      // a.click();
-      // a.remove();
+        if (payload.error) {
+          setMsg({ type: "danger", text: payload.error });
+          return;
+        }
 
-      setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+        switch (payload.estado) {
+          case "sin_canceladas":
+            setMsg({
+              type: "info",
+              text:
+                "No se registran deudas canceladas asociadas al DNI indicado. No es posible emitir certificados.",
+            });
+            setDeudas(Array.isArray(payload.deudas) ? payload.deudas : []);
+            break;
+
+          case "pendiente":
+            setMsg({
+              type: "warning",
+              text: "Existen deudas pendientes. No se puede emitir el/los certificado(s).",
+            });
+            setDeudas(Array.isArray(payload.deudas) ? payload.deudas : []);
+            break;
+
+          case "parcial":
+            setMsg({
+              type: "info",
+              text:
+                payload.mensaje ||
+                "Se emitieron certificados para entidades sin deuda. Aún registrás deudas en otras entidades.",
+            });
+            setVarios(Array.isArray(payload.certificados) ? payload.certificados : []);
+            setDeudas(Array.isArray(payload.deudas) ? payload.deudas : []);
+            break;
+
+          case "varios_cancelados":
+            setMsg({
+              type: "info",
+              text: payload.mensaje || "Tenés varias entidades sin deuda. Podés descargar cada certificado.",
+            });
+            setVarios(Array.isArray(payload.certificados) ? payload.certificados : []);
+            break;
+
+          default:
+            setMsg({ type: "info", text: payload.mensaje || "Respuesta recibida." });
+            break;
+        }
+        return;
+      }
+
+      setMsg({ type: "danger", text: "Respuesta desconocida del servidor." });
     } catch (err) {
       try {
         const data = err?.response?.data;
@@ -55,19 +131,27 @@ export default function GenerarCertificado() {
           const text = await data.text();
           try {
             const json = JSON.parse(text);
-            setError(json.error || json.detail || "Error inesperado al generar el certificado.");
+            setMsg({
+              type: "danger",
+              text: json.error || json.detail || "No se pudo procesar la solicitud.",
+            });
           } catch {
-            setError(text || "Error inesperado al generar el certificado.");
+            setMsg({ type: "danger", text: text || "No se pudo procesar la solicitud." });
           }
-        } else if (err?.response?.data?.detail) {
-          setError(err.response.data.detail);
         } else if (err?.response?.status === 404) {
-          setError("Endpoint no encontrado. Verificá que la ruta sea /api/generar/ en el backend.");
+          setMsg({
+            type: "danger",
+            text:
+              "Endpoint no encontrado. Verificá que exista /api/certificado/generar/ (o activá los aliases de compat).",
+          });
         } else {
-          setError("No se pudo generar el certificado. Verificá el DNI e intentá nuevamente.");
+          setMsg({
+            type: "danger",
+            text: "No se pudo generar el certificado. Verificá el DNI e intentá nuevamente.",
+          });
         }
       } catch {
-        setError("No se pudo conectar con el servidor.");
+        setMsg({ type: "danger", text: "No se pudo conectar con el servidor." });
       }
     } finally {
       setLoading(false);
@@ -82,7 +166,7 @@ export default function GenerarCertificado() {
         style={{ marginTop: "88px", height: "calc(100vh - 88px)", overflow: "hidden" }}
       >
         <div className="row h-100 m-0">
-          {/* Columna izquierda con formulario */}
+          {/* Columna izquierda con formulario y resultados */}
           <div className="col-md-6 d-flex justify-content-center align-items-center">
             <div
               className="w-100 px-4 px-md-5 py-4 border rounded shadow-sm bg-white"
@@ -98,36 +182,108 @@ export default function GenerarCertificado() {
               <p className="text-muted text-center mb-4">Ingresá tu DNI a continuación:</p>
 
               <form onSubmit={handleSubmit} className="mx-auto" style={{ maxWidth: "400px" }}>
-                <div className="mb-3 text-start">
-                  <label htmlFor="dni" className="form-label"></label>
+                <div className="mb-2 text-start">
+                  <label htmlFor="dni" className="form-label visually-hidden">
+                    DNI
+                  </label>
                   <input
                     type="text"
                     id="dni"
                     className="form-control"
                     value={dni}
-                    onChange={(e) => setDni(e.target.value)}
-                    required
+                    onChange={(e) => {
+                      // Solo dígitos, evita letras/puntos
+                      const val = e.target.value.replace(/\D/g, "");
+                      setDni(val);
+                      if (msg) setMsg(null);
+                      setDeudas([]);
+                      setVarios([]);
+                    }}
                     inputMode="numeric"
                     autoComplete="off"
+                    placeholder="DNI (solo números)"
+                    required
                   />
                 </div>
 
+                {/* Mensaje cerca del campo */}
+                {msg && (
+                  <div className={`alert alert-${msg.type} mt-2 mb-0`} role="alert">
+                    {msg.text}
+                  </div>
+                )}
+
                 <div className="d-flex justify-content-center gap-2 mt-3">
                   <button type="submit" className="btn btn-bia" disabled={loading}>
-                    {loading ? "Generando..." : "Generar"}
+                    {loading ? "Consultando..." : "Consultar / Generar"}
                   </button>
 
                   <Link to="/" className="btn btn-outline-bia">
                     Volver al Menú
                   </Link>
                 </div>
-
-                {error && (
-                  <div className="alert alert-danger mt-3" role="alert">
-                    {error}
-                  </div>
-                )}
               </form>
+
+              {/* Tabla de deudas */}
+              {deudas.length > 0 && (
+                <div className="table-responsive mt-3">
+                  <table className="table table-sm align-middle mb-0">
+                    <thead className="table-light">
+                      <tr>
+                        <th>ID pago único</th>
+                        <th>Propietario</th>
+                        <th>Entidad interna</th>
+                        <th>Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {deudas.map((d, i) => (
+                        <tr key={`${d.id_pago_unico}-${i}`}>
+                          <td>{d.id_pago_unico}</td>
+                          <td>{d.propietario}</td>
+                          <td>{d.entidadinterna}</td>
+                          <td>{d.estado}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Certificados descargables (varias entidades) */}
+              {varios.length > 0 && (
+                <div className="table-responsive mt-3">
+                  <table className="table table-sm align-middle mb-0">
+                    <thead className="table-light">
+                      <tr>
+                        <th>ID pago único</th>
+                        <th>Propietario</th>
+                        <th>Entidad interna</th>
+                        <th>Descarga</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {varios.map((c, i) => (
+                        <tr key={`${c.id_pago_unico}-${i}`}>
+                          <td>{c.id_pago_unico}</td>
+                          <td>{c.propietario}</td>
+                          <td>{c.entidadinterna}</td>
+                          <td>
+                            <a
+                              className="btn btn-sm btn-outline-primary"
+                              href={c.url_pdf}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              Certificado LDD
+                            </a>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
 

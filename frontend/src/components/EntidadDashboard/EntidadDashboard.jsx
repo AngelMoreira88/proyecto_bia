@@ -4,6 +4,8 @@ import { isLoggedIn } from '../../services/auth';
 import api from '../../services/api';
 import EntidadList from './EntidadList';
 
+const ENTIDADES_BASE = '/api/certificado/entidades/';
+
 export default function EntidadDashboard() {
   const [editingId, setEditingId] = useState(null);
   const [listKey, setListKey] = useState(0); // fuerza refresco de EntidadList tras guardar
@@ -16,9 +18,11 @@ export default function EntidadDashboard() {
     firma: null,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState('');
 
   const handleChange = (e) => {
     const { name, value, files } = e.target;
+    setServerError('');
     setFormData((prev) => ({
       ...prev,
       [name]: files ? (files.length ? files[0] : null) : value,
@@ -35,23 +39,25 @@ export default function EntidadDashboard() {
       firma: null,
     });
     setEditingId(null);
+    setServerError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (submitting) return;
 
-    // Construir FormData. Incluimos strings vacíos; omitimos solo null/undefined.
+    // Construir FormData. Omitimos solo null/undefined (DRF trata '' como string vacío)
     const payload = new FormData();
     Object.entries(formData).forEach(([k, v]) => {
       if (v !== null && v !== undefined) payload.append(k, v);
     });
 
-    const url = editingId ? `/api/entidades/${editingId}/` : `/api/entidades/`;
-    const method = editingId ? 'patch' : 'post'; // PATCH para edición parcial
+    const url = editingId ? `${ENTIDADES_BASE}${editingId}/` : ENTIDADES_BASE;
+    const method = editingId ? 'patch' : 'post'; // PATCH parcial
 
     try {
       setSubmitting(true);
+      setServerError('');
       await api({
         method,
         url,
@@ -62,6 +68,17 @@ export default function EntidadDashboard() {
       setListKey((n) => n + 1); // re-monta EntidadList → vuelve a hacer fetch
     } catch (err) {
       console.error(err);
+      // Mostrar detalle de validación si viene de DRF
+      const data = err?.response?.data;
+      if (data && typeof data === 'object') {
+        // convierte {campo: ["err1","err2"]} en texto legible
+        const msg = Object.entries(data)
+          .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(' ') : String(v)}`)
+          .join(' | ');
+        setServerError(msg || 'No se pudo guardar la entidad.');
+      } else {
+        setServerError('No se pudo guardar la entidad.');
+      }
       alert('No se pudo guardar la entidad.');
     } finally {
       setSubmitting(false);
@@ -86,7 +103,7 @@ export default function EntidadDashboard() {
 
   return (
     <div className="container py-3">
-      {/* FORM: visible solo si el usuario está logeado */}
+      {/* FORM: visible solo si el usuario está logueado */}
       {isLoggedIn() && (
         <div className="card mb-4 shadow-sm border-0 rounded-4" id="entidad-form">
           <div className="card-header d-flex justify-content-between align-items-center">
@@ -168,6 +185,14 @@ export default function EntidadDashboard() {
                   onChange={handleChange}
                 />
               </div>
+
+              {serverError && (
+                <div className="col-12">
+                  <div className="alert alert-danger" role="alert">
+                    {serverError}
+                  </div>
+                </div>
+              )}
 
               <div className="col-12 d-flex gap-2">
                 <button type="submit" className="btn btn-primary" disabled={submitting}>
