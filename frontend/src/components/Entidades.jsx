@@ -8,10 +8,8 @@ export default function Entidades() {
     <>
       <Header />
 
-      <div
-        className="container-fluid p-0"
-        style={{ marginTop: "100px", height: "calc(100vh - 100px)", overflow: "hidden" }}
-      >
+      <div className="container-fluid p-0 page-fill overflow-hidden">
+
         <div className="row h-100 g-0 m-0">
           {/* Columna única: contenido con scroll propio */}
           <div

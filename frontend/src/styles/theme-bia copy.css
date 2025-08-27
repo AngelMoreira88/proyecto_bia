@@ -1,0 +1,603 @@
+/* ===========================
+   Tema puntual BIA (opción B)
+   =========================== */
+
+/* Tokens del color corporativo */
+:root {
+  --bia-blue: #1D48A6;     /* RGB 29,72,166 */
+  --bia-blue-600: #163e8a; /* hover */
+  --bia-blue-700: #12306c; /* active */
+  --header-h: 100px;       /* altura del header fijo */
+}
+
+/* Botón sólido BIA: usar junto a .btn */
+.btn-bia {
+  --bs-btn-color: #fff;
+  --bs-btn-bg: var(--bia-blue);
+  --bs-btn-border-color: var(--bia-blue);
+
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--bia-blue-600);
+  --bs-btn-hover-border-color: var(--bia-blue-600);
+
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--bia-blue-700);
+  --bs-btn-active-border-color: var(--bia-blue-700);
+
+  --bs-btn-disabled-color: #fff;
+  --bs-btn-disabled-bg: var(--bia-blue);
+  --bs-btn-disabled-border-color: var(--bia-blue);
+
+  --bs-btn-focus-shadow-rgb: 29, 72, 166; /* glow de focus */
+}
+
+/* Variante contorno */
+.btn-outline-bia {
+  --bs-btn-color: var(--bia-blue);
+  --bs-btn-border-color: var(--bia-blue);
+
+  --bs-btn-hover-color: #fff;
+  --bs-btn-hover-bg: var(--bia-blue);
+  --bs-btn-hover-border-color: var(--bia-blue);
+
+  --bs-btn-active-color: #fff;
+  --bs-btn-active-bg: var(--bia-blue-600);
+  --bs-btn-active-border-color: var(--bia-blue-600);
+
+  --bs-btn-disabled-color: var(--bia-blue);
+  --bs-btn-disabled-bg: transparent;
+  --bs-btn-disabled-border-color: var(--bia-blue);
+
+  --bs-btn-focus-shadow-rgb: 29, 72, 166;
+}
+
+/* Utilitarios */
+.text-bia      { color: var(--bia-blue) !important; }
+.border-bia    { border-color: var(--bia-blue) !important; }
+.bg-bia-subtle { background-color: rgba(29,72,166,.08) !important; }
+
+.link-bia { color: var(--bia-blue); text-decoration: none; }
+.link-bia:hover { color: var(--bia-blue-600); text-decoration: underline; }
+
+/* ===========================
+   Header elegante (glass)
+   =========================== */
+.header-glass {
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,.85) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+  height: var(--header-h);
+}
+
+/* Solo los links del menú heredan el alto del header (¡no botones!) */
+.header-glass .nav-link {
+  line-height: calc(var(--header-h) - 24px);
+}
+
+/* Botones en header: compactos, no se estiran con el alto del header */
+.header-glass .btn {
+  line-height: 1.1 !important;
+  padding: .2rem .55rem !important;
+  font-size: .85rem !important;
+  border-radius: .45rem;
+}
+
+/* Panel Interno: apenas más grande (S) y que gane dentro del header */
+.btn-nav-compact-s {
+  padding: .28rem .7rem;
+  font-size: .9rem;
+  line-height: 1.1;
+  border-radius: .48rem;
+}
+.header-glass .btn-nav-compact-s {
+  padding: .28rem .7rem !important;
+  font-size: .9rem !important;
+  line-height: 1.1 !important;
+}
+
+/* Logo responsive más grande */
+.brand-logo { height: 44px; }
+@media (min-width: 768px) {
+  .brand-logo { height: 64px; }
+}
+
+/* ===========================
+   Nav underline: 1 sola línea azul y sin negrita
+   =========================== */
+.nav-underline .nav-link {
+  position: relative;
+  border-bottom: none !important;  /* quita la línea nativa de Bootstrap */
+  font-weight: 400 !important;     /* sin negrita */
+}
+.nav-underline .nav-link.active {
+  border-bottom: none !important;
+  font-weight: 400 !important;
+  color: inherit;                  /* no cambia el color del texto */
+}
+
+/* Tu única línea azul (hover/activo) */
+.nav-underline .nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: .35rem;                  /* ajustá a gusto: .25rem / .4rem */
+  width: 0;
+  height: 2px;
+  background: var(--bia-blue);
+  transition: width .2s ease;
+}
+.nav-underline .nav-link:hover::after,
+.nav-underline .nav-link:focus::after,
+.nav-underline .nav-link.active::after {
+  width: 100%;
+}
+
+/* Offcanvas ancho cómodo en mobile */
+.offcanvas-nav { width: min(86vw, 360px); }
+
+/* Dropdown moderno */
+.dropdown-menu-modern {
+  border: 1px solid rgba(16,24,40,.06);
+  border-radius: 1rem;
+  box-shadow:
+    0 12px 28px rgba(16,24,40,.08),
+    0 4px 12px rgba(16,24,40,.06);
+}
+
+/* Ítem tipo "card" dentro del dropdown */
+.modern-item {
+  padding: .6rem .7rem;
+  border: 1px solid transparent;
+  border-radius: .75rem;
+  color: inherit;
+  transition: background-color .15s ease, border-color .15s ease, transform .05s ease;
+}
+.modern-item:hover,
+.modern-item:focus {
+  background-color: rgba(29,72,166,.06);
+  border-color: rgba(29,72,166,.15);
+  text-decoration: none;
+}
+.modern-title { font-weight: 600; }
+
+/* Icono en cápsula sutil con color BIA */
+.modern-icon {
+  width: 36px; height: 36px;
+  border-radius: .75rem;
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  background: rgba(29,72,166,.12);
+  color: var(--bia-blue);
+}
+
+/* Abrir por hover solo en desktop; en mobile se mantiene por click */
+@media (min-width: 992px) {
+  .dropdown-hover:hover > .dropdown-menu { display: block; }
+  .dropdown-hover .dropdown-toggle::after { display: none; } /* ocultar caret si querés */
+}
+
+/* Nav underline: 1 sola línea azul y sin negrita (por si aún no lo tenías) */
+.nav-underline .nav-link {
+  position: relative;
+  border-bottom: none !important;
+  font-weight: 400 !important;
+}
+.nav-underline .nav-link.active {
+  border-bottom: none !important;
+  font-weight: 400 !important;
+  color: inherit;
+}
+.nav-underline .nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0; bottom: .35rem;
+  width: 0; height: 2px;
+  background: var(--bia-blue);
+  transition: width .2s ease;
+}
+.nav-underline .nav-link:hover::after,
+.nav-underline .nav-link:focus::after,
+.nav-underline .nav-link.active::after { width: 100%; }
+
+/* Dropzone BIA */
+.dropzone-bia {
+  border: 2px dashed rgba(29,72,166,.35);
+  border-radius: 16px;
+  padding: 18px;
+  text-align: center;
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .05s ease;
+  background: #fff;
+}
+.dropzone-bia:hover { border-color: var(--bia-blue); }
+.dropzone-bia.dragover {
+  background-color: rgba(29,72,166,.06);
+  border-color: var(--bia-blue);
+  box-shadow: 0 0 0 3px rgba(29,72,166,.14) inset;
+}
+
+/* Reuso del “icon badge” del dropdown moderno */
+.modern-icon {
+  width: 42px; height: 42px;
+  border-radius: .9rem;
+  display: inline-flex;
+  align-items: center; justify-content: center;
+  background: rgba(29,72,166,.12);
+  color: var(--bia-blue);
+}
+
+/* ===== Footer Grupo BIA ===== */
+:root{
+  --bia-gray: #4a4a4a;   /* ajusta este valor al gris exacto de tu logo */
+  --bia-contrast: #f8f9fa;
+  --bia-border-light: #6c757d;
+}
+
+.bg-bia-gray {
+  background-color: var(--bia-gray) !important;
+}
+
+.text-bia-contrast {
+  color: var(--bia-contrast) !important;
+}
+
+.footer-bia .divider-vertical {
+  border-left: 1px solid var(--bia-border-light);
+  height: 100%;
+  margin: 0 1rem;
+}
+
+/* Colores corporativos Grupo BIA */
+:root {
+  --bia-primary: #0d3b66; /* ejemplo: azul de tus botones, ajusta al tuyo */
+  --bia-contrast: #ffffff;
+  --bia-border-light: rgba(255,255,255,0.3);
+}
+
+/* Footer */
+.bg-bia-primary {
+  background-color: var(--bia-primary) !important;
+}
+
+.text-bia-contrast {
+  color: var(--bia-contrast) !important;
+}
+
+.footer-bia .divider-vertical {
+  border-left: 1px solid var(--bia-border-light);
+  height: 100%;
+  margin: 0 1rem;
+}
+
+/* Colores corporativos Grupo BIA */
+:root {
+  --bia-light-gray: #e9ecef;   /* gris claro, ajusta al tono exacto del logo */
+  --bia-dark-text: #212529;    /* texto oscuro para contraste */
+  --bia-border-gray: #ced4da;  /* gris de divisor */
+}
+
+/* Footer */
+.bg-bia-light-gray {
+  background-color: var(--bia-light-gray) !important;
+}
+
+.text-bia-dark {
+  color: var(--bia-dark-text) !important;
+}
+
+.footer-bia .divider-vertical {
+  border-left: 1px solid var(--bia-border-gray);
+  height: 100%;
+  margin: 0 1rem;
+}
+
+.text-bia { color: var(--bia-dark-text, #212529); }
+.btn-bia { background-color: var(--bia-primary, #1d4e89); color: #fff; border: 0; }
+.btn-bia:hover { filter: brightness(0.96); }
+.btn-outline-bia { border: 1px solid var(--bia-primary, #1d4e89); color: var(--bia-primary, #1d4e89); background: transparent; }
+.btn-outline-bia:hover { background: rgba(29,78,137,.08); }
+
+/* Truncado elegante dentro de celdas (con tooltip en title) */
+.truncate-200 {
+  max-width: 200px;
+  display: inline-block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: bottom;
+}
+
+/* Mantener la columna de Acciones visible al scrollear horizontal */
+.sticky-actions {
+  position: sticky;
+  right: 0; /* pega a la derecha */
+  z-index: 2;
+}
+
+/* Opcional: suaviza el color de la fila en edición (ya usa .table-active) */
+.table-active {
+  --bs-table-bg: rgba(29, 78, 137, 0.06); /* leve tinte */
+}
+
+/* Altura del header fijo */
+:root { --header-h: 100px; }            /* desktop */
+@media (max-width: 991.98px) {
+  :root { --header-h: 88px; }           /* mobile/tablet */
+}
+
+:root { --header-h: 100px; }
+@media (max-width: 991.98px) { :root { --header-h: 88px; } }
+
+/* El wrapper principal ya tiene esta clase en App.jsx */
+.app-shell { padding-top: var(--header-h); }
+
+/* Helper para pantallas que deben ocupar el alto visible */
+.page-fill { min-height: calc(100vh - var(--header-h)); }
+
+
+.app-shell { padding-top: var(--header-h); }
+
+
+/* Alto de la zona scrolleable de la tabla en "Mostrar datos"
+   (resta header + títulos + paddings aproximados) */
+   .table-scroll {
+    max-height: calc(100vh - var(--header-h) - 280px);
+    overflow: auto;
+  }
+  
+  /* Un poco más de margen en pantallas chicas */
+  @media (max-width: 576px) {
+    .table-scroll {
+      max-height: calc(100vh - var(--header-h) - 320px);
+    }
+  }
+  
+  /* Cabecera sticky dentro del contenedor con scroll propio */
+  .thead-sticky th {
+    position: sticky;
+    top: 0;              /* relativo al contenedor .table-scroll */
+    z-index: 2;
+    background: var(--bs-light);
+  }
+  
+  /* Columna de acciones pegada a la derecha cuando hay scroll horizontal */
+  .sticky-actions {
+    position: sticky;
+    right: 0;
+  }
+  
+  /* Truncar textos largos en celdas */
+  .truncate-200 {
+    display: inline-block;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* Gris claro estilo app/chat */
+:root {
+  --app-bg: #f6f7f9; /* muy claro, neutro y moderno */
+}
+
+/* Fondo gris reutilizable */
+.bg-app {
+  background-color: var(--app-bg) !important;
+}
+
+:root { --app-bg: #f6f7f9; }
+.bg-app { background-color: var(--app-bg) !important; }
+
+:root { --header-h: 100px; }
+@media (max-width: 991.98px) { :root { --header-h: 88px; } }
+.app-shell { padding-top: var(--header-h); }
+.page-fill { min-height: calc(100vh - var(--header-h)); }
+.bg-app { background-color: #f6f7f9 !important; }
+
+/* Fondo gris claro (si no lo tenías ya) */
+:root { --app-bg: #f6f7f9; }
+.bg-app { background-color: var(--app-bg) !important; }
+
+/* “Cuadrados” grandes de Home: altura adaptable */
+.home-tile {
+  /* Grande pero responsable: mínimo 520px, ideal 72vh, tope 780px */
+  min-height: clamp(520px, 72vh, 780px);
+  display: flex;
+}
+
+/* Panel de imagen derecho */
+.home-image {
+  background-image: url(/public/images/PuertoMadero.png);
+  background-size: cover;
+  background-position: center;
+  width: 100%;
+  height: 100%;
+}
+
+/* En mobile, que la card no quede enorme */
+@media (max-width: 767.98px) {
+  .home-tile {
+    min-height: auto;
+  }
+}
+
+/* Fondo de Home: imagen a pantalla completa */
+.pm-hero-bg {
+  position: absolute;
+  inset: 0;
+  background-image: url(/public/images/PuertoMadero.png);
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.03);            /* leve zoom para evitar bordes en resize */
+  will-change: transform;
+}
+
+/* Vignette para mejorar contraste del overlay */
+.pm-hero-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.25) 0%,
+    rgba(0,0,0,0.15) 35%,
+    rgba(0,0,0,0.15) 65%,
+    rgba(0,0,0,0.30) 100%
+  );
+}
+
+/* Tarjeta translúcida (glassmorphism) */
+.glass-card {
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 10px 30px rgba(0,0,0,.12);
+  -webkit-backdrop-filter: blur(10px) saturate(120%);
+  backdrop-filter: blur(10px) saturate(120%);
+}
+
+/* Ajuste de tamaños en pantallas pequeñas */
+@media (max-width: 575.98px) {
+  .glass-card { padding: 1.25rem !important; }
+}
+
+
+/* Fondo de Home: imagen a pantalla completa */
+.pm-hero-bg {
+  position: absolute;
+  inset: 0;
+  background-image: url(/public/images/PuertoMadero.png);
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.03);            /* leve zoom para evitar bordes en resize */
+  will-change: transform;
+  pointer-events: none;
+}
+
+/* Vignette más suave (mejor contraste sin oscurecer tanto) */
+.pm-hero-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.20) 0%,
+    rgba(0,0,0,0.12) 40%,
+    rgba(0,0,0,0.12) 60%,
+    rgba(0,0,0,0.20) 100%
+  );
+}
+
+/* Tarjeta translúcida (glassmorphism) */
+.glass-card {
+  background: rgba(255, 255, 255, 0.38); /* más transparente que antes */
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 10px 30px rgba(0,0,0,.12);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
+  backdrop-filter: blur(14px) saturate(130%);
+}
+
+/* Variante aún más transparente (usada en Home) */
+.glass-card--lite {
+  background: rgba(255, 255, 255, 0.30);  /* 👈 más transparente */
+  border-color: rgba(255, 255, 255, 0.35);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+}
+
+/* Mobile: algo menos padding para que no se vea enorme */
+@media (max-width: 575.98px) {
+  .glass-card { padding: 1.25rem !important; }
+}
+
+/* Fondo a pantalla completa (reutiliza el de Home) */
+.pm-hero-bg {
+  position: absolute;
+  inset: 0;
+  background-image: url(/public/images/PuertoMadero.png);
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.03);
+  will-change: transform;
+  pointer-events: none;
+}
+.pm-hero-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    rgba(0,0,0,0.20) 0%,
+    rgba(0,0,0,0.12) 40%,
+    rgba(0,0,0,0.12) 60%,
+    rgba(0,0,0,0.20) 100%
+  );
+}
+
+/* Glass base (Home) */
+.glass-card {
+  background: rgba(255, 255, 255, 0.30);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: 0 10px 30px rgba(0,0,0,.12);
+}
+
+/* Aún más translúcido para Generar Certificado (no logueado) */
+.glass-card--ultra {
+  background: rgba(255, 255, 255, 0.22); /* 👈 más transparente */
+  border-color: rgba(255, 255, 255, 0.28);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+
+/* Fondo gris claro reutilizable */
+:root { --app-bg: #f6f7f9; }
+.bg-app { background-color: var(--app-bg) !important; }
+
+/* Imagen de apoyo en Login (ocupa toda la columna derecha) */
+.login-hero {
+  background-image: url(/public/images/PuertoMadero.png);
+  background-size: cover;
+  background-position: center;
+}
+
+/* Altura útil: pantalla menos header fijo */
+.hero-slice {
+  min-height: calc(100vh - var(--header-h));
+}
+
+/* Imagen derecha a full (sin márgenes/gutters) */
+.login-hero {
+  background-image: url(/public/images/PuertoMadero.png);
+  background-size: cover;
+  background-position: center;
+}
+
+/* Gris claro reutilizable */
+:root { --app-bg: #f6f7f9; }
+.bg-app { background-color: var(--app-bg) !important; }
+
+/* Base glass (si ya existe, dejalo) */
+.glass-card {
+  background: rgba(255, 255, 255, 0.80);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  box-shadow: 0 10px 30px rgba(0,0,0,.12);
+}
+
+/* 🔸 Más opaco que el “ultra”: ideal para Login y Certificado público */
+.glass-card--firm {
+  background: rgba(255, 255, 255, 0.46);   /* ← subimos opacidad */
+  border-color: rgba(255, 255, 255, 0.60);
+  -webkit-backdrop-filter: blur(12px) saturate(130%);
+  backdrop-filter: blur(12px) saturate(130%);
+}
+
+/* (opcional) Si aún usás --ultra en otro lado, lo hacemos menos translúcido también */
+.glass-card--ultra {
+  background: rgba(255, 255, 255, 0.36);   /* antes ~0.22–0.30 */
+  border-color: rgba(255, 255, 255, 0.45);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+}
