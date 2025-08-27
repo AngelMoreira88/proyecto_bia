@@ -225,3 +225,69 @@
   background: rgba(29,72,166,.12);
   color: var(--bia-blue);
 }
+
+/* ===== Footer Grupo BIA ===== */
+:root{
+  --bia-gray: #4a4a4a;   /* ajusta este valor al gris exacto de tu logo */
+  --bia-contrast: #f8f9fa;
+  --bia-border-light: #6c757d;
+}
+
+.bg-bia-gray {
+  background-color: var(--bia-gray) !important;
+}
+
+.text-bia-contrast {
+  color: var(--bia-contrast) !important;
+}
+
+.footer-bia .divider-vertical {
+  border-left: 1px solid var(--bia-border-light);
+  height: 100%;
+  margin: 0 1rem;
+}
+
+/* Colores corporativos Grupo BIA */
+:root {
+  --bia-primary: #0d3b66; /* ejemplo: azul de tus botones, ajusta al tuyo */
+  --bia-contrast: #ffffff;
+  --bia-border-light: rgba(255,255,255,0.3);
+}
+
+/* Footer */
+.bg-bia-primary {
+  background-color: var(--bia-primary) !important;
+}
+
+.text-bia-contrast {
+  color: var(--bia-contrast) !important;
+}
+
+.footer-bia .divider-vertical {
+  border-left: 1px solid var(--bia-border-light);
+  height: 100%;
+  margin: 0 1rem;
+}
+
+/* Colores corporativos Grupo BIA */
+:root {
+  --bia-light-gray: #e9ecef;   /* gris claro, ajusta al tono exacto del logo */
+  --bia-dark-text: #212529;    /* texto oscuro para contraste */
+  --bia-border-gray: #ced4da;  /* gris de divisor */
+}
+
+/* Footer */
+.bg-bia-light-gray {
+  background-color: var(--bia-light-gray) !important;
+}
+
+.text-bia-dark {
+  color: var(--bia-dark-text) !important;
+}
+
+.footer-bia .divider-vertical {
+  border-left: 1px solid var(--bia-border-gray);
+  height: 100%;
+  margin: 0 1rem;
+}
+
