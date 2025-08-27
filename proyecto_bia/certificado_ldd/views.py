@@ -57,6 +57,25 @@ def _is_ajax(request: HttpRequest) -> bool:
         request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest"
     )
 
+# ====== CAMBIO: helpers seguros para FieldFile ======
+def _fieldfile_exists(ff) -> bool:
+    """
+    Devuelve True si el FieldFile tiene nombre y el storage confirma su existencia.
+    Evita usar .path (que dispara _require_file cuando no hay archivo).
+    """
+    if not ff or not getattr(ff, "name", ""):
+        return False
+    try:
+        return ff.storage.exists(ff.name)
+    except Exception:
+        return False
+
+def _open_fieldfile(ff, mode="rb"):
+    """
+    Abre un FieldFile a través del storage subyacente (FS, S3, etc.), sin tocar .path.
+    """
+    return ff.storage.open(ff.name, mode)
+
 
 # ---------------------------------------------------------------------------
 # Utilidades PDF / Rutas de STATIC & MEDIA para xhtml2pdf
@@ -176,36 +195,31 @@ def get_entidad_emisora(registro: BaseDeDatosBia) -> Optional[Entidad]:
 def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate], Optional[bytes], Optional[str]]:
     """
     Genera (o recupera) el PDF para un registro CANCELADO.
-    Devuelve (cert_instance, pdf_bytes, error_msg). Si ya existe en disco, se lee.
+    Devuelve (cert_instance, pdf_bytes, error_msg). Si ya existe, se lee desde el storage.
     """
     logger.info("[_render_pdf_for_registro] Preparando PDF para id_pago_unico=%s", reg.id_pago_unico)
 
-    # Reutilizar certificado si existe y el archivo está presente
+    # Obtener o crear certificado
     cert, created = Certificate.objects.get_or_create(client=reg)
-    need_generate = (
-        created
-        or not cert.pdf_file
-        or not getattr(cert.pdf_file, "path", None)
-        or not os.path.exists(cert.pdf_file.path)
-    )
-    logger.debug(
-        "[_render_pdf_for_registro] cert_id=%s created=%s need_generate=%s path=%s",
-        getattr(cert, "id", None),
-        created,
-        need_generate,
-        getattr(cert.pdf_file, "path", None),
-    )
 
-    if not need_generate:
+    # ====== CAMBIO: reuso seguro del PDF cacheado (sin usar .path) ======
+    if _fieldfile_exists(cert.pdf_file):
         try:
-            with open(cert.pdf_file.path, "rb") as f:
-                pdf = f.read()
-            logger.info("[_render_pdf_for_registro] PDF existente reutilizado (%d bytes)", len(pdf))
-            return cert, pdf, None
+            with _open_fieldfile(cert.pdf_file, "rb") as fh:
+                cached_bytes = fh.read()
+            logger.info("[_render_pdf_for_registro] PDF existente reutilizado (%d bytes)", len(cached_bytes))
+            return cert, cached_bytes, None
         except Exception as e:
-            logger.exception("[_render_pdf_for_registro] Error leyendo PDF existente: %s", e)
-            # forzar regeneración
-            need_generate = True
+            logger.exception("[_render_pdf_for_registro] Error leyendo PDF existente desde storage: %s", e)
+            # forzaremos regeneración a continuación
+    else:
+        # Si había nombre pero el archivo no existe realmente, limpiamos la referencia huérfana
+        if getattr(cert.pdf_file, "name", ""):
+            logger.warning(
+                "[_render_pdf_for_registro] pdf_file apunta a '%s' pero no existe en storage; se limpia.",
+                cert.pdf_file.name,
+            )
+            cert.pdf_file.delete(save=False)
 
     # Preparar contexto para plantilla
     emisora = get_entidad_emisora(reg)
@@ -246,9 +260,9 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
 
     # Guardar en el FileField
     try:
+        # Podés moverlo a una carpeta lógica si querés: p.ej. "certificados/..."
         filename = f"certificado_{reg.id_pago_unico}.pdf"
-        cert.pdf_file.save(filename, ContentFile(pdf_bytes))
-        cert.save()
+        cert.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
         logger.info("[_render_pdf_for_registro] PDF guardado como %s", filename)
     except Exception as e:
         logger.exception("[_render_pdf_for_registro] Error guardando PDF: %s", e)
@@ -502,7 +516,6 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
         logger.info("[_handle_post_generar] Múltiples cancelados. is_ajax=%s seleccionar_url=%s", is_ajax, seleccionar_url)
 
         if is_ajax:
-            # 🔒 Blindaje: llamadas via fetch NO deben “redirigir” a HTML.
             certificados_meta = [
                 {"id_pago_unico": r.id_pago_unico, "propietario": r.propietario, "entidadinterna": r.entidadinterna}
                 for r in cancelados
@@ -514,10 +527,9 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
                     "dni": dni,
                     "opciones": certificados_meta,
                 },
-                status=400,  # fuerza manejo de error en el front sin navegación
+                status=400,
             )
 
-        # Comportamiento tradicional (no-AJAX)
         if prefer_html or ("text/html" in (request.headers.get("Accept") or "")):
             return JsonResponse(
                 {

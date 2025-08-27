@@ -4,10 +4,8 @@
 <head>
   <meta charset="UTF-8" />
   <title>Certificado de Libre de Deuda</title>
-  <!-- Podés mantener tu CSS externo; xhtml2pdf lo toma si link_callback resuelve la ruta -->
   <link rel="stylesheet" href="{% static 'css/styles-pdf.css' %}" />
   <style>
-    /* Estilos seguros para xhtml2pdf: usar tablas, márgenes simples y fuentes estándar */
     body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 11pt; }
     .title { text-align: center; margin: 10px 0 0; }
     .date { text-align: right; margin: 8px 0 18px; font-size: 10pt; }
@@ -21,7 +19,6 @@
 
   {# ================== LOGOS SUPERIORES ================== #}
   {% if entidad_otras %}
-    <!-- Caso A: propietario NO es BIA -> izquierda BIA | derecha entidad propietaria -->
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
       <tr>
         <td width="50%" align="left">
@@ -39,7 +36,6 @@
       </tr>
     </table>
   {% else %}
-    <!-- Caso B: propietario ES BIA -> BIA centrado -->
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
       <tr>
         <td align="center">
@@ -55,15 +51,12 @@
 
   <div class="hr"></div>
 
-  {# ================== TÍTULO ================== #}
   <h2 class="title">Certificado de Libre de Deuda</h2>
 
-  {# ================== FECHA ================== #}
   <div class="date">
     Fecha de emisión: <strong>{% now "d/m/Y" %}</strong>
   </div>
 
-  {# ================== CUERPO ================== #}
   <div class="content">
     <p>
       Por medio de la presente se deja constancia que
@@ -84,26 +77,17 @@
     </p>
   </div>
 
-  {# ================== FIRMA (centrado) ================== #}
   <div class="signature">
     <p style="margin: 0 0 6px;">Firma autenticada:</p>
 
+    {# Sólo mostrar imagen si hay archivo cargado en la entidad emisora #}
     {% if firma_url %}
       <img src="{{ firma_url }}" alt="Firma" style="height: 60px;" /><br />
-      <strong>{{ responsable|default:"Socio/Gerente" }}</strong><br />
-      <span>{{ cargo|default:"" }}</span><br />
-      <span>
-        {{ entidad_firma|default:entidad_otras.razon_social|default:entidad_otras.nombre|default:entidad_bia.razon_social|default:entidad_bia.nombre|default:"" }}
-      </span>
-    {% else %}
-      <!-- Fallback si no hay firma en Entidad -->
-      <img src="{% static 'images/firma.png' %}" alt="Firma" style="height: 60px;" /><br />
-      <strong>{{ responsable|default:"Socio/Gerente" }}</strong><br />
-      <span>{{ cargo|default:"" }}</span><br />
-      <span>
-        {{ entidad_firma|default:entidad_otras.razon_social|default:entidad_otras.nombre|default:entidad_bia.razon_social|default:entidad_bia.nombre|default:"" }}
-      </span>
     {% endif %}
+
+    <strong>{{ responsable|default:"Socio/Gerente" }}</strong><br />
+    <span>{{ cargo|default:"" }}</span><br />
+    <span>{{ entidad_firma_text }}</span>
   </div>
 
 </body>
