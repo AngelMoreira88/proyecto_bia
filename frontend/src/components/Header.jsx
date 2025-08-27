@@ -8,12 +8,15 @@ export default function Header() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const check = () => setLogged(isLoggedIn());
-    window.addEventListener("storage", check);
-    return () => window.removeEventListener("storage", check);
+    const syncAuth = () => setLogged(isLoggedIn());
+    window.addEventListener("storage", syncAuth);
+    window.addEventListener("auth-changed", syncAuth);
+    return () => {
+      window.removeEventListener("storage", syncAuth);
+      window.removeEventListener("auth-changed", syncAuth);
+    };
   }, []);
 
-  // Si no hay login, va a /login y luego vuelve al destino
   const guardTo = (path) => {
     if (isLoggedIn()) navigate(path);
     else {
@@ -30,8 +33,9 @@ export default function Header() {
 
   return (
     <nav className="navbar navbar-expand-lg fixed-top header-glass">
-      <div className="container">
-        {/* Brand: solo logo (sin texto) */}
+      {/* container-fluid para “pegar” el logo a la izquierda con poco margen */}
+      <div className="container-fluid px-3 px-lg-4">
+        {/* Brand: solo logo a la izquierda */}
         <Link className="navbar-brand d-flex align-items-center" to={logged ? "/portal" : "/"}>
           <img
             src="/images/LogoBIA2.png"
@@ -41,7 +45,7 @@ export default function Header() {
           />
         </Link>
 
-        {/* Toggler → offcanvas en mobile */}
+        {/* Toggler (mobile) */}
         <button
           className="navbar-toggler"
           type="button"
@@ -66,6 +70,7 @@ export default function Header() {
           </div>
 
           <div className="offcanvas-body">
+            {/* ÚNICA lista: ms-auto → empuja TODO al margen derecho en desktop */}
             <ul className="navbar-nav ms-auto align-items-lg-center nav-underline gap-lg-3">
               {logged ? (
                 <>
@@ -81,83 +86,97 @@ export default function Header() {
                     </NavLink>
                   </li>
 
-                  {/* Solo visible con sesión */}
                   <li className="nav-item">
                     <NavLink to="/entidades" className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}>
                       Gestión de Entidades
                     </NavLink>
                   </li>
 
-            {/* Dropdown Deudores (moderno) */}
-            <li className="nav-item dropdown dropdown-hover">
-              <a
-                href="#!"
-                className="nav-link dropdown-toggle"
-                id="deudoresDropdown"
-                role="button"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-              >
-                Deudores
-              </a>
+                  {/* Dropdown Obligaciones */}
+                  <li className="nav-item dropdown dropdown-hover">
+                    <a
+                      href="#!"
+                      className="nav-link dropdown-toggle"
+                      id="deudoresDropdown"
+                      role="button"
+                      data-bs-toggle="dropdown"
+                      aria-expanded="false"
+                    >
+                      Obligaciones
+                    </a>
 
-              <div
-                className="dropdown-menu dropdown-menu-end dropdown-menu-modern p-3"
-                aria-labelledby="deudoresDropdown"
-              >
+                    <div
+                      className="dropdown-menu dropdown-menu-end dropdown-menu-modern p-3"
+                      aria-labelledby="deudoresDropdown"
+                    >
+                      <div className="d-grid gap-2" style={{ minWidth: 320 }}>
+                        <NavLink to="/carga-datos/upload" className="modern-item d-flex align-items-start gap-3 text-decoration-none">
+                          <span className="modern-icon" aria-hidden="true">
+                            {/* Upload */}
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                              <path d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16"
+                                    stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </span>
+                          <div className="flex-grow-1">
+                            <div className="modern-title">Cargar Excel</div>
+                            <small className="text-secondary">Subí un excel para actualizar los registros</small>
+                          </div>
+                        </NavLink>
 
-                <div className="d-grid gap-2" style={{ minWidth: 320 }}>
-                  <NavLink to="/carga-datos/upload" className="modern-item d-flex align-items-start gap-3 text-decoration-none">
-                    <span className="modern-icon" aria-hidden="true">
-                      {/* Subir / Upload (SVG inline) */}
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 16V4m0 0l-4 4m4-4l4 4M4 20h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </span>
-                    <div className="flex-grow-1">
-                      <div className="modern-title">Cargar Excel</div>
-                      <small className="text-secondary">Subí un excel para actualizar los registros</small>
+                        <NavLink to="/datos/mostrar" className="modern-item d-flex align-items-start gap-3 text-decoration-none">
+                          <span className="modern-icon" aria-hidden="true">
+                            {/* Search */}
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                              <path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
+                                    stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </span>
+                          <div className="flex-grow-1">
+                            <div className="modern-title">Listar por DNI</div>
+                            <small className="text-secondary">Consultá y editá estados individuales</small>
+                          </div>
+                        </NavLink>
+
+                        <NavLink to="/carga-datos/upload" className="modern-item d-flex align-items-start gap-3 text-decoration-none">
+                          <span className="modern-icon" aria-hidden="true">
+                            {/* Tools */}
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                              <path d="M14 7l3 3-8 8H6v-3l8-8Z"
+                                    stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M13 6l1-1a2.828 2.828 0 1 1 4 4l-1 1"
+                                    stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </span>
+                          <div className="flex-grow-1">
+                            <div className="modern-title">Modificar Masivo</div>
+                            <small className="text-secondary">Ajuste masivo de columnas desde un excel</small>
+                          </div>
+                        </NavLink>
+                      </div>
                     </div>
-                  </NavLink>
+                  </li>
 
-                  <NavLink to="/datos/mostrar" className="modern-item d-flex align-items-start gap-3 text-decoration-none">
-                    <span className="modern-icon" aria-hidden="true">
-                      {/* Buscar / Search */}
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                        <path d="M21 21l-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </span>
-                    <div className="flex-grow-1">
-                      <div className="modern-title">Listar por DNI</div>
-                      <small className="text-secondary">Consultá y editá estados individuales</small>
-                    </div>
-                  </NavLink>
-
-                  <NavLink to="/carga-datos/upload" className="modern-item d-flex align-items-start gap-3 text-decoration-none">
-                    <span className="modern-icon" aria-hidden="true">
-                      {/* Herramientas / Tools */}
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                        <path d="M14 7l3 3-8 8H6v-3l8-8Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                        <path d="M13 6l1-1a2.828 2.828 0 1 1 4 4l-1 1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                      </svg>
-                    </span>
-                    <div className="flex-grow-1">
-                      <div className="modern-title">Modificar Masivo</div>
-                      <small className="text-secondary">Ajuste masivo de columnas desde un excel</small>
-                    </div>
-                  </NavLink>
-                </div>
-              </div>
-            </li>
-
+                  {/* Perfil */}
                   <li className="nav-item">
-                    <NavLink to="/profile" className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}>
-                      Perfil
+                    <NavLink
+                      to="/perfil"
+                      className={({ isActive }) =>
+                        "nav-link d-flex align-items-center gap-1" + (isActive ? " active" : "")
+                      }
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M12 12c2.485 0 4.5-2.015 4.5-4.5S14.485 3 12 3 7.5 5.015 7.5 7.5 9.515 12 12 12Z"
+                              stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M4.5 21c0-3.313 3.358-6 7.5-6s7.5 2.687 7.5 6"
+                              stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                      <span>Perfil</span>
                     </NavLink>
                   </li>
 
-                  <li className="nav-item ms-lg-2">
-                    <button className="btn btn-outline-danger btn-sm" onClick={handleLogout}>
+                  <li className="nav-item">
+                    <button className="btn btn-outline-danger btn-sm ms-lg-2" onClick={handleLogout}>
                       Salir
                     </button>
                   </li>
@@ -169,17 +188,14 @@ export default function Header() {
                       Generar Certificado
                     </NavLink>
                   </li>
-
-                  {/* Botón BIA apenas más grande */}
-                  <li className="nav-item ms-lg-2">
+                  <li className="nav-item">
                     <button
-                      className="btn btn-bia btn-nav-compact-s"
-                      onClick={() => guardTo("/carga-datos/upload")}
+                      className="btn btn-bia btn-nav-compact-s ms-lg-2"
+                      onClick={() => guardTo("/portal")}
                     >
                       Portal BIA
                     </button>
                   </li>
-                  {/* “Gestión de Entidades” no se muestra sin sesión */}
                 </>
               )}
             </ul>

@@ -191,3 +191,8 @@ export function obtenerEntidad(id) {
 export function pingCertificado() {
   return api.get('/api/certificado/ping/');
 }
+
+// ... tus imports y setup de axios
+
+export const eliminarDatoBia = (id) =>
+  api.delete(`/api/db_bia/${encodeURIComponent(id)}/`);

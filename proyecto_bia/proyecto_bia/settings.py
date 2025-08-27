@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 import environ
-import logging
+from datetime import timedelta
 
 # Root directory (one level above this settings folder)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -13,7 +13,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Crear carpeta de logs si no existe
 LOG_DIR = BASE_DIR / 'logs'
 LOG_DIR.mkdir(exist_ok=True)
-
 
 # Initialize django-environ with defaults
 env = environ.Env(
@@ -48,14 +47,13 @@ if not SECRET_KEY:
     raise ImproperlyConfigured('The DJANGO_SECRET_KEY variable is not set in .env')
 
 DEBUG = env('DEBUG')
-DEBUG = True
 ALLOWED_HOSTS = env('DJANGO_ALLOWED_HOSTS')
 
 # CORS
 CORS_ALLOWED_ORIGINS = env('CORS_ALLOWED_ORIGINS')
 CORS_ALLOW_CREDENTIALS = True
 
-# CSRF settings for cross-origin
+# CSRF
 CSRF_TRUSTED_ORIGINS = env('CSRF_TRUSTED_ORIGINS')
 CSRF_COOKIE_SAMESITE = 'None'
 CSRF_COOKIE_SECURE = False
@@ -108,7 +106,7 @@ TEMPLATES = [
     },
 ]
 
-# Database config
+# Database
 DATABASES = {
     'default': {
         'ENGINE': env('DB_ENGINE'),
@@ -140,6 +138,7 @@ USE_TZ = True
 # Static & media files
 STATIC_URL = env('STATIC_URL')
 STATICFILES_DIRS = [PROJECT_ROOT / 'static']
+STATIC_ROOT = PROJECT_ROOT / 'staticfiles'
 MEDIA_URL = env('MEDIA_URL')
 MEDIA_ROOT = PROJECT_ROOT / 'media'
 
@@ -156,9 +155,7 @@ SESSION_COOKIE_AGE = env('SESSION_COOKIE_AGE')
 SESSION_COOKIE_SAMESITE = 'None'
 SESSION_COOKIE_SECURE = False
 
-
-from datetime import timedelta
-
+# DRF + JWT
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -169,16 +166,16 @@ REST_FRAMEWORK = {
         "rest_framework.throttling.UserRateThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
-        "user": "120/min",  # ajustá a tu escala
+        "user": "120/min",
     },
 }
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
-    # … otros ajustes opcionales …
 }
 
+# Logging
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -192,13 +189,13 @@ LOGGING = {
 
     'handlers': {
         'file': {
-            'level': 'INFO',
+            'level': 'DEBUG',
             'class': 'logging.FileHandler',
             'filename': os.path.join(LOG_DIR, 'actividad.log'),
             'formatter': 'verbose',
         },
         'console': {
-            'level': 'INFO',
+            'level': 'DEBUG',
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
@@ -210,5 +207,15 @@ LOGGING = {
             'level': 'INFO',
             'propagate': False,
         },
+        'certificado_ldd': {         # <- logger para tu app
+            'handlers': ['file', 'console'],
+            'level': 'DEBUG',        # DEBUG para ver todo (info, debug, warning)
+            'propagate': False,
+        },
+    },
+
+    'root': {
+        'handlers': ['console', 'file'],
+        'level': 'INFO',
     }
 }
