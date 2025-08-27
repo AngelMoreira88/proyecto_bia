@@ -475,3 +475,323 @@ Traceback (most recent call last):
   File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 649, in get
     raise self.model.DoesNotExist(
 django.contrib.auth.models.User.DoesNotExist: User matching query does not exist.
+[2025-08-26 23:46:05,307] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/14/
+[2025-08-26 23:50:21,794] ERROR django.request - Internal Server Error: /api/certificado/generar/
+[2025-08-27 00:29:22,204] ERROR django.request - Internal Server Error: /api/certificado/generar/
+[2025-08-27 00:30:12,548] ERROR django.request - Internal Server Error: /api/certificado/generar/
+[2025-08-27 00:52:20,645] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-27 00:52:21,118] WARNING django.request - Not Found: /api/certificado/generar-certificado/
+[2025-08-27 00:52:21,475] WARNING django.request - Not Found: /api/generar-certificado/
+[2025-08-27 00:58:24,808] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-27 00:58:25,163] WARNING django.request - Not Found: /api/certificado/generar-certificado/
+[2025-08-27 00:58:25,517] WARNING django.request - Not Found: /api/generar-certificado/
+[2025-08-27 01:57:15,572] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-08-27 01:59:44,079] INFO django.utils.autoreload - /Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/proyecto_bia/settings.py changed, reloading.
+[2025-08-27 01:59:44,518] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-08-27 02:00:29,685] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-08-27 02:00:45,965] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:00:45,966] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:00:46,389] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:00:46,389] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:00:46,389] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:00:46,389] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:00:46,389] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:00:46,389] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:00:46,390] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:00:46,399] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados: redirigir a selección HTML -> http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-08-27 02:01:50,180] INFO certificado_ldd.views - [seleccionar_certificado] GET dni='14752495'
+[2025-08-27 02:01:50,773] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:01:50,774] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:01:50,774] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:01:50,774] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:01:50,774] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:01:50,774] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:01:50,774] DEBUG certificado_ldd.views - [seleccionar_certificado] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:01:50,992] WARNING django.request - Not Found: /favicon.ico
+[2025-08-27 02:02:03,668] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:02:03,669] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='27810' prefer_html=False
+[2025-08-27 02:02:04,020] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:02:04,021] INFO certificado_ldd.views - [_render_pdf_for_registro] Preparando PDF para id_pago_unico=27810
+[2025-08-27 02:02:04,066] DEBUG certificado_ldd.views - [_render_pdf_for_registro] cert_id=2 created=False need_generate=False path=/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/media/certificados_generados/certificado_27810.pdf
+[2025-08-27 02:02:04,068] INFO certificado_ldd.views - [_render_pdf_for_registro] PDF existente reutilizado (131923 bytes)
+[2025-08-27 02:02:04,069] INFO certificado_ldd.views - [_handle_post_generar] PDF entregado id=27810 (131923 bytes)
+[2025-08-27 02:02:11,024] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:02:11,025] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='9016348' prefer_html=False
+[2025-08-27 02:02:11,377] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:02:11,377] INFO certificado_ldd.views - [_render_pdf_for_registro] Preparando PDF para id_pago_unico=9016348
+[2025-08-27 02:02:11,421] DEBUG certificado_ldd.views - [_render_pdf_for_registro] cert_id=1 created=False need_generate=False path=/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/media/certificados_generados/certificado_9016348.pdf
+[2025-08-27 02:02:11,422] INFO certificado_ldd.views - [_render_pdf_for_registro] PDF existente reutilizado (23622 bytes)
+[2025-08-27 02:02:11,422] INFO certificado_ldd.views - [_handle_post_generar] PDF entregado id=9016348 (23622 bytes)
+[2025-08-27 02:10:22,388] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-08-27 02:10:36,764] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:10:36,764] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:10:37,155] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:10:37,156] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:10:37,156] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:10:37,156] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:10:37,156] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:10:37,157] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:10:37,157] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:10:37,165] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados: redirigir a selección HTML -> http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-08-27 02:10:48,064] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:10:48,065] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:10:48,460] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:10:48,460] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:10:48,460] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:10:48,461] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:10:48,461] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:10:48,461] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:10:48,461] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:10:48,461] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados: redirigir a selección HTML -> http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-08-27 02:11:26,841] INFO certificado_ldd.views - [seleccionar_certificado] GET dni='14752495'
+[2025-08-27 02:11:27,305] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:11:27,305] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:11:27,305] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:11:27,306] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:11:27,306] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:11:27,306] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:11:27,306] DEBUG certificado_ldd.views - [seleccionar_certificado] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:12:38,164] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-08-27 02:13:19,603] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:13:19,604] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:13:20,158] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:13:20,158] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:13:20,158] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:13:20,158] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:13:20,158] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:13:20,159] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:13:20,159] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:13:20,168] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados: redirigir a selección HTML -> http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-08-27 02:13:43,079] INFO certificado_ldd.views - [seleccionar_certificado] GET dni='14752495'
+[2025-08-27 02:13:43,466] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:13:43,467] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:13:43,467] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:13:43,467] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:13:43,467] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:13:43,467] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:13:43,467] DEBUG certificado_ldd.views - [seleccionar_certificado] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:15:11,036] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-08-27 02:15:22,667] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:15:22,667] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:15:23,058] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:15:23,058] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:15:23,058] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:15:23,058] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:15:23,058] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:15:23,058] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:15:23,059] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:15:23,066] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados: redirigir a selección HTML -> http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-08-27 02:15:30,155] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:15:30,155] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:15:30,626] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:15:30,626] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:15:30,626] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:15:30,626] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:15:30,626] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:15:30,626] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:15:30,626] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:15:30,626] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados: redirigir a selección HTML -> http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-08-27 02:18:18,788] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:18:18,789] INFO certificado_ldd.views - [_handle_post_generar] POST dni='20250827' id_pago_unico='' prefer_html=False
+[2025-08-27 02:18:19,252] INFO certificado_ldd.views - [_handle_post_generar] No hay registros para DNI=20250827
+[2025-08-27 02:18:19,253] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-27 02:18:19,270] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:18:19,270] INFO certificado_ldd.views - [_handle_post_generar] POST dni='20250827' id_pago_unico='' prefer_html=False
+[2025-08-27 02:18:19,660] INFO certificado_ldd.views - [_handle_post_generar] No hay registros para DNI=20250827
+[2025-08-27 02:18:19,661] WARNING django.request - Not Found: /api/certificado/generar-certificado/
+[2025-08-27 02:18:19,673] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:18:19,674] INFO certificado_ldd.views - [_handle_post_generar] POST dni='20250827' id_pago_unico='' prefer_html=False
+[2025-08-27 02:18:20,053] INFO certificado_ldd.views - [_handle_post_generar] No hay registros para DNI=20250827
+[2025-08-27 02:18:20,054] WARNING django.request - Not Found: /api/generar-certificado/
+[2025-08-27 02:18:38,260] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:18:38,261] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:18:38,664] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:18:38,664] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:18:38,665] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:18:38,665] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:18:38,665] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:18:38,665] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:18:38,665] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:18:38,666] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados: redirigir a selección HTML -> http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-08-27 02:21:08,556] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-08-27 02:21:21,581] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:21:21,582] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:21:22,022] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:21:22,022] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:21:22,022] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:21:22,022] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:21:22,022] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:21:22,022] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:21:22,022] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:21:22,026] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados: redirigir a selección HTML -> http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-08-27 02:22:22,834] INFO certificado_ldd.views - [seleccionar_certificado] GET dni='14752495'
+[2025-08-27 02:22:23,303] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:22:23,304] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:22:23,304] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:22:23,304] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:22:23,304] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:22:23,304] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:22:23,304] DEBUG certificado_ldd.views - [seleccionar_certificado] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:22:26,550] INFO certificado_ldd.views - [api_generar_certificado] method=GET
+[2025-08-27 02:22:26,551] INFO certificado_ldd.views - [_handle_get_generar] GET dni='14752495' id_pago_unico='27810'
+[2025-08-27 02:22:26,965] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:22:26,965] INFO certificado_ldd.views - [_render_pdf_for_registro] Preparando PDF para id_pago_unico=27810
+[2025-08-27 02:22:27,009] DEBUG certificado_ldd.views - [_render_pdf_for_registro] cert_id=2 created=False need_generate=False path=/Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/media/certificados_generados/certificado_27810.pdf
+[2025-08-27 02:22:27,011] INFO certificado_ldd.views - [_render_pdf_for_registro] PDF existente reutilizado (131923 bytes)
+[2025-08-27 02:22:27,011] INFO certificado_ldd.views - [_handle_get_generar] PDF entregado id=27810 (131923 bytes)
+[2025-08-27 02:28:23,156] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-08-27 02:28:50,119] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:28:50,120] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:28:50,519] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:28:50,519] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:28:50,520] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:28:50,520] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:28:50,520] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:28:50,520] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:28:50,520] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:28:50,528] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados: redirigir a selección HTML -> http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-08-27 02:29:07,857] INFO certificado_ldd.views - [seleccionar_certificado] GET dni='14752495'
+[2025-08-27 02:29:08,394] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:29:08,394] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:29:08,394] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:29:08,394] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:29:08,394] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:29:08,394] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:29:08,394] DEBUG certificado_ldd.views - [seleccionar_certificado] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:29:35,230] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:29:35,230] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:29:35,625] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:29:35,626] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:29:35,626] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:29:35,626] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:29:35,626] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:29:35,626] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:29:35,626] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:29:35,627] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados: redirigir a selección HTML -> http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-08-27 02:29:46,209] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:29:46,209] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:29:46,610] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:29:46,610] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:29:46,610] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:29:46,610] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:29:46,610] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:29:46,610] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:29:46,611] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:29:46,611] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados: redirigir a selección HTML -> http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-08-27 02:31:12,045] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:31:12,047] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:31:12,621] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:31:12,621] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:31:12,621] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:31:12,621] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:31:12,622] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:31:12,622] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:31:12,622] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:31:12,622] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados: redirigir a selección HTML -> http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-08-27 02:35:23,305] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-08-27 02:35:59,104] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:35:59,105] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:35:59,502] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:35:59,502] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:35:59,502] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:35:59,502] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:35:59,502] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:35:59,502] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:35:59,502] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:35:59,507] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados: redirigir a selección HTML -> http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-08-27 02:36:44,354] INFO certificado_ldd.views - [seleccionar_certificado] GET dni='14752495'
+[2025-08-27 02:36:44,951] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:36:44,952] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:36:44,952] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:36:44,952] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:36:44,952] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:36:44,952] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:36:44,952] DEBUG certificado_ldd.views - [seleccionar_certificado] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:36:45,182] WARNING django.request - Not Found: /favicon.ico
+[2025-08-27 02:37:03,532] INFO certificado_ldd.views - [seleccionar_certificado] GET dni='14752495'
+[2025-08-27 02:37:03,929] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:37:03,930] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:37:03,930] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:37:03,930] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:37:03,930] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:37:03,930] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:37:03,930] DEBUG certificado_ldd.views - [seleccionar_certificado] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:37:04,030] WARNING django.request - Not Found: /favicon.ico
+[2025-08-27 02:37:21,324] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:37:21,326] INFO certificado_ldd.views - [_handle_post_generar] POST dni='800014752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:37:21,670] INFO certificado_ldd.views - [_handle_post_generar] No hay registros para DNI=800014752495
+[2025-08-27 02:37:21,671] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-27 02:37:21,681] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:37:21,682] INFO certificado_ldd.views - [_handle_post_generar] POST dni='800014752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:37:22,033] INFO certificado_ldd.views - [_handle_post_generar] No hay registros para DNI=800014752495
+[2025-08-27 02:37:22,035] WARNING django.request - Not Found: /api/certificado/generar-certificado/
+[2025-08-27 02:37:22,048] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:37:22,049] INFO certificado_ldd.views - [_handle_post_generar] POST dni='800014752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:37:22,383] INFO certificado_ldd.views - [_handle_post_generar] No hay registros para DNI=800014752495
+[2025-08-27 02:37:22,383] WARNING django.request - Not Found: /api/generar-certificado/
+[2025-08-27 02:37:33,543] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:37:33,543] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:37:34,013] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:37:34,013] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:37:34,013] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:37:34,013] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:37:34,013] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:37:34,013] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:37:34,013] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:37:34,013] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados: redirigir a selección HTML -> http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-08-27 02:38:31,154] WARNING django.request - Not Found: /favicon.ico
+[2025-08-27 02:38:47,053] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:38:47,054] INFO certificado_ldd.views - [_handle_post_generar] POST dni='800014752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:38:47,515] INFO certificado_ldd.views - [_handle_post_generar] No hay registros para DNI=800014752495
+[2025-08-27 02:38:47,516] WARNING django.request - Not Found: /api/certificado/generar/
+[2025-08-27 02:38:47,524] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:38:47,524] INFO certificado_ldd.views - [_handle_post_generar] POST dni='800014752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:38:47,857] INFO certificado_ldd.views - [_handle_post_generar] No hay registros para DNI=800014752495
+[2025-08-27 02:38:47,858] WARNING django.request - Not Found: /api/certificado/generar-certificado/
+[2025-08-27 02:38:47,864] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:38:47,865] INFO certificado_ldd.views - [_handle_post_generar] POST dni='800014752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:38:48,197] INFO certificado_ldd.views - [_handle_post_generar] No hay registros para DNI=800014752495
+[2025-08-27 02:38:48,197] WARNING django.request - Not Found: /api/generar-certificado/
+[2025-08-27 02:38:53,684] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:38:53,684] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False
+[2025-08-27 02:38:54,075] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:38:54,075] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:38:54,075] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:38:54,075] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:38:54,075] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:38:54,075] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:38:54,076] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:38:54,076] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados: redirigir a selección HTML -> http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-08-27 02:47:34,117] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-08-27 02:47:50,358] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:47:50,359] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False is_ajax=False
+[2025-08-27 02:47:50,754] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:47:50,754] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:47:50,754] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:47:50,754] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:47:50,754] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:47:50,754] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:47:50,754] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:47:50,757] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados. is_ajax=False seleccionar_url=http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-08-27 02:53:36,731] INFO django.utils.autoreload - /Users/angel/Desktop/Proyecto Grupo BIA/GrupoBIA/proyecto_bia/proyecto_bia/certificado_ldd/views.py changed, reloading.
+[2025-08-27 02:53:37,151] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-08-27 02:53:40,949] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-08-27 02:54:03,245] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-08-27 02:54:03,246] INFO certificado_ldd.views - [_handle_post_generar] hdr X-Requested-With=None Accept='application/json, text/plain, */*' Content-Type='multipart/form-data; boundary=----WebKitFormBoundarytotcl68usB5picFd' Referer='http://localhost:3000/certificado' UA='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'
+[2025-08-27 02:54:03,246] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False is_ajax=False
+[2025-08-27 02:54:03,651] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:54:03,651] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:54:03,651] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:54:03,651] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:54:03,651] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:54:03,651] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:54:03,652] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
+[2025-08-27 02:54:03,659] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados. is_ajax=False seleccionar_url=http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-08-27 02:54:18,264] INFO certificado_ldd.views - [seleccionar_certificado] GET dni='14752495'
+[2025-08-27 02:54:18,803] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:54:18,803] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:54:18,803] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:54:18,804] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
+[2025-08-27 02:54:18,804] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-08-27 02:54:18,804] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-08-27 02:54:18,804] DEBUG certificado_ldd.views - [seleccionar_certificado] DNI=14752495 -> cancelados=2 pendientes=1

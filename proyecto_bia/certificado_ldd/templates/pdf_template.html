@@ -4,53 +4,56 @@
 <head>
   <meta charset="UTF-8" />
   <title>Certificado de Libre de Deuda</title>
-  <!-- Si tenés CSS para PDF, mantenelo muy sencillo por xhtml2pdf -->
+  <!-- Podés mantener tu CSS externo; xhtml2pdf lo toma si link_callback resuelve la ruta -->
   <link rel="stylesheet" href="{% static 'css/styles-pdf.css' %}" />
   <style>
-    /* Refuerzos inline-friendly para xhtml2pdf */
-    .logos-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
-    .logo-left, .logo-right { max-height: 70px; max-width: 45%; }
-    .logo-center { text-align: center; margin-bottom: 20px; }
-    .logo-center img { max-height: 80px; }
+    /* Estilos seguros para xhtml2pdf: usar tablas, márgenes simples y fuentes estándar */
+    body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 11pt; }
     .title { text-align: center; margin: 10px 0 0; }
     .date { text-align: right; margin: 8px 0 18px; font-size: 10pt; }
     .content { font-size: 12pt; line-height: 1.5; }
     .signature { margin-top: 40px; text-align: center; }
-    .signature img { height: 60px; }
     .hr { border: 0; height: 1px; background: #999; }
+    img { vertical-align: middle; }
   </style>
 </head>
 <body>
 
   {# ================== LOGOS SUPERIORES ================== #}
-  {# Caso A: propietario NO es BIA -> izquierda: BIA | derecha: entidad propietaria #}
   {% if entidad_otras %}
-    <div class="logos-row">
-      <div>
-        {% if entidad_bia and entidad_bia.logo %}
-          <img src="{{ entidad_bia.logo.url }}" alt="Logo BIA" class="logo-left" />
-        {% else %}
-          <img src="{% static 'images/bia.png' %}" alt="Logo BIA" class="logo-left" />
-        {% endif %}
-      </div>
-      <div>
-        {% if entidad_otras.logo %}
-          <img src="{{ entidad_otras.logo.url }}" alt="Logo {{ entidad_otras.nombre }}" class="logo-right" />
-        {% endif %}
-      </div>
-    </div>
+    <!-- Caso A: propietario NO es BIA -> izquierda BIA | derecha entidad propietaria -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
+      <tr>
+        <td width="50%" align="left">
+          {% if entidad_bia and entidad_bia.logo %}
+            <img src="{{ entidad_bia.logo.url }}" alt="Logo BIA" style="max-height:70px; max-width: 280px;" />
+          {% else %}
+            <img src="{% static 'images/bia.png' %}" alt="Logo BIA" style="max-height:70px; max-width: 280px;" />
+          {% endif %}
+        </td>
+        <td width="50%" align="right">
+          {% if entidad_otras.logo %}
+            <img src="{{ entidad_otras.logo.url }}" alt="Logo {{ entidad_otras.nombre }}" style="max-height:70px; max-width: 280px;" />
+          {% endif %}
+        </td>
+      </tr>
+    </table>
   {% else %}
-    {# Caso B: propietario ES BIA -> BIA centrado #}
-    <div class="logo-center">
-      {% if entidad_bia and entidad_bia.logo %}
-        <img src="{{ entidad_bia.logo.url }}" alt="Logo BIA" />
-      {% else %}
-        <img src="{% static 'images/bia.png' %}" alt="Logo BIA" />
-      {% endif %}
-    </div>
+    <!-- Caso B: propietario ES BIA -> BIA centrado -->
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
+      <tr>
+        <td align="center">
+          {% if entidad_bia and entidad_bia.logo %}
+            <img src="{{ entidad_bia.logo.url }}" alt="Logo BIA" style="max-height:80px; max-width: 320px;" />
+          {% else %}
+            <img src="{% static 'images/bia.png' %}" alt="Logo BIA" style="max-height:80px; max-width: 320px;" />
+          {% endif %}
+        </td>
+      </tr>
+    </table>
   {% endif %}
 
-  <hr class="hr" />
+  <div class="hr"></div>
 
   {# ================== TÍTULO ================== #}
   <h2 class="title">Certificado de Libre de Deuda</h2>
@@ -86,15 +89,15 @@
     <p style="margin: 0 0 6px;">Firma autenticada:</p>
 
     {% if firma_url %}
-      <img src="{{ firma_url }}" alt="Firma" /><br />
+      <img src="{{ firma_url }}" alt="Firma" style="height: 60px;" /><br />
       <strong>{{ responsable|default:"Socio/Gerente" }}</strong><br />
       <span>{{ cargo|default:"" }}</span><br />
       <span>
         {{ entidad_firma|default:entidad_otras.razon_social|default:entidad_otras.nombre|default:entidad_bia.razon_social|default:entidad_bia.nombre|default:"" }}
       </span>
     {% else %}
-      {# Fallback si no hay firma en Entidad #}
-      <img src="{% static 'images/firma.png' %}" alt="Firma" /><br />
+      <!-- Fallback si no hay firma en Entidad -->
+      <img src="{% static 'images/firma.png' %}" alt="Firma" style="height: 60px;" /><br />
       <strong>{{ responsable|default:"Socio/Gerente" }}</strong><br />
       <span>{{ cargo|default:"" }}</span><br />
       <span>

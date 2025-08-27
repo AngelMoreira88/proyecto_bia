@@ -1,0 +1,208 @@
+{% load static %}
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Seleccionar certificado</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    body { font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; color:#0f172a; margin:24px; }
+    .container-max { max-width: 920px; margin: 0 auto; }
+    .h1 { font-size: 24px; margin-bottom: 14px; font-weight: 700; }
+    .text-muted { color: #64748b; }
+    .badge { display:inline-block; font-size:12px; padding:.15rem .5rem; border-radius:999px; background:#10b98122; color:#065f46; border:1px solid #a7f3d0; }
+    .list { border-radius: 12px; overflow: hidden; border: 1px solid #e5e7eb; }
+    .item { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; padding:14px 16px; border-bottom:1px solid #eef2f7; }
+    .item:last-child { border-bottom: none; }
+    .item-title { font-weight: 700; font-size: 16px; }
+    .item-note { font-size: 13px; color:#64748b; margin-top:6px; }
+    .btn { display:inline-flex; align-items:center; gap:8px; padding:8px 14px; border-radius: 8px; border:1px solid #0b1220; background:#0b1220; color:#fff; cursor:pointer; text-decoration:none; }
+    .btn:hover { opacity:.95; }
+    .btn-secondary { background:#fff; color:#0b1220; }
+    .btn:disabled { opacity:.6; cursor:not-allowed; }
+    .form-actions { display:flex; gap:12px; margin-top: 16px; }
+    .toast { display:none; margin-top:12px; font-size:14px; color:#0f766e; }
+    .toast.error { color:#b91c1c; }
+    .spinner { width:16px; height:16px; border:2px solid currentColor; border-top-color: transparent; border-radius:50%; display:none; animation:spin .8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    input[type="radio"] { width: 16px; height:16px; }
+    .radio-wrap { display:flex; gap:12px; align-items:flex-start; flex:1; cursor:pointer; }
+  </style>
+</head>
+<body>
+  <div class="container-max">
+
+    <h1 class="h1">Seleccionar certificado</h1>
+
+    {% if mensaje %}
+      <div style="background:#f0f9ff; border:1px solid #bae6fd; border-radius:10px; padding:12px; margin-bottom:16px;">
+        {{ mensaje }}
+      </div>
+    {% endif %}
+
+    <div class="text-muted" style="margin-bottom: 8px;">DNI: <strong id="dni">{{ dni }}</strong></div>
+
+    {% if cancelados and cancelados|length > 0 %}
+      <!-- Sin action/target: NO usamos submit nativo -->
+      <form id="formPrincipal">
+
+        <div class="list">
+          {% for r in cancelados %}
+          <div class="item">
+            <!-- Label SOLO para el radio + texto -->
+            <label class="radio-wrap">
+              <input type="radio" name="id_pago_unico" value="{{ r.id_pago_unico }}" {% if forloop.first %}checked{% endif %} />
+              <div>
+                <div class="item-title">
+                  ID Pago Único: {{ r.id_pago_unico }}
+                  <span class="badge">CANCELADO</span>
+                </div>
+                <div class="item-note">
+                  <strong>Propietario:</strong> {{ r.propietario|default:"-" }}
+                  &nbsp;·&nbsp;
+                  <strong>Entidad interna:</strong> {{ r.entidadinterna|default:"-" }}
+                </div>
+              </div>
+            </label>
+
+            <!-- Botón por fila FUERA del label -->
+            <div>
+              <button type="button" class="btn"
+                      onclick="event.stopPropagation(); generarPorFila('{{ r.id_pago_unico }}', '{{ dni }}', this)">
+                <span class="spinner"></span>
+                <span>Certificado LDD</span>
+              </button>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+
+        <div class="form-actions">
+          <!-- type=button para evitar submit nativo SIEMPRE -->
+          <button type="button" class="btn" onclick="generarSeleccionadoDesdeBoton(this)">
+            <span class="spinner"></span>
+            <span>Generar certificado</span>
+          </button>
+          <a class="btn btn-secondary" href="javascript:history.back()">Volver</a>
+        </div>
+
+      </form>
+    {% else %}
+      <div class="text-muted" style="font-style: italic;">No hay obligaciones canceladas para imprimir.</div>
+    {% endif %}
+
+    {% if pendientes and pendientes|length > 0 %}
+      <div style="margin-top: 22px;">
+        <div class="text-muted" style="font-weight:600;">Obligaciones no canceladas:</div>
+        <ul style="margin:8px 0 0 18px; color:#64748b;">
+          {% for r in pendientes %}
+            <li>
+              ID {{ r.id_pago_unico }} — {{ r.propietario|default:"-" }}{% if r.entidadinterna %} / {{ r.entidadinterna }}{% endif %} — estado: {{ r.estado|default:"-" }}
+            </li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+
+    <div id="toast" class="toast"></div>
+    <!-- vtpl: certificado_seleccionar.html @ 2025-08-27 -->
+  </div>
+
+  <script>
+    function getFilenameFromDisposition(disposition, fallback) {
+      if (!disposition) return fallback;
+      const m = /filename\*?=(?:UTF-8''|")?([^\";]+)/i.exec(disposition);
+      if (m && m[1]) return decodeURIComponent(m[1].replace(/\+/g, '%20'));
+      return fallback;
+    }
+    function showToast(msg, isError=false) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.toggle('error', !!isError);
+      t.style.display = 'block';
+      setTimeout(() => { t.style.display = 'none'; }, 4000);
+    }
+    function withSpinner(btn, on) {
+      if (!btn) return;
+      const sp = btn.querySelector('.spinner');
+      if (sp) sp.style.display = on ? 'inline-block' : 'none';
+      btn.disabled = !!on;
+    }
+    function triggerDownload(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename || 'certificado.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    // GET por fila sin salir de la página (AJAX con header)
+    async function generarPorFila(idp, dni, btn) {
+      try {
+        withSpinner(btn, true);
+        const url = "{% url 'certificado_ldd:api_generar_certificado' %}?id_pago_unico=" + encodeURIComponent(idp) + "&dni=" + encodeURIComponent(dni);
+        const res = await fetch(url, {
+          method: 'GET',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        if (!res.ok) {
+          let text = await res.text();
+          try { const j = JSON.parse(text); text = j.mensaje || j.error || text; } catch (_) {}
+          showToast(text || 'No se pudo generar el certificado.', true);
+          return;
+        }
+        const cd = res.headers.get('Content-Disposition');
+        const filename = getFilenameFromDisposition(cd, "certificado_" + idp + ".pdf");
+        const blob = await res.blob();
+        triggerDownload(blob, filename);
+        showToast('Certificado generado.');
+      } catch (e) {
+        showToast('Error de red generando el certificado.', true);
+      } finally {
+        withSpinner(btn, false);
+      }
+    }
+
+    // POST del radio seleccionado sin navegar (AJAX con header)
+    async function generarSeleccionadoDesdeBoton(btn) {
+      const form = document.getElementById('formPrincipal');
+      const dni = document.getElementById('dni').textContent.trim();
+      const sel = form.querySelector('input[name="id_pago_unico"]:checked');
+      if (!sel) { showToast('Seleccioná un ID pago único.', true); return; }
+      const idp = sel.value;
+
+      try {
+        withSpinner(btn, true);
+        const fd = new FormData();
+        fd.append('dni', dni);
+        fd.append('id_pago_unico', idp);
+
+        const res = await fetch("{% url 'certificado_ldd:api_generar_certificado' %}", {
+          method: 'POST',
+          body: fd,
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        if (!res.ok) {
+          let text = await res.text();
+          try { const j = JSON.parse(text); text = j.mensaje || j.error || text; } catch (_) {}
+          showToast(text || 'No se pudo generar el certificado.', true);
+          return;
+        }
+        const cd = res.headers.get('Content-Disposition');
+        const filename = getFilenameFromDisposition(cd, "certificado_" + idp + ".pdf");
+        const blob = await res.blob();
+        triggerDownload(blob, filename);
+        showToast('Certificado generado.');
+      } catch (e) {
+        showToast('Error de red generando el certificado.', true);
+      } finally {
+        withSpinner(btn, false);
+      }
+    }
+  </script>
+</body>
+</html>
