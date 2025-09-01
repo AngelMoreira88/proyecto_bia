@@ -24,7 +24,9 @@ const normalizeResponse = (data) => {
     items: Array.isArray(data?.results) ? data.results
           : Array.isArray(data?.items)   ? data.items
           : [],
-    count: typeof data?.count === 'number' ? data.count : (Array.isArray(data?.results) ? data.results.length : 0),
+    count: typeof data?.count === 'number'
+      ? data.count
+      : (Array.isArray(data?.results) ? data.results.length : 0),
     next: data?.next ?? null,
     previous: data?.previous ?? null,
   };
@@ -38,7 +40,7 @@ export default function EntidadList({ onEdit }) {
   const [err, setErr] = useState(null);
 
   const [page, setPage] = useState(1);
-  const [pageSize] = useState(20); // si tu DRF usa otra PAGE_SIZE, ajusta/elimínalo
+  const [pageSize] = useState(20); // ajustá si tu DRF usa otro PAGE_SIZE
   const [count, setCount] = useState(0);
   const [next, setNext] = useState(null);
   const [previous, setPrevious] = useState(null);
@@ -77,6 +79,26 @@ export default function EntidadList({ onEdit }) {
       setErr('No se pudo cargar el listado de entidades');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 🔴 Eliminar con confirmación
+  const handleDelete = async (ent) => {
+    if (!ent?.id) {
+      alert('Entidad inválida (sin ID).');
+      return;
+    }
+    const ok = window.confirm(`¿Seguro que querés eliminar la entidad "${ent.nombre ?? ent.id}"?`);
+    if (!ok) return;
+
+    try {
+      // Eliminación en backend
+      await api.delete(`${ENTIDADES_BASE}${ent.id}/`);
+      // Refresco desde el backend para mantener paginado/contador correctos
+      await fetchEntidades({ pageArg: page, searchArg: debouncedQ });
+    } catch (e) {
+      console.error('Error eliminando entidad', e);
+      alert('No se pudo eliminar la entidad');
     }
   };
 
@@ -133,7 +155,10 @@ export default function EntidadList({ onEdit }) {
             onChange={(e) => setQ(e.target.value)}
             style={{ minWidth: 260 }}
           />
-          <button className="btn btn-sm btn-outline-secondary" onClick={() => fetchEntidades({ pageArg: 1, searchArg: debouncedQ })}>
+          <button
+            className="btn btn-sm btn-outline-secondary"
+            onClick={() => fetchEntidades({ pageArg: 1, searchArg: debouncedQ })}
+          >
             Refrescar
           </button>
         </div>
@@ -216,12 +241,19 @@ export default function EntidadList({ onEdit }) {
                       )}
                     </td>
                     {isLoggedIn() && onEdit && (
-                      <td>
+                      <td className="d-flex gap-2">
                         <button
                           className="btn btn-sm btn-outline-primary"
                           onClick={() => onEdit(ent)}
                         >
                           Editar
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => handleDelete(ent)}
+                          title="Eliminar entidad"
+                        >
+                          Eliminar
                         </button>
                       </td>
                     )}

@@ -5,57 +5,120 @@ import { createBrowserHistory } from 'history';
 
 const history = createBrowserHistory();
 
-// Usa variable de entorno en prod, proxy CRA en dev
-// Ejemplo .env: REACT_APP_API_BASE=http://localhost:8000/
+// ===============================
+// Base URL (env) y configuración
+// ===============================
 const API_BASE = process.env.REACT_APP_API_BASE || '/';
 
 const api = axios.create({
   baseURL: API_BASE,
   timeout: 30000,
+  // Si tu frontend y backend están en orígenes distintos y usás sesión/CSRF,
+  // necesitás enviar cookies:
+  withCredentials: true,
+  // Nombres por defecto de Django/DRF para CSRF
+  xsrfCookieName: 'csrftoken',
+  xsrfHeaderName: 'X-CSRFToken',
 });
 
-// -------------------------------
-// Auth helpers: auto-refresh JWT
-// -------------------------------
+// ===============================
+// Helpers de Auth y CSRF
+// ===============================
+function getAccessToken() {
+  try {
+    return localStorage.getItem('access_token');
+  } catch {
+    return null;
+  }
+}
+
+function getRefreshToken() {
+  try {
+    return localStorage.getItem('refresh_token');
+  } catch {
+    return null;
+  }
+}
+
+// Fallback por si querés leer el CSRF manualmente (Axios ya usa xsrfCookieName/xsrfHeaderName)
+function getCookie(name) {
+  const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+  return m ? decodeURIComponent(m.pop()) : null;
+}
+
+// ===================================
+// Cola para refresh de access tokens
+// ===================================
 let isRefreshing = false;
 let pendingRequests = [];
 
-const processQueue = (error, token = null) => {
-  pendingRequests.forEach((prom) => {
-    if (error) prom.reject(error);
-    else {
-      prom.resolve(token);
-    }
+const processQueue = (error, newAccess = null) => {
+  pendingRequests.forEach(({ resolve, reject }) => {
+    if (error) reject(error);
+    else resolve(newAccess);
   });
   pendingRequests = [];
 };
 
-// ---- Interceptor: Authorization Bearer ----
+// ===================================
+// Interceptor de REQUEST
+// - Agrega Authorization Bearer si hay JWT
+// - Agrega CSRF (por si usás sesión)
+// - No fuerza Content-Type con FormData
+// ===================================
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('access_token');
-  if (token && !config.headers.Authorization) {
+  const token = getAccessToken();
+  if (token && !config.headers?.Authorization) {
+    config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
   }
+
+  // Si usás SessionAuthentication, ayuda adjuntar CSRF manualmente (además de xsrfHeaderName)
+  const csrftoken = getCookie('csrftoken');
+  if (csrftoken) {
+    config.headers = config.headers || {};
+    config.headers['X-CSRFToken'] = csrftoken;
+  }
+
+  // Importantísimo: si es FormData, dejamos que Axios ponga el boundary
+  if (config.data instanceof FormData) {
+    if (config.headers && config.headers['Content-Type']) {
+      delete config.headers['Content-Type'];
+    }
+  }
+
   return config;
 });
 
-// ---- Interceptor de respuesta ----
+// ===================================
+// Interceptor de RESPONSE
+// - Si 401 y hay refresh, intenta renovar y reintenta
+// - Si falla, hace logout y redirige a /login
+// ===================================
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const status = error.response?.status;
-    const originalRequest = error.config;
+    const status = error?.response?.status;
+    const originalRequest = error?.config;
 
-    // 401 → intentar refresh (una sola vez por request)
-    if (status === 401 && !originalRequest?._retry) {
-      const refresh = localStorage.getItem('refresh_token');
+    // Si no hay response (network/CORS), rechazar
+    if (!error.response) {
+      return Promise.reject(error);
+    }
+
+    // Intentar refresh de access token UNA sola vez por request
+    if (status === 401 && originalRequest && !originalRequest._retry) {
+      const refresh = getRefreshToken();
       if (refresh) {
         if (isRefreshing) {
-          // cola mientras se renueva el token
+          // Poner en cola hasta que termine otro refresh en curso
           return new Promise((resolve, reject) => {
             pendingRequests.push({
               resolve: (newAccess) => {
-                originalRequest.headers.Authorization = `Bearer ${newAccess}`;
+                if (newAccess) {
+                  originalRequest.headers = originalRequest.headers || {};
+                  originalRequest.headers.Authorization = `Bearer ${newAccess}`;
+                }
                 resolve(api(originalRequest));
               },
               reject,
@@ -67,26 +130,35 @@ api.interceptors.response.use(
         isRefreshing = true;
 
         try {
-          // Usamos axios "plano" para evitar loops del interceptor
+          // Usar axios "plano" para evitar loops con el mismo interceptor
           const { data } = await axios.post(
             `${API_BASE}api/token/refresh/`,
-            { refresh }
+            { refresh },
+            {
+              // Si tu refresh requiere cookie/CSRF:
+              withCredentials: true,
+              xsrfCookieName: 'csrftoken',
+              xsrfHeaderName: 'X-CSRFToken',
+            }
           );
 
           const newAccess = data?.access;
-          if (newAccess) {
-            localStorage.setItem('access_token', newAccess);
-            api.defaults.headers.common.Authorization = `Bearer ${newAccess}`;
-            processQueue(null, newAccess);
-            // Reintenta el request original
-            originalRequest.headers.Authorization = `Bearer ${newAccess}`;
-            return api(originalRequest);
-          }
-          throw new Error('No se recibió access token en refresh');
+          if (!newAccess) throw new Error('No se recibió access token en refresh');
+
+          // Guardar y aplicar nuevo access
+          localStorage.setItem('access_token', newAccess);
+          api.defaults.headers.common.Authorization = `Bearer ${newAccess}`;
+          processQueue(null, newAccess);
+
+          // Reintentar el request original con el token nuevo
+          originalRequest.headers = originalRequest.headers || {};
+          originalRequest.headers.Authorization = `Bearer ${newAccess}`;
+          return api(originalRequest);
         } catch (refreshErr) {
           processQueue(refreshErr, null);
           logout();
-          history.push('/login');
+          try { history.push('/login'); } catch {}
+          // Forzar un reload para limpiar estado cliente
           window.location.reload();
           return Promise.reject(refreshErr);
         } finally {
@@ -95,10 +167,10 @@ api.interceptors.response.use(
       }
     }
 
-    // 401/403 sin refresh → salir a login
+    // 401/403 sin refresh o tras fallo de refresh → salir a login
     if (status === 401 || status === 403) {
       logout();
-      history.push('/login');
+      try { history.push('/login'); } catch {}
       window.location.reload();
     }
 
@@ -108,21 +180,18 @@ api.interceptors.response.use(
 
 export default api;
 
-// -------------------------------------------------
-// Endpoints: CARGA DE DATOS (coinciden con backend)
+// =======================================================
+// Endpoints: CARGA DE DATOS (se mantienen los que tenías)
 // Base final: /carga-datos/api/...
-// -------------------------------------------------
+// =======================================================
 
 /**
  * Sube un Excel/CSV para validación previa.
  * formData: { archivo: File }
  */
 export function subirExcel(formData) {
-  return api.post('/carga-datos/api/cargar/', formData, {
-    // Nota: axios setea boundary en multipart automáticamente,
-    // este header es opcional
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  return api.post('/carga-datos/api/cargar/', formData);
+  // Nota: al ser FormData, NO seteamos 'Content-Type'
 }
 
 /**
@@ -164,14 +233,13 @@ export function pingCargaDatos() {
   return api.get('/carga-datos/api/ping/');
 }
 
-// -------------------------------------------------
-// Endpoints: CERTIFICADOS LDD
-// Base final: /api/certificado/...
-// -------------------------------------------------
+// =============================================
+// Endpoints: CERTIFICADOS LDD (manteniendo base)
+// =============================================
 
 /** Genera el certificado (POST) */
 export function generarCertificado(payload) {
-  // Tenés dos alias válidos en backend: /generar/ o /generar-certificado/
+  // Alias válido: /api/certificado/generar/ (ajusta si usás otro)
   return api.post('/api/certificado/generar/', payload, {
     headers: { 'Content-Type': 'application/json' },
   });
@@ -187,12 +255,28 @@ export function obtenerEntidad(id) {
   return api.get(`/api/certificado/entidades/${id}/`);
 }
 
+/** Crear entidad (FormData con imágenes) */
+export function crearEntidad(formData) {
+  return api.post('/api/certificado/entidades/', formData);
+}
+
+/** Actualizar entidad (PATCH con FormData) */
+export function actualizarEntidad(id, formData) {
+  return api.patch(`/api/certificado/entidades/${id}/`, formData);
+}
+
+/** Eliminar entidad */
+export function eliminarEntidad(id) {
+  return api.delete(`/api/certificado/entidades/${id}/`);
+}
+
 /** Ping de salud certificados */
 export function pingCertificado() {
   return api.get('/api/certificado/ping/');
 }
 
-// ... tus imports y setup de axios
-
+// =======================================================
+// Otros endpoints que ya tenías (ejemplo DB BIA delete)
+// =======================================================
 export const eliminarDatoBia = (id) =>
   api.delete(`/api/db_bia/${encodeURIComponent(id)}/`);

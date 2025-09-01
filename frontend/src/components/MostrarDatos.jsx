@@ -6,8 +6,10 @@ import {
   eliminarDatoBia,
 } from '../services/api';
 import { getUserRole } from '../services/auth';
+import { useNavigate } from 'react-router-dom';
 
 export default function Mostrar() {
+  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [datos, setDatos] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -237,6 +239,7 @@ export default function Mostrar() {
           <div className="d-flex flex-wrap gap-2 align-items-center justify-content-between">
             <strong className="text-bia m-0">Búsqueda</strong>
             <div className="d-flex gap-2">
+              {/* Exportar CSV */}
               <button
                 type="button"
                 className="btn btn-sm btn-outline-secondary"
@@ -247,6 +250,16 @@ export default function Mostrar() {
                   <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
                 Exportar CSV
+              </button>
+
+              {/* Volver (al lado de Exportar CSV) */}
+              <button
+                type="button"
+                className="btn btn-sm btn-outline-secondary"
+                onClick={() => navigate(-1)}
+                title="Volver a la página anterior"
+              >
+                ◀ Volver
               </button>
 
               {editingId !== null && hasChanges && dniCoincide && (
