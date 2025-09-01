@@ -13,25 +13,81 @@
     .signature { margin-top: 40px; text-align: center; }
     .hr { border: 0; height: 1px; background: #999; }
     img { vertical-align: middle; }
+
+    /* Cajas para logos: mantienen layout estable aunque falte imagen */
+    .logo-box {
+      display: inline-block;
+      width: 280px;   /* consistente con max-width aplicado a imágenes laterales */
+      height: 70px;   /* consistente con max-height aplicado a imágenes laterales */
+      text-align: center;
+      vertical-align: middle;
+    }
+    .logo-box--center {
+      width: 320px;   /* para el caso de un solo logo centrado */
+      height: 80px;
+    }
+    .logo-placeholder {
+      display: inline-block;
+      width: 100%;
+      height: 100%;
+      font-size: 8pt;
+      color: #888;
+      border: 1px dashed #bbb;
+      line-height: 70px; /* coincide con .logo-box height */
+    }
+    .logo-placeholder--center { line-height: 80px; }
+
+    /* Firma */
+    .signature-img { height: 60px; }
+    .signature-line {
+      margin: 10px auto 6px;
+      width: 280px;
+      border-bottom: 1px solid #777;
+      height: 0;
+    }
   </style>
 </head>
 <body>
+
+  {# URL estática disponible sin condicionales #}
+  {% static 'images/bia.png' as bia_logo_static %}
 
   {# ================== LOGOS SUPERIORES ================== #}
   {% if entidad_otras %}
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
       <tr>
         <td width="50%" align="left">
-          {% if entidad_bia and entidad_bia.logo %}
-            <img src="{{ entidad_bia.logo.url }}" alt="Logo BIA" style="max-height:70px; max-width: 280px;" />
-          {% else %}
-            <img src="{% static 'images/bia.png' %}" alt="Logo BIA" style="max-height:70px; max-width: 280px;" />
-          {% endif %}
+          <div class="logo-box">
+            {% if entidad_bia and entidad_bia.logo %}
+              <img
+                src="{{ entidad_bia.logo.url }}"
+                alt="Logo BIA"
+                title="Logo BIA"
+                style="max-height:70px; max-width:280px;"
+              />
+            {% else %}
+              <img
+                src="{{ bia_logo_static }}"
+                alt="Logo BIA"
+                title="Logo BIA"
+                style="max-height:70px; max-width:280px;"
+              />
+            {% endif %}
+          </div>
         </td>
         <td width="50%" align="right">
-          {% if entidad_otras.logo %}
-            <img src="{{ entidad_otras.logo.url }}" alt="Logo {{ entidad_otras.nombre }}" style="max-height:70px; max-width: 280px;" />
-          {% endif %}
+          <div class="logo-box">
+            {% if entidad_otras.logo %}
+              <img
+                src="{{ entidad_otras.logo.url }}"
+                alt="Logo {{ entidad_otras.nombre }}"
+                title="Logo {{ entidad_otras.nombre }}"
+                style="max-height:70px; max-width:280px;"
+              />
+            {% else %}
+              <span class="logo-placeholder">Logo {{ entidad_otras.nombre|default:"Entidad" }} no disponible</span>
+            {% endif %}
+          </div>
         </td>
       </tr>
     </table>
@@ -39,11 +95,23 @@
     <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom: 16px;">
       <tr>
         <td align="center">
-          {% if entidad_bia and entidad_bia.logo %}
-            <img src="{{ entidad_bia.logo.url }}" alt="Logo BIA" style="max-height:80px; max-width: 320px;" />
-          {% else %}
-            <img src="{% static 'images/bia.png' %}" alt="Logo BIA" style="max-height:80px; max-width: 320px;" />
-          {% endif %}
+          <div class="logo-box logo-box--center">
+            {% if entidad_bia and entidad_bia.logo %}
+              <img
+                src="{{ entidad_bia.logo.url }}"
+                alt="Logo BIA"
+                title="Logo BIA"
+                style="max-height:80px; max-width:320px;"
+              />
+            {% else %}
+              <img
+                src="{{ bia_logo_static }}"
+                alt="Logo BIA"
+                title="Logo BIA"
+                style="max-height:80px; max-width:320px;"
+              />
+            {% endif %}
+          </div>
         </td>
       </tr>
     </table>
@@ -80,9 +148,15 @@
   <div class="signature">
     <p style="margin: 0 0 6px;">Firma autenticada:</p>
 
-    {# Sólo mostrar imagen si hay archivo cargado en la entidad emisora #}
     {% if firma_url %}
-      <img src="{{ firma_url }}" alt="Firma" style="height: 60px;" /><br />
+      <img
+        src="{{ firma_url }}"
+        alt="Firma de {{ responsable|default:'Representante' }}"
+        title="Firma de {{ responsable|default:'Representante' }}"
+        class="signature-img"
+      /><br />
+    {% else %}
+      <div class="signature-line"></div>
     {% endif %}
 
     <strong>{{ responsable|default:"Socio/Gerente" }}</strong><br />
