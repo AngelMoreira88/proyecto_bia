@@ -17,6 +17,9 @@ import MostrarDatos       from './components/MostrarDatos';
 import Entidades          from './components/Entidades';
 import Perfil             from './components/Perfil';
 
+// ⬇️ Nuevo: importar el componente de Modificación Masiva
+import ModificarMasivo    from './components/ModificarMasivo';
+
 import { isLoggedIn } from './services/auth';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -68,6 +71,7 @@ export default function App() {
             <Route path="/logout" element={<Logout />} />
             <Route path="/certificado" element={<GenerarCertificado />} />
 
+            {/* Carga de datos (altas) */}
             <Route
               path="/carga-datos/upload"
               element={
@@ -92,6 +96,8 @@ export default function App() {
                 </PrivateRoute>
               }
             />
+
+            {/* Mostrar datos */}
             <Route
               path="/datos/mostrar"
               element={
@@ -100,11 +106,23 @@ export default function App() {
                 </PrivateRoute>
               }
             />
+
+            {/* Entidades */}
             <Route
               path="/entidades"
               element={
                 <PrivateRoute>
                   <Entidades />
+                </PrivateRoute>
+              }
+            />
+
+            {/* ⬇️ Nuevo: Modificación masiva desde Excel/CSV */}
+            <Route
+              path="/modificar-masivo"
+              element={
+                <PrivateRoute>
+                  <ModificarMasivo />
                 </PrivateRoute>
               }
             />

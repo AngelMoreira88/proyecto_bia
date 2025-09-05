@@ -4,6 +4,10 @@ import api from './api';
 /** Clave del header */
 const AUTH_HEADER = 'Authorization';
 
+/** Claves de cache local (rol efectivo y grupos) */
+const ROLE_KEY   = 'user_role';     // rol efectivo (admin/approver/editor/staff/readonly)
+const GROUPS_KEY = 'user_groups';   // cache de grupos del backend
+
 /** Notifica a la app (misma pestaña) que cambió el estado de autenticación. */
 export function notifyAuthChanged() {
   window.dispatchEvent(new Event('auth-changed'));
@@ -49,6 +53,39 @@ export function getUserClaims() {
   return access ? parseJwt(access) : null;
 }
 
+/** Utilidades de cache (rol/grupos) */
+function setCachedRole(role) {
+  try { localStorage.setItem(ROLE_KEY, role || 'readonly'); } catch {}
+  notifyAuthChanged();
+}
+function clearCachedRole() {
+  try { localStorage.removeItem(ROLE_KEY); } catch {}
+}
+function getCachedRole() {
+  try { return localStorage.getItem(ROLE_KEY) || ''; } catch { return ''; }
+}
+function setCachedGroups(groups) {
+  try { localStorage.setItem(GROUPS_KEY, JSON.stringify(groups || [])); } catch {}
+}
+function getCachedGroups() {
+  try {
+    const raw = localStorage.getItem(GROUPS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Mapea grupos Django a un rol efectivo del front. */
+function mapGroupsToRole(groups = [], { is_superuser = false, is_staff = false } = {}) {
+  const g = new Set((groups || []).map(String).map(s => s.toLowerCase()));
+  if (is_superuser || g.has('admin')) return 'admin';
+  if (g.has('approver')) return 'approver';
+  if (g.has('editor'))   return 'editor';
+  if (is_staff || g.has('staff')) return 'staff';
+  return 'readonly';
+}
+
 /**
  * Inicia sesión usando JWT en lugar de sesiones de Django.
  * Envía credenciales y guarda los tokens en localStorage.
@@ -61,6 +98,11 @@ export async function login(username, password) {
   localStorage.setItem('refresh_token', refresh);
 
   api.defaults.headers[AUTH_HEADER] = `Bearer ${access}`;
+
+  // Limpiamos cache previo por las dudas; Home/Header invocan refreshUserRole()
+  clearCachedRole();
+  setCachedGroups([]);
+
   notifyAuthChanged();
 }
 
@@ -71,6 +113,10 @@ export function logout() {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
   delete api.defaults.headers[AUTH_HEADER];
+
+  clearCachedRole();
+  setCachedGroups([]);
+
   notifyAuthChanged();
 }
 
@@ -94,20 +140,24 @@ export async function refreshToken() {
 
   localStorage.setItem('access_token', access);
   api.defaults.headers[AUTH_HEADER] = `Bearer ${access}`;
+
+  // No tocamos el rol cacheado acá; se mantiene hasta el próximo refresh explícito
   notifyAuthChanged();
   return access;
 }
 
 /**
- * Rol principal del usuario.
+ * Rol principal del usuario (EFECTIVO).
  * Prioridades:
- *  - role / user_role === 'admin' → 'admin'
- *  - is_superuser → 'admin'
- *  - grupo 'admin' o permiso 'bia_admin' → 'admin'
- *  - is_staff o grupo 'staff' → 'staff'
- *  - por defecto → 'readonly'
+ *  1) Cache local (refrescado desde backend con refreshUserRole)
+ *  2) Claims del JWT
  */
 export function getUserRole() {
+  // 1) si hay cache de rol (viene de /carga-datos/api/admin/me), priorizarlo
+  const cached = getCachedRole();
+  if (cached) return cached;
+
+  // 2) derivar desde claims del JWT
   const claims = getUserClaims();
   if (!claims) return 'readonly';
 
@@ -120,29 +170,29 @@ export function getUserRole() {
   if (role === 'admin') return 'admin';
   if (isSuper) return 'admin';
   if (groups.includes('admin') || perms.includes('bia_admin')) return 'admin';
+  if (groups.includes('approver')) return 'approver';
+  if (groups.includes('editor'))   return 'editor';
   if (isStaff || groups.includes('staff')) return 'staff';
   return 'readonly';
 }
 
-/** Atajo: ¿tiene privilegios administrativos? */
-export function isAdmin() {
-  return getUserRole() === 'admin';
-}
+/** Atajos */
+export function isAdmin() { return getUserRole() === 'admin'; }
+export function isStaff() { return getUserRole() === 'staff'; }
 
-/** Atajo: ¿es staff (pero no admin)? */
-export function isStaff() {
-  return getUserRole() === 'staff';
-}
-
-/** ¿pertenece a un grupo (case-insensitive)? */
+/** ¿pertenece a un grupo (claims ∪ cache backend)? */
 export function inGroup(name) {
-  const claims = getUserClaims();
   const target = String(name || '').toLowerCase();
-  const groups = Array.isArray(claims?.groups) ? claims.groups.map(g => String(g).toLowerCase()) : [];
-  return groups.includes(target);
+  const claims = getUserClaims();
+  const fromClaims = Array.isArray(claims?.groups)
+    ? claims.groups.map(g => String(g).toLowerCase())
+    : [];
+  const fromCache = getCachedGroups().map(g => String(g).toLowerCase());
+  const set = new Set([...fromClaims, ...fromCache]);
+  return set.has(target);
 }
 
-/** ¿tiene un permiso (case-insensitive)? */
+/** ¿tiene un permiso (solo claims)? */
 export function hasPerm(code) {
   const claims = getUserClaims();
   const target = String(code || '').toLowerCase();
@@ -150,10 +200,34 @@ export function hasPerm(code) {
   return perms.includes(target);
 }
 
-/**
- * Lista de roles adicionales (claim `roles`), si existiera.
- */
+/** Lista de roles adicionales (claim `roles`), si existiera. */
 export function getUserRoles() {
   const claims = getUserClaims();
   return Array.isArray(claims?.roles) ? claims.roles : [];
+}
+
+/**
+ * Refresca el rol consultando al backend los grupos reales del usuario.
+ * RUTA correcta con prefijo de app: /carga-datos/api/admin/me
+ */
+export async function refreshUserRole() {
+  if (!isLoggedIn()) {
+    clearCachedRole();
+    setCachedGroups([]);
+    return 'readonly';
+  }
+  try {
+    const { data } = await api.get('/carga-datos/api/admin/me');
+    const groups = Array.isArray(data?.groups) ? data.groups : [];
+    const role = mapGroupsToRole(groups, {
+      is_superuser: !!data?.is_superuser,
+      is_staff: !!data?.is_staff,
+    });
+    setCachedGroups(groups);
+    setCachedRole(role);
+    return role;
+  } catch {
+    // Si falla, devolvemos el rol actual (claims o cache)
+    return getUserRole();
+  }
 }

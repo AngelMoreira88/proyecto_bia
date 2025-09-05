@@ -1884,3 +1884,83 @@ django.template.exceptions.TemplateSyntaxError: Unused ''images/bia.png'' at end
 [2025-09-01 02:07:56,933] WARNING django.request - Unauthorized: /api/certificado/entidades/
 [2025-09-01 02:08:19,695] WARNING django.request - Unauthorized: /api/certificado/entidades/
 [2025-09-01 02:08:19,705] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-01 23:46:34,681] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-03 00:17:24,170] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-03 01:27:45,918] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\models.py changed, reloading.
+[2025-09-03 01:27:48,492] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-03 01:28:40,098] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\models.py changed, reloading.
+[2025-09-03 01:28:41,928] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-03 01:29:17,022] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\models.py changed, reloading.
+[2025-09-03 01:29:19,604] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-03 01:29:52,366] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\admin.py changed, reloading.
+[2025-09-03 01:29:54,419] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-03 01:31:27,638] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\models.py changed, reloading.
+[2025-09-03 01:31:29,387] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-03 01:32:04,509] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\models.py changed, reloading.
+[2025-09-03 01:32:06,306] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-03 01:33:22,536] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\models.py changed, reloading.
+[2025-09-03 01:33:24,294] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-03 01:42:48,625] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\models.py changed, reloading.
+[2025-09-03 01:42:50,429] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-04 19:49:40,615] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-04 19:57:51,370] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\models.py changed, reloading.
+[2025-09-04 19:57:52,451] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-04 20:14:11,499] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-04 21:10:08,183] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-04 21:10:15,312] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-04 21:29:08,501] WARNING django.request - Bad Request: /api/token/
+[2025-09-04 21:35:39,385] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-04 22:52:07,517] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\urls.py changed, reloading.
+[2025-09-04 22:52:09,819] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-05 00:16:07,080] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-05 00:17:26,277] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:17:26,306] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:17:26,364] WARNING django.request - Not Found: /api/admin/roles
+[2025-09-05 00:17:26,390] WARNING django.request - Not Found: /api/admin/roles
+[2025-09-05 00:17:43,885] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-05 00:17:43,904] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-05 00:18:03,787] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-05 00:18:03,803] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-05 00:18:14,363] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-05 00:18:15,784] WARNING django.request - Not Found: /api/certificado/entidades/
+[2025-09-05 00:18:24,674] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-05 00:29:54,316] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-05 00:41:24,036] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:44:40,029] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:45:23,200] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-05 00:45:42,043] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:45:42,067] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:46:06,502] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:46:06,538] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:46:17,094] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:46:17,407] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:46:19,978] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:46:20,005] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:46:20,022] WARNING django.request - Not Found: /api/admin/roles
+[2025-09-05 00:46:20,049] WARNING django.request - Not Found: /api/admin/roles
+[2025-09-05 00:46:31,824] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:46:31,850] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:47:14,260] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:47:14,281] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:47:20,148] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:47:20,173] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:47:22,493] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:47:22,519] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:47:26,079] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:47:26,134] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:47:26,150] WARNING django.request - Not Found: /api/admin/roles
+[2025-09-05 00:47:26,183] WARNING django.request - Not Found: /api/admin/roles
+[2025-09-05 00:48:10,104] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:48:10,147] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:52:41,201] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-05 00:54:21,958] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:54:21,984] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:54:40,674] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\models.py changed, reloading.
+[2025-09-05 00:54:42,799] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-05 00:56:38,283] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:56:38,302] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:56:38,324] WARNING django.request - Not Found: /api/admin/roles
+[2025-09-05 00:56:38,350] WARNING django.request - Not Found: /api/admin/roles
+[2025-09-05 00:56:40,255] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 00:56:40,280] WARNING django.request - Not Found: /api/admin/me
+[2025-09-05 01:34:44,028] WARNING django.request - Not Found: /main.38ec5aeb1f430bdeb40c.hot-update.json

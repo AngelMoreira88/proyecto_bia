@@ -1,6 +1,6 @@
 // frontend/src/services/api.js
 import axios from 'axios';
-import { logout } from './auth';
+// ❌ QUITADO para evitar ciclo: import { logout } from './auth';
 import { createBrowserHistory } from 'history';
 
 const history = createBrowserHistory();
@@ -44,6 +44,26 @@ function getRefreshToken() {
 function getCookie(name) {
   const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
   return m ? decodeURIComponent(m.pop()) : null;
+}
+
+// ===============================
+// Logout seguro sin ciclo de import
+// ===============================
+async function safeLogout() {
+  try {
+    const mod = await import('./auth'); // ← import dinámico, rompe el ciclo
+    if (typeof mod.logout === 'function') {
+      mod.logout();
+      return;
+    }
+  } catch (e) {
+    // Si por alguna razón falla, limpiamos storage a mano
+  }
+  try { localStorage.removeItem('access_token'); } catch {}
+  try { localStorage.removeItem('refresh_token'); } catch {}
+  delete api.defaults.headers.Authorization;
+  // Aviso global a la app
+  try { window.dispatchEvent(new Event('auth-changed')); } catch {}
 }
 
 // ===================================
@@ -156,7 +176,9 @@ api.interceptors.response.use(
           return api(originalRequest);
         } catch (refreshErr) {
           processQueue(refreshErr, null);
-          logout();
+
+          // Logout sin ciclo de import
+          await safeLogout();
           try { history.push('/login'); } catch {}
           // Forzar un reload para limpiar estado cliente
           window.location.reload();
@@ -169,7 +191,7 @@ api.interceptors.response.use(
 
     // 401/403 sin refresh o tras fallo de refresh → salir a login
     if (status === 401 || status === 403) {
-      logout();
+      await safeLogout();
       try { history.push('/login'); } catch {}
       window.location.reload();
     }
@@ -280,3 +302,36 @@ export function pingCertificado() {
 // =======================================================
 export const eliminarDatoBia = (id) =>
   api.delete(`/api/db_bia/${encodeURIComponent(id)}/`);
+
+// =======================================================
+// Endpoints Admin de roles (prefijo de app carga_datos)
+// =======================================================
+export function adminGetMe() {
+  return api.get('/carga-datos/api/admin/me');
+}
+export function adminListRoles() {
+  return api.get('/carga-datos/api/admin/roles');
+}
+export function adminSearchUsers(q) {
+  return api.get('/carga-datos/api/admin/users', { params: { q } });
+}
+export function adminGetUserRoles(userId) {
+  return api.get(`/carga-datos/api/admin/users/${userId}/roles`);
+}
+export function adminSetUserRoles(userId, body) {
+  return api.post(`/carga-datos/api/admin/users/${userId}/roles`, body, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+// =======================================================
+// Endpoints Bulk Update (Modificar Masivo)
+// =======================================================
+export function bulkValidar(formData) {
+  return api.post('/carga-datos/api/bulk-update/validate', formData);
+}
+export function bulkCommit(jobId) {
+  return api.post('/carga-datos/api/bulk-update/commit', { job_id: jobId }, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+}

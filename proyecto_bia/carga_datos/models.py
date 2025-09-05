@@ -1,6 +1,10 @@
 # carga_datos/models.py
 from django.db import models
 from django.db.models.functions import Lower
+import uuid
+from django.conf import settings
+from django.utils import timezone
+
 
 class BaseDeDatosBia(models.Model):
     id = models.BigAutoField(primary_key=True)  # PK técnica recomendada
@@ -76,3 +80,108 @@ class BaseDeDatosBia(models.Model):
             models.Index(Lower('propietario'), name='idx_bdb_prop_lower'),
             models.Index(Lower('entidadinterna'), name='idx_bdb_entint_lower'),
         ]
+
+
+class BulkJob(models.Model):
+    class Status(models.TextChoices):
+        READY = 'ready_to_commit', 'Ready to commit'
+        COMMITTED = 'committed', 'Committed'
+        CANCELLED = 'cancelled', 'Cancelled'
+        FAILED = 'failed', 'Failed'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    filename = models.CharField(max_length=255, blank=True, default='')
+    file_hash = models.CharField(max_length=128, blank=True, default='')  # sha256 sugerido
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='bulk_jobs'
+    )
+    status = models.CharField(
+        max_length=32, choices=Status.choices, default=Status.READY, db_index=True
+    )
+    summary = models.JSONField(default=dict, blank=True)  # contadores, columnas afectadas, etc.
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    committed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'bulk_job'
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['file_hash']),
+        ]
+
+    def __str__(self):
+        return f'BulkJob {self.id} ({self.filename}) - {self.status}'
+
+    def mark_committed(self):
+        self.status = self.Status.COMMITTED
+        self.committed_at = timezone.now()
+        self.save(update_fields=['status', 'committed_at'])
+
+
+class StagingBulkChange(models.Model):
+    class Operation(models.TextChoices):
+        UPDATE = 'UPDATE', 'Update'
+        INSERT = 'INSERT', 'Insert'
+        DELETE = 'DELETE', 'Delete'
+        NOCHANGE = 'NOCHANGE', 'No change'
+
+    job = models.ForeignKey(
+        BulkJob, on_delete=models.CASCADE, related_name='staging_rows', db_index=True
+    )
+    business_key = models.CharField(max_length=255)  # ej: id_pago_unico / dni
+    op = models.CharField(max_length=16, choices=Operation.choices, default=Operation.UPDATE)
+    payload = models.JSONField(default=dict, blank=True)            # fila propuesta (valores nuevos)
+    validation_errors = models.JSONField(default=list, blank=True)  # lista[str] o dict por campo
+    can_apply = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'staging_bulk_change'
+        unique_together = (('job', 'business_key'),)
+        indexes = [
+            models.Index(fields=['job', 'business_key']),
+            models.Index(fields=['op']),
+            models.Index(fields=['can_apply']),
+        ]
+        ordering = ['business_key']
+
+    def __str__(self):
+        return f'Staging[{self.job_id}] {self.business_key} ({self.op})'
+
+
+class AuditLog(models.Model):
+    class Action(models.TextChoices):
+        UPDATE = 'UPDATE', 'Update'
+        INSERT = 'INSERT', 'Insert'
+        DELETE = 'DELETE', 'Delete'
+
+    table_name = models.CharField(max_length=128, db_index=True)
+    business_key = models.CharField(max_length=255, db_index=True)
+    field = models.CharField(max_length=128, db_index=True)
+
+    old_value = models.TextField(null=True, blank=True)
+    new_value = models.TextField(null=True, blank=True)
+
+    job = models.ForeignKey(BulkJob, null=True, blank=True,
+                            on_delete=models.SET_NULL, related_name='audit_logs')
+    action = models.CharField(max_length=16, choices=Action.choices)
+    actor = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='bulk_audit_events'
+    )
+    ts = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'audit_log'
+        indexes = [
+            models.Index(fields=['table_name', 'business_key']),
+            models.Index(fields=['job']),
+            models.Index(fields=['ts']),
+        ]
+        ordering = ['-ts']
+
+    def __str__(self):
+        return f'Audit[{self.action}] {self.table_name}.{self.field} ({self.business_key})'

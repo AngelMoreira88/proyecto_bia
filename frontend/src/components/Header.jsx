@@ -1,14 +1,29 @@
 // src/components/Header.jsx
 import React, { useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { isLoggedIn, logout } from "../services/auth";
+import { isLoggedIn, logout, getUserRole, refreshUserRole } from "../services/auth";
 
 export default function Header() {
   const [logged, setLogged] = useState(isLoggedIn());
+  const [role, setRole] = useState(getUserRole());
   const navigate = useNavigate();
 
   useEffect(() => {
-    const syncAuth = () => setLogged(isLoggedIn());
+    const syncAuth = () => {
+      setLogged(isLoggedIn());
+      setRole(getUserRole());
+    };
+
+    // Refrescar rol real desde backend al montar
+    (async () => {
+      if (isLoggedIn()) {
+        await refreshUserRole().catch(() => {});
+        setRole(getUserRole());
+      } else {
+        setRole("readonly");
+      }
+    })();
+
     window.addEventListener("storage", syncAuth);
     window.addEventListener("auth-changed", syncAuth);
     return () => {
@@ -30,6 +45,8 @@ export default function Header() {
     setLogged(false);
     navigate("/");
   };
+
+  const canModifyMasivo = ["admin", "editor", "approver"].includes(role);
 
   return (
     <nav className="navbar navbar-expand-lg fixed-top header-glass">
@@ -138,21 +155,47 @@ export default function Header() {
                           </div>
                         </NavLink>
 
-                        <NavLink to="/carga-datos/upload" className="modern-item d-flex align-items-start gap-3 text-decoration-none">
-                          <span className="modern-icon" aria-hidden="true">
-                            {/* Tools */}
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                              <path d="M14 7l3 3-8 8H6v-3l8-8Z"
-                                    stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                              <path d="M13 6l1-1a2.828 2.828 0 1 1 4 4l-1 1"
-                                    stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                            </svg>
-                          </span>
-                          <div className="flex-grow-1">
-                            <div className="modern-title">Modificar Masivo</div>
-                            <small className="text-secondary">Ajuste masivo de columnas desde un excel</small>
+                        {/* Modificar Masivo */}
+                        {canModifyMasivo ? (
+                          <NavLink to="/modificar-masivo" className="modern-item d-flex align-items-start gap-3 text-decoration-none">
+                            <span className="modern-icon" aria-hidden="true">
+                              {/* Tools / Pencil */}
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                <path d="M14 7l3 3-8 8H6v-3l8-8Z"
+                                      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                                <path d="M13 6l1-1a2.828 2.828 0 1 1 4 4l-1 1"
+                                      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </span>
+                            <div className="flex-grow-1">
+                              <div className="modern-title d-flex align-items-center gap-2">
+                                <span>Modificar Masivo</span>
+                                <span className="badge text-bg-light border">Nuevo</span>
+                              </div>
+                              <small className="text-secondary">Ajuste masivo de columnas desde un excel</small>
+                            </div>
+                          </NavLink>
+                        ) : (
+                          <div
+                            className="modern-item d-flex align-items-start gap-3 text-decoration-none opacity-75"
+                            title="Requiere rol: admin, editor o approver"
+                            aria-disabled="true"
+                            role="button"
+                            onClick={() => guardTo("/modificar-masivo")}
+                          >
+                            <span className="modern-icon" aria-hidden="true">
+                              {/* Lock */}
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                                <path d="M7 10V7a5 5 0 1 1 10 0v3M6 10h12v9a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-9Z"
+                                      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                              </svg>
+                            </span>
+                            <div className="flex-grow-1">
+                              <div className="modern-title">Modificar Masivo</div>
+                              <small className="text-secondary">Requiere rol autorizado</small>
+                            </div>
                           </div>
-                        </NavLink>
+                        )}
                       </div>
                     </div>
                   </li>

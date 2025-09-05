@@ -1,3 +1,4 @@
+// src/components/MostrarDatos.jsx  (o el nombre que uses para esta pantalla)
 import React, { useMemo, useState } from 'react';
 import {
   listarDatosBia,
@@ -6,10 +7,9 @@ import {
   eliminarDatoBia,
 } from '../services/api';
 import { getUserRole } from '../services/auth';
-import { useNavigate } from 'react-router-dom';
+import BackToHomeButton from './BackToHomeButton';
 
 export default function Mostrar() {
-  const navigate = useNavigate();
   const [query, setQuery] = useState('');
   const [datos, setDatos] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -252,15 +252,8 @@ export default function Mostrar() {
                 Exportar CSV
               </button>
 
-              {/* Volver (al lado de Exportar CSV) */}
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-secondary"
-                onClick={() => navigate(-1)}
-                title="Volver a la página anterior"
-              >
-                ◀ Volver
-              </button>
+              {/* Volver al home */}
+              <BackToHomeButton>Volver</BackToHomeButton>
 
               {editingId !== null && hasChanges && dniCoincide && (
                 <button

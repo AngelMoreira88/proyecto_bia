@@ -1,31 +1,80 @@
 // frontend/src/components/Perfil.jsx
-import React, { useState, useRef } from "react";
-import { getUserRole } from "../services/auth"; // 👈 para controlar visibilidad de “Zona peligrosa”
+import React, { useEffect, useState, useRef } from "react";
+import BackToHomeButton from "./BackToHomeButton";
+
+import { getUserRole } from "../services/auth";
+import {
+  adminGetMe,
+  adminListRoles,
+  adminSearchUsers,
+  adminGetUserRoles,
+  adminSetUserRoles,
+} from "../services/api";
 
 export default function Perfil() {
-  const [nombre, setNombre]       = useState("");
-  const [apellido, setApellido]   = useState("");
-  const [email, setEmail]         = useState("");
-  const [telefono, setTelefono]   = useState("");
-  const [empresa, setEmpresa]     = useState("");
-  const [cargo, setCargo]         = useState("");
+  // Datos de perfil (demo)
+  const [nombre, setNombre] = useState("");
+  const [apellido, setApellido] = useState("");
+  const [email, setEmail] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [empresa, setEmpresa] = useState("");
+  const [cargo, setCargo] = useState("");
   const [notifEmail, setNotifEmail] = useState(true);
-  const [notifPush, setNotifPush]   = useState(false);
+  const [notifPush, setNotifPush] = useState(false);
 
+  // Avatar (demo)
   const [avatarUrl, setAvatarUrl] = useState(null);
   const fileRef = useRef(null);
 
-  const isAdmin = getUserRole() === "admin"; // 👈 solo admins verán la “Zona peligrosa”
+  // Roles/seguridad
+  const roleLocal = getUserRole?.() || "";
+  const [isSuperUser, setIsSuperUser] = useState(false);
+  const [canManageRoles, setCanManageRoles] = useState(false);
 
+  // Gestión de roles (UI admin)
+  const [rolesDisponibles, setRolesDisponibles] = useState([]); // ["admin","editor","approver"]
+  const [busqueda, setBusqueda] = useState("");
+  const [usuarios, setUsuarios] = useState([]); // resultados búsqueda
+  const [selUser, setSelUser] = useState(null); // {id, username, email, ...}
+  const [rolesUsuario, setRolesUsuario] = useState(new Set()); // Set de roles del usuario seleccionado
+  const [cargando, setCargando] = useState(false);
+  const [guardando, setGuardando] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  const isAdmin = roleLocal === "admin";
+
+  // --- Carga inicial: info del usuario logueado y catálogos de roles ---
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setCargando(true);
+        const me = await adminGetMe().catch(() => null);
+        if (me?.data) {
+          const { is_superuser } = me.data;
+          setIsSuperUser(!!is_superuser);
+        }
+        const rolesRes = await adminListRoles().catch(() => null);
+        setRolesDisponibles(Array.isArray(rolesRes?.data?.roles) ? rolesRes.data.roles : []);
+      } finally {
+        setCargando(false);
+      }
+    };
+    load();
+  }, []);
+
+  useEffect(() => {
+    // Puede gestionar roles si es superuser o tiene rol 'admin'
+    setCanManageRoles(isSuperUser || roleLocal === "admin");
+  }, [isSuperUser, roleLocal]);
+
+  // --- Demo acciones de perfil ---
   const handleGuardarPerfil = async (e) => {
     e.preventDefault();
-    // TODO: enviar a backend (api.post(...))
     alert("Perfil guardado (demo).");
   };
 
   const handleCambiarPassword = async (e) => {
     e.preventDefault();
-    // TODO: enviar a backend
     alert("Solicitud de cambio de contraseña (demo).");
   };
 
@@ -40,6 +89,68 @@ export default function Perfil() {
   const handleQuitarAvatar = () => {
     setAvatarUrl(null);
     if (fileRef.current) fileRef.current.value = "";
+  };
+
+  // --- Gestión de roles (acciones admin/superuser) ---
+  const buscarUsuarios = async () => {
+    if (!busqueda.trim()) {
+      setUsuarios([]);
+      return;
+    }
+    try {
+      setCargando(true);
+      const { data } = await adminSearchUsers(busqueda.trim());
+      setUsuarios(Array.isArray(data?.results) ? data.results : []);
+      setMsg("");
+    } catch (err) {
+      console.error(err);
+      setMsg("No se pudieron buscar usuarios.");
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const seleccionarUsuario = async (u) => {
+    setSelUser(u);
+    setRolesUsuario(new Set());
+    setMsg("");
+    try {
+      setCargando(true);
+      const { data } = await adminGetUserRoles(u.id);
+      setRolesUsuario(new Set(Array.isArray(data?.roles) ? data.roles : []));
+    } catch (err) {
+      console.error(err);
+      setMsg("No se pudieron cargar los roles del usuario.");
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  const toggleRol = (rol) => {
+    const next = new Set(rolesUsuario);
+    if (next.has(rol)) next.delete(rol);
+    else next.add(rol);
+    setRolesUsuario(next);
+  };
+
+  const guardarRoles = async () => {
+    if (!selUser) return;
+    try {
+      setGuardando(true);
+      const body = { roles: Array.from(rolesUsuario) };
+      const { data } = await adminSetUserRoles(selUser.id, body);
+      if (data?.success) {
+        setMsg("Roles actualizados correctamente.");
+      } else {
+        setMsg("No se pudieron actualizar los roles.");
+      }
+    } catch (err) {
+      console.error(err);
+      const apiErr = err?.response?.data?.errors;
+      setMsg(Array.isArray(apiErr) ? apiErr.join(" — ") : "Error al actualizar roles.");
+    } finally {
+      setGuardando(false);
+    }
   };
 
   return (
@@ -61,7 +172,7 @@ export default function Perfil() {
             </div>
           </div>
 
-          {/* Sección: Avatar + datos rápidos */}
+          {/* Avatar + datos rápidos */}
           <div className="card border-0 shadow-sm rounded-4 mb-4">
             <div className="card-body p-4">
               <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center gap-3">
@@ -108,7 +219,7 @@ export default function Perfil() {
             </div>
           </div>
 
-          {/* Sección: Datos personales */}
+          {/* Datos personales */}
           <div className="card border-0 shadow-sm rounded-4 mb-4">
             <div className="card-body p-4">
               <h5 className="fw-semibold mb-3">Datos personales</h5>
@@ -144,7 +255,7 @@ export default function Perfil() {
             </div>
           </div>
 
-          {/* Sección: Preferencias */}
+          {/* Preferencias */}
           <div className="card border-0 shadow-sm rounded-4 mb-4">
             <div className="card-body p-4">
               <h5 className="fw-semibold mb-3">Preferencias</h5>
@@ -175,14 +286,12 @@ export default function Perfil() {
                     </label>
                   </div>
                 </div>
-                <div className="col-md-6">
-                  {/* Espacio para idioma/tema si luego lo necesitás */}
-                </div>
+                <div className="col-md-6">{/* espacio para idioma/tema */}</div>
               </div>
             </div>
           </div>
 
-          {/* Sección: Seguridad */}
+          {/* Seguridad */}
           <div className="card border-0 shadow-sm rounded-4 mb-4">
             <div className="card-body p-4">
               <h5 className="fw-semibold mb-3">Seguridad</h5>
@@ -208,9 +317,7 @@ export default function Perfil() {
               <div className="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
                 <div>
                   <div className="fw-semibold">Autenticación de dos factores (2FA)</div>
-                  <small className="text-secondary">
-                    Añadí una capa extra de seguridad con una app de autenticación.
-                  </small>
+                  <small className="text-secondary">Añadí una capa extra de seguridad con una app de autenticación.</small>
                 </div>
                 <button className="btn btn-outline-secondary" disabled>
                   Configurar (próximamente)
@@ -219,7 +326,102 @@ export default function Perfil() {
             </div>
           </div>
 
-          {/* Zona peligrosa (solo admins) */}
+          {/* Gestión de Roles (solo superuser o admin) */}
+          {canManageRoles && (
+            <div className="card border-0 shadow-sm rounded-4 mb-5">
+              <div className="card-body p-4">
+                <div className="d-flex align-items-center justify-content-between mb-3">
+                  <h5 className="fw-semibold mb-0">Gestión de Roles</h5>
+                  <span className="badge text-bg-light border">Solo superusuario / admin</span>
+                </div>
+
+                <div className="row g-2 align-items-end">
+                  <div className="col-md-6">
+                    <label className="form-label" htmlFor="pf-buscar">Buscar usuario</label>
+                    <input
+                      id="pf-buscar"
+                      className="form-control"
+                      placeholder="usuario, email, nombre o apellido"
+                      value={busqueda}
+                      onChange={(e) => setBusqueda(e.target.value)}
+                      onKeyDown={(e) => (e.key === "Enter" ? buscarUsuarios() : null)}
+                    />
+                  </div>
+                  <div className="col-md-3">
+                    <button className="btn btn-outline-secondary w-100" onClick={buscarUsuarios} disabled={cargando}>
+                      {cargando ? "Buscando..." : "Buscar"}
+                    </button>
+                  </div>
+                </div>
+
+                {/* resultados */}
+                {usuarios.length > 0 && (
+                  <div className="mt-3">
+                    <div className="small text-secondary mb-1">Resultados:</div>
+                    <div className="list-group">
+                      {usuarios.map((u) => (
+                        <button
+                          key={u.id}
+                          type="button"
+                          className={"list-group-item list-group-item-action" + (selUser?.id === u.id ? " active" : "")}
+                          onClick={() => seleccionarUsuario(u)}
+                        >
+                          <div className="d-flex justify-content-between">
+                            <div>
+                              <strong>{u.username}</strong>
+                              {u.email ? <span className="ms-2 text-muted">{u.email}</span> : null}
+                            </div>
+                            <small className="text-muted">
+                              {u.first_name || u.last_name ? `${u.first_name || ""} ${u.last_name || ""}`.trim() : ""}
+                            </small>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* edición roles del usuario seleccionado */}
+                {selUser && (
+                  <div className="mt-4">
+                    <div className="mb-2">
+                      <strong>Asignar roles a:</strong>{" "}
+                      <code>{selUser.username}</code>{" "}
+                      {selUser.email ? <span className="text-muted ms-2">{selUser.email}</span> : null}
+                    </div>
+                    <div className="d-flex flex-wrap gap-3">
+                      {rolesDisponibles.map((r) => (
+                        <div className="form-check" key={r}>
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            id={`rol-${r}`}
+                            checked={rolesUsuario.has(r)}
+                            onChange={() => toggleRol(r)}
+                          />
+                          <label className="form-check-label" htmlFor={`rol-${r}`}>
+                            {r}
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="d-flex gap-2 mt-3">
+                      <button className="btn btn-bia" onClick={guardarRoles} disabled={guardando}>
+                        {guardando ? "Guardando..." : "Guardar roles"}
+                      </button>
+                      <button className="btn btn-outline-secondary" onClick={() => setSelUser(null)}>
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {msg && <div className="alert alert-info mt-3 py-2 mb-0">{msg}</div>}
+              </div>
+            </div>
+          )}
+
+          {/* Zona peligrosa (solo admins locales, opcional) */}
           {isAdmin && (
             <div className="card border-0 shadow-sm rounded-4 mb-5">
               <div className="card-body p-4">

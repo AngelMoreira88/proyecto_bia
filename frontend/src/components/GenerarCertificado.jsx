@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api";
 import { isLoggedIn } from "../services/auth";
+import BackHomeLink from "./BackHomeLink";
 
 const POST_ENDPOINTS = [
   "/api/certificado/generar/",
@@ -261,9 +262,7 @@ export default function GenerarCertificado() {
               {loading ? "Consultando..." : "Consultar / Generar"}
             </button>
 
-            <Link to="/" className="btn btn-outline-bia">
-              Volver al Menú
-            </Link>
+            <BackHomeLink>Volver al home</BackHomeLink>
           </div>
         </form>
 

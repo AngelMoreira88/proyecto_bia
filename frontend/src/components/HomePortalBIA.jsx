@@ -1,16 +1,39 @@
 // frontend/src/components/HomePortalBia.jsx
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { isLoggedIn } from '../services/auth';
+import { isLoggedIn, getUserRole, refreshUserRole } from '../services/auth';
 
 export default function HomePortalBia() {
-  const logged = isLoggedIn(); // la ruta está protegida, pero lo dejamos por si se reutiliza
+  const [role, setRole] = useState(getUserRole());
+  const logged = isLoggedIn();
+
+  useEffect(() => {
+    // Al montar, traemos grupos reales del backend y actualizamos el rol
+    (async () => {
+      if (isLoggedIn()) {
+        const r = await refreshUserRole();
+        setRole(r);
+      } else {
+        setRole('readonly');
+      }
+    })();
+
+    // También nos suscribimos a cambios globales de auth
+    const sync = () => setRole(getUserRole());
+    window.addEventListener('auth-changed', sync);
+    window.addEventListener('storage', sync);
+    return () => {
+      window.removeEventListener('auth-changed', sync);
+      window.removeEventListener('storage', sync);
+    };
+  }, []);
+
+  const canModifyMasivo = ['admin', 'editor', 'approver'].includes(role);
 
   return (
-    // 👇 Fondo gris oscuro + ocupa el alto visible debajo del header
     <div
       className="page-fill d-flex align-items-center w-100 bg-dark-subtle"
-      style={{ minHeight: 'calc(100vh - 88px)' }} // 88px = altura del header fijo
+      style={{ minHeight: 'calc(100vh - 88px)' }}
     >
       <div className="container">
         <div className="card border-0 shadow-sm rounded-4 w-100 mx-auto" style={{ maxWidth: 960 }}>
@@ -22,6 +45,13 @@ export default function HomePortalBia() {
               <small className="text-secondary">
                 Accedé a las funcionalidades internas y herramientas de gestión
               </small>
+              {logged && (
+                <div className="mt-2">
+                  <span className="badge text-bg-light border">
+                    Sesión activa · Rol: <strong className="ms-1">{role}</strong>
+                  </span>
+                </div>
+              )}
             </div>
 
             <hr className="mt-2 mb-4" />
@@ -29,7 +59,6 @@ export default function HomePortalBia() {
 
             {logged ? (
               <>
-                {/* Acciones en tiles con icono */}
                 <div className="row g-3 g-md-4">
                   <div className="col-12 col-md-6">
                     <Link to="/entidades" className="text-decoration-none">
@@ -57,11 +86,42 @@ export default function HomePortalBia() {
                         </span>
                         <div>
                           <div className="fw-semibold text-body">Cargar Excel</div>
-                          <small className="text-secondary">Actualizá los registros desde un archivo</small>
+                          <small className="text-secondary">Altas de registros desde archivo</small>
                         </div>
                       </div>
                     </Link>
                   </div>
+
+                  {/* Modificar Masivo */}
+                  {canModifyMasivo && (
+                    <div className="col-12 col-md-6">
+                      <Link to="/modificar-masivo" className="text-decoration-none">
+                        <div
+                          className="border rounded-3 p-3 p-md-4 h-100 d-flex align-items-center gap-3 shadow-sm hover-shadow-sm bg-white"
+                          aria-label="Modificar Masivo"
+                          title="Ajuste de columnas desde Excel/CSV con vista previa y auditoría"
+                        >
+                          <span className="modern-icon" aria-hidden="true">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                              <path d="M4 5a2 2 0 0 1 2-2h8.5a2 2 0 0 1 1.4.58l3.52 3.52c.37.37.58.88.58 1.41V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M14 3v4a2 2 0 0 0 2 2h4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M7 13h5M7 17h8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                              <path d="M17.5 12.5l2 2-4 4-2.2.3.3-2.3 3.9-4Z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </span>
+                          <div className="flex-grow-1">
+                            <div className="d-flex align-items-center gap-2">
+                              <div className="fw-semibold text-body">Modificar Masivo</div>
+                              <span className="badge text-bg-light border">Nuevo</span>
+                            </div>
+                            <small className="text-secondary">
+                              Ajuste de columnas desde Excel/CSV con vista previa y auditoría
+                            </small>
+                          </div>
+                        </div>
+                      </Link>
+                    </div>
+                  )}
 
                   <div className="col-12 col-md-6">
                     <Link to="/datos/mostrar" className="text-decoration-none">
