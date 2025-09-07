@@ -7,11 +7,14 @@ Vistas para emisión de Certificados de Libre Deuda.
     * GET  /api/certificado/generar/?id_pago_unico=<id>[&dni=<dni>]   (uso directo por botón/enlace por fila)
     * POST /api/certificado/generar/                                   (form con dni + id_pago_unico o solo dni)
 
-Notas de diseño (nivel alto):
-- Mantengo flujos separados para GET y POST, con logs detallados en cada decisión.
-- Se valida que el registro esté en estado CANCELADO (case-insensitive).
-- El PDF se cachea en Certificate.pdf_file (si existe y el archivo está en disco, se reutiliza).
-- xhtml2pdf requiere paths físicos para imágenes; se usa link_callback.
+Cambios clave (para simplificar frontend):
+- NUNCA devolvemos 404 como “sin resultados”: usamos 200 con {"estado":"sin_resultados", ...}
+- Estados de negocio:
+    * {"estado":"sin_resultados"} → 200
+    * {"estado":"pendiente"}      → 200
+    * {"estado":"varios_cancelados", "opciones":[...], "certificados":[...]} → 200
+- Errores de validación siguen siendo 400.
+- PDF cuando hay exactamente 1 cancelado.
 """
 
 from __future__ import annotations
@@ -57,7 +60,7 @@ def _is_ajax(request: HttpRequest) -> bool:
         request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest"
     )
 
-# ====== CAMBIO: helpers seguros para FieldFile ======
+# ====== Helpers seguros para FieldFile ======
 def _fieldfile_exists(ff) -> bool:
     """
     Devuelve True si el FieldFile tiene nombre y el storage confirma su existencia.
@@ -202,7 +205,7 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
     # Obtener o crear certificado
     cert, created = Certificate.objects.get_or_create(client=reg)
 
-    # ====== CAMBIO: reuso seguro del PDF cacheado (sin usar .path) ======
+    # Reuso seguro del PDF cacheado (sin usar .path)
     if _fieldfile_exists(cert.pdf_file):
         try:
             with _open_fieldfile(cert.pdf_file, "rb") as fh:
@@ -260,7 +263,6 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
 
     # Guardar en el FileField
     try:
-        # Podés moverlo a una carpeta lógica si querés: p.ej. "certificados/..."
         filename = f"certificado_{reg.id_pago_unico}.pdf"
         cert.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
         logger.info("[_render_pdf_for_registro] PDF guardado como %s", filename)
@@ -297,6 +299,7 @@ def seleccionar_certificado(request: HttpRequest) -> HttpResponse:
     registros = BaseDeDatosBia.objects.filter(dni=dni)
     if not registros.exists():
         logger.info("[seleccionar_certificado] No hay registros para DNI=%s", dni)
+        # <<< antes 404, ahora 200 con mensaje >>>
         return render(
             request,
             "certificado_seleccionar.html",
@@ -306,7 +309,7 @@ def seleccionar_certificado(request: HttpRequest) -> HttpResponse:
                 "pendientes": [],
                 "mensaje": "No se encontraron registros para el DNI ingresado.",
             },
-            status=404,
+            status=200,
         )
 
     cancelados = [r for r in registros if _is_cancelado(r)]
@@ -338,7 +341,7 @@ def seleccionar_certificado(request: HttpRequest) -> HttpResponse:
 
 
 # ---------------------------------------------------------------------------
-# API de generación (PDF)
+# API de generación (PDF / JSON)
 # ---------------------------------------------------------------------------
 
 @csrf_exempt
@@ -352,8 +355,11 @@ def api_generar_certificado(request: HttpRequest) -> HttpResponse:
     - POST (form-data):
         * Acepta:
             - id_pago_unico (+ opcional dni)  -> genera ese certificado
-            - solo dni                        -> si hay 1 cancelado, lo genera; si hay >1, devuelve JSON con URL de selección.
+            - solo dni                        -> si hay 1 cancelado, lo genera; si hay >1, devuelve JSON con opciones.
         * Campo opcional prefer_html=1 para preferir URL de selección en caso de múltiples cancelados.
+
+    Estados de negocio devueltos como 200:
+        - sin_resultados, pendiente, varios_cancelados
     """
     method = request.method.upper()
     logger.info("[api_generar_certificado] method=%s", method)
@@ -371,7 +377,7 @@ def api_generar_certificado(request: HttpRequest) -> HttpResponse:
 def _handle_get_generar(request: HttpRequest) -> HttpResponse:
     """
     GET: requiere id_pago_unico; puede incluir dni.
-    Devuelve PDF adjunto o JSON de error/pendiente.
+    Devuelve PDF adjunto o JSON de negocio (200) / validación (400).
     """
     dni = (request.GET.get("dni") or "").strip()
     idp = (request.GET.get("id_pago_unico") or request.GET.get("idp") or "").strip()
@@ -391,13 +397,20 @@ def _handle_get_generar(request: HttpRequest) -> HttpResponse:
     reg = qs.first()
     if not reg:
         logger.warning("[_handle_get_generar] Registro no encontrado (dni=%r, idp=%r)", dni, idp)
+        # <<< antes 404, ahora 200 con estado de negocio >>>
         return JsonResponse(
-            {"estado": "error", "mensaje": "Registro no encontrado para los parámetros indicados.", "dni": dni, "id_pago_unico": idp},
-            status=404,
+            {
+                "estado": "sin_resultados",
+                "mensaje": "Registro no encontrado para los parámetros indicados.",
+                "dni": dni,
+                "id_pago_unico": idp,
+            },
+            status=200,
         )
 
     if not _is_cancelado(reg):
         logger.info("[_handle_get_generar] Registro no cancelado (estado=%r)", reg.estado)
+        # <<< antes 400, ahora 200 pendiente >>>
         return JsonResponse(
             {
                 "estado": "pendiente",
@@ -406,7 +419,7 @@ def _handle_get_generar(request: HttpRequest) -> HttpResponse:
                 "id_pago_unico": idp,
                 "deuda": _row_minimal(reg),
             },
-            status=400,
+            status=200,
         )
 
     cert, pdf_bytes, err = _render_pdf_for_registro(reg)
@@ -426,16 +439,15 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
     POST: acepta:
         - id_pago_unico (+ opcional dni)  -> genera/entrega el PDF de ese registro.
         - solo dni                        -> según cantidad de CANCELADOS:
-            * 0 -> JSON informando pendientes
-            * 1 -> PDF directo
-            * >1 -> (AJAX) JSON 400 con opciones / (no-AJAX) JSON con seleccionar_url
+            * 0  -> {"estado":"pendiente"} o {"estado":"sin_resultados"} (200)
+            * 1  -> PDF directo
+            * >1 -> {"estado":"varios_cancelados", "opciones":[...], "certificados":[...]} (200)
     """
     dni = (request.POST.get("dni") or "").strip()
     idp = (request.POST.get("id_pago_unico") or request.POST.get("idp") or "").strip()
     prefer_html = (request.POST.get("prefer_html") or "").strip() in ("1", "true", "True")
     is_ajax = _is_ajax(request)
 
-    # <<< MINI-LOG AQUÍ >>>
     logger.info(
         "[_handle_post_generar] hdr X-Requested-With=%r Accept=%r Content-Type=%r Referer=%r UA=%r",
         request.headers.get("X-Requested-With"),
@@ -444,8 +456,6 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
         request.headers.get("Referer"),
         request.headers.get("User-Agent"),
     )
-    # <<< FIN MINI-LOG >>>
-
     logger.info("[_handle_post_generar] POST dni=%r id_pago_unico=%r prefer_html=%s is_ajax=%s", dni, idp, prefer_html, is_ajax)
 
     # Caso 1: id específico
@@ -457,13 +467,20 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
         reg = qs.first()
         if not reg:
             logger.warning("[_handle_post_generar] Registro no encontrado para idp=%r (dni=%r)", idp, dni)
+            # <<< antes 404, ahora 200 sin_resultados >>>
             return JsonResponse(
-                {"estado": "error", "mensaje": "Registro no encontrado para el id_pago_unico indicado.", "dni": dni, "id_pago_unico": idp},
-                status=404,
+                {
+                    "estado": "sin_resultados",
+                    "mensaje": "Registro no encontrado para el id_pago_unico indicado.",
+                    "dni": dni,
+                    "id_pago_unico": idp,
+                },
+                status=200,
             )
 
         if not _is_cancelado(reg):
             logger.info("[_handle_post_generar] Registro no cancelado (estado=%r)", reg.estado)
+            # <<< antes 400, ahora 200 pendiente >>>
             return JsonResponse(
                 {
                     "estado": "pendiente",
@@ -472,7 +489,7 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
                     "id_pago_unico": idp,
                     "deuda": _row_minimal(reg),
                 },
-                status=400,
+                status=200,
             )
 
         cert, pdf_bytes, err = _render_pdf_for_registro(reg)
@@ -485,15 +502,23 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
         logger.info("[_handle_post_generar] PDF entregado id=%s (%d bytes)", reg.id_pago_unico, len(pdf_bytes))
         return resp
 
-    # Caso 2: solo DNI (sin idp) → determinar por cantidad de cancelados
-    if not dni:
-        logger.warning("[_handle_post_generar] Falta DNI en POST sin id_pago_unico")
-        return JsonResponse({"error": "Debe ingresar un DNI o un id_pago_unico."}, status=400)
+    # Caso 2: solo DNI (sin idp)
+    if not dni or not dni.isdigit():
+        logger.warning("[_handle_post_generar] DNI inválido o faltante en POST sin id_pago_unico")
+        return JsonResponse({"error": "Ingresá un DNI válido (solo números)."}, status=400)
 
     registros = BaseDeDatosBia.objects.filter(dni=dni)
     if not registros.exists():
         logger.info("[_handle_post_generar] No hay registros para DNI=%s", dni)
-        return JsonResponse({"error": "No se encontraron registros para el DNI ingresado.", "dni": dni}, status=404)
+        # <<< antes 404, ahora 200 sin_resultados >>>
+        return JsonResponse(
+            {
+                "estado": "sin_resultados",
+                "mensaje": f"No hay registros para DNI {dni}.",
+                "dni": dni,
+            },
+            status=200,
+        )
 
     cancelados = [r for r in registros if _is_cancelado(r)]
     pendientes = [r for r in registros if not _is_cancelado(r)]
@@ -515,46 +540,26 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
         seleccionar_url = request.build_absolute_uri(reverse("certificado_ldd:certificado_seleccionar") + f"?dni={dni}")
         logger.info("[_handle_post_generar] Múltiples cancelados. is_ajax=%s seleccionar_url=%s", is_ajax, seleccionar_url)
 
-        if is_ajax:
-            certificados_meta = [
-                {"id_pago_unico": r.id_pago_unico, "propietario": r.propietario, "entidadinterna": r.entidadinterna}
-                for r in cancelados
-            ]
-            return JsonResponse(
-                {
-                    "estado": "varios_cancelados",
-                    "mensaje": "Seleccioná un id_pago_unico.",
-                    "dni": dni,
-                    "opciones": certificados_meta,
-                },
-                status=400,
-            )
-
-        if prefer_html or ("text/html" in (request.headers.get("Accept") or "")):
-            return JsonResponse(
-                {
-                    "estado": "varios_cancelados",
-                    "mensaje": "El DNI tiene múltiples obligaciones canceladas. Seleccione una.",
-                    "dni": dni,
-                    "seleccionar_url": seleccionar_url,
-                },
-                status=200,
-            )
-
         certificados_meta = [
             {"id_pago_unico": r.id_pago_unico, "propietario": r.propietario, "entidadinterna": r.entidadinterna}
             for r in cancelados
         ]
-        return JsonResponse(
-            {
-                "estado": "varios_cancelados",
-                "mensaje": "El DNI tiene múltiples obligaciones canceladas. Seleccione una.",
-                "dni": dni,
-                "certificados": certificados_meta,
-                "seleccionar_url": seleccionar_url,
-            },
-            status=200,
-        )
+
+        # <<< ahora SIEMPRE 200; incluimos ambas claves para compat con el front >>>
+        payload = {
+            "estado": "varios_cancelados",
+            "mensaje": "Seleccioná un id_pago_unico.",
+            "dni": dni,
+            "opciones": certificados_meta,      # usado por lógica AJAX anterior
+            "certificados": certificados_meta,  # compat con tu try{...} actual
+            "seleccionar_url": seleccionar_url,
+        }
+
+        # Si el cliente pide HTML, puede usar seleccionar_url (igual devolvemos JSON 200)
+        if (prefer_html or ("text/html" in (request.headers.get("Accept") or ""))) and not is_ajax:
+            return JsonResponse(payload, status=200)
+
+        return JsonResponse(payload, status=200)
 
     # Exactamente 1 cancelado → generar directo
     reg = cancelados[0]
