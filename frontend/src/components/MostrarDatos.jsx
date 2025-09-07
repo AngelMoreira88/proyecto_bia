@@ -1,4 +1,4 @@
-// src/components/MostrarDatos.jsx  (o el nombre que uses para esta pantalla)
+// src/components/MostrarDatos.jsx
 import React, { useMemo, useState } from 'react';
 import {
   listarDatosBia,
@@ -21,7 +21,6 @@ export default function Mostrar() {
 
   const isAdmin = getUserRole() === 'admin';
 
-  // Etiquetas más humanas
   const LABELS = {
     id: 'ID',
     id_pago_unico: 'ID pago único',
@@ -31,7 +30,6 @@ export default function Mostrar() {
     dni: 'DNI',
   };
 
-  // Columnas (id primero si existe)
   const columnas = useMemo(() => {
     const s = new Set();
     for (const row of datos) Object.keys(row || {}).forEach(k => s.add(k));
@@ -139,16 +137,23 @@ export default function Mostrar() {
       setFormData({});
     } catch (err) {
       console.error(err);
-      setError('Error al guardar los cambios');
+      const status = err?.response?.status;
+      const detail = err?.response?.data?.detail || err?.response?.data?.error;
+      if (status === 403) {
+        setError(detail || 'No tenés permiso para editar este registro.');
+      } else if (status === 400) {
+        setError(detail || 'Datos inválidos.');
+      } else {
+        setError('Error al guardar los cambios');
+      }
     } finally {
       setSaving(false);
     }
   };
 
-  // Exportar CSV
   const handleExportCsv = async () => {
     try {
-      const res = await exportarDatosBiaCSV(); // GET blob
+      const res = await exportarDatosBiaCSV();
       const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -164,7 +169,6 @@ export default function Mostrar() {
     }
   };
 
-  // Eliminar (solo admins)
   const handleDelete = async (id) => {
     if (!isAdmin) return;
     const row = datos.find(d => d.id === id);
@@ -174,7 +178,7 @@ export default function Mostrar() {
     setError('');
     setDeletingId(id);
     try {
-      await eliminarDatoBia(id);   // DELETE /api/db_bia/:id/
+      await eliminarDatoBia(id);
       setDatos(prev => prev.filter(d => d.id !== id));
       if (editingId === id) {
         setEditingId(null);
@@ -188,7 +192,6 @@ export default function Mostrar() {
     }
   };
 
-  // ---------- UI helpers ----------
   const prettyLabel = (col) => LABELS[col] || col;
 
   const EstadoPill = ({ value }) => {
@@ -218,7 +221,6 @@ export default function Mostrar() {
 
   return (
     <div className="container pb-3 page-fill bg-app">
-      {/* Encabezado */}
       <div className="mb-3 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-2">
         <div>
           <h2 className="text-bia fw-bold mb-1">Listar por DNI</h2>
@@ -233,13 +235,11 @@ export default function Mostrar() {
         )}
       </div>
 
-      {/* Card principal — crece según contenido */}
       <div className="card shadow-sm border-0 rounded-4">
         <div className="card-header bg-bia-subtle border-bia rounded-top-4">
           <div className="d-flex flex-wrap gap-2 align-items-center justify-content-between">
             <strong className="text-bia m-0">Búsqueda</strong>
             <div className="d-flex gap-2">
-              {/* Exportar CSV */}
               <button
                 type="button"
                 className="btn btn-sm btn-outline-secondary"
@@ -252,7 +252,6 @@ export default function Mostrar() {
                 Exportar CSV
               </button>
 
-              {/* Volver al home */}
               <BackToHomeButton>Volver</BackToHomeButton>
 
               {editingId !== null && hasChanges && dniCoincide && (
@@ -271,7 +270,6 @@ export default function Mostrar() {
         </div>
 
         <div className="card-body">
-          {/* Buscador */}
           <form onSubmit={handleBuscar} className="row g-2">
             <div className="col-12 col-sm-8">
               <div className="form-floating">
@@ -294,14 +292,12 @@ export default function Mostrar() {
             </div>
           </form>
 
-          {/* Error */}
           {error && (
             <div className="alert alert-danger mt-3 mb-0" role="alert">
               {error}
             </div>
           )}
 
-          {/* Resultados */}
           {datos.length > 0 && (
             <div className="card mt-4 border-0">
               <div className="card-body p-0">
@@ -394,7 +390,6 @@ export default function Mostrar() {
             </div>
           )}
 
-          {/* Sin resultados */}
           {!loading && !error && query && datos.length === 0 && (
             <div className="text-secondary small mt-3">
               No hay resultados para “{query}”.

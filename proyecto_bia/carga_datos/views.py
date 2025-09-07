@@ -20,7 +20,7 @@ from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
 
 from .forms import ExcelUploadForm
-from .models import BaseDeDatosBia
+from .models import BaseDeDatosBia, allocate_id_pago_unico_block
 from .serializers import BaseDeDatosBiaSerializer
 from .views_helpers import limpiar_valor  # si ya lo tenés
 
@@ -139,47 +139,24 @@ def _resolver_entidad(propietario: str, entidadinterna: str, cache: dict, create
 @login_required
 def confirmar_carga(request):
     """
-    Versión web (no-API) que guarda lo que está en sesión.
-    Ahora resuelve y setea la FK 'entidad' por propietario -> entidadinterna.
+    Versión web: toma lo de sesión y aplica misma lógica que la API.
     """
     datos = request.session.get('datos_cargados', [])
     if not datos:
         return redirect('cargar_excel')
 
-    try:
-        columnas = [f.name for f in BaseDeDatosBia._meta.fields if f.name != 'id']
+    # Reutilizamos la API por simplicidad
+    from rest_framework.test import APIRequestFactory
+    factory = APIRequestFactory()
+    drf_request = factory.post('/carga-datos/api/confirmar/', {'records': datos}, format='json')
+    drf_request.user = request.user  # forward auth
+    resp = api_confirmar_carga(drf_request)
 
-        entidad_cache = _build_entidad_cache()
-        registros = []
-
-        for fila in datos:
-            # Resolver entidad (preferir propietario)
-            ent = _resolver_entidad(
-                fila.get('propietario'),
-                fila.get('entidadinterna'),
-                entidad_cache,
-                CREATE_MISSING_ENTIDADES
-            )
-
-            # Construir kwargs limpios
-            payload = {}
-            for col in columnas:
-                if col == 'entidad':
-                    continue
-                payload[col] = limpiar_valor(fila.get(col)) if 'limpiar_valor' in globals() else fila.get(col)
-
-            obj = BaseDeDatosBia(**payload)
-            if ent:
-                obj.entidad = ent
-            registros.append(obj)
-
-        BaseDeDatosBia.objects.bulk_create(registros, batch_size=200)
-
-        mensaje = f"✅ Se cargaron {len(registros)} registros correctamente."
-        logger.info(f"[{request.user}] Confirmó carga de {len(registros)} registros desde interfaz web.")
-    except Exception as e:
-        mensaje = f"❌ Error al guardar los datos: {e}"
-        logger.exception(f"[{request.user}] Error en confirmar_carga: {e}")
+    # Render liviano con el resultado
+    if resp.status_code == 200 and (resp.data or {}).get('success'):
+        mensaje = f"✅ Se cargaron {resp.data.get('created_count', 0)} registros correctamente."
+    else:
+        mensaje = f"❌ Error al guardar los datos: {getattr(resp, 'data', {})}"
 
     request.session.pop('datos_cargados', None)
     return render(request, 'upload_form.html', {'form': ExcelUploadForm(), 'mensaje': mensaje})
@@ -323,55 +300,88 @@ def api_cargar_excel(request):
 @permission_classes([IsAuthenticated])
 def api_confirmar_carga(request):
     """
-    Guarda registros enviados por el front (o la sesión de api_cargar_excel),
-    resolviendo FK 'entidad' por propietario -> entidadinterna.
+    Guarda registros enviados por el front (o desde la sesión),
+    resolviendo FK 'entidad' y asignando id_pago_unico cuando venga vacío.
+    También valida duplicados (payload y DB) y devuelve métricas.
     """
-    # a) Si el front manda 'records' directo:
-    records = request.data.get('records', [])
-
-    # b) Si no, usamos la sesión creada en api_cargar_excel
-    if not records:
-        records = request.session.get('datos_cargados', [])
-
+    records = request.data.get('records', []) or request.session.get('datos_cargados', [])
     if not records:
         return Response({'success': False, 'error': 'No hay datos para confirmar'}, status=400)
 
     columnas = [f.name for f in BaseDeDatosBia._meta.fields if f.name != 'id']
 
-    try:
-        entidad_cache = _build_entidad_cache()
-        registros = []
+    # 1) Normalizar + detectar faltantes de id_pago_unico
+    normalized = []
+    missing_indexes = []
+    forced_empty = set()  # ids declarados vacíos explícitamente
+    for idx, item in enumerate(records):
+        row = dict(item or {})
+        # normaliza id_pago_unico a string o ''
+        raw_idp = (row.get('id_pago_unico') or '').strip()
+        if raw_idp == '':
+            missing_indexes.append(idx)
+        else:
+            # validar que sea sólo dígitos
+            if not raw_idp.isdigit():
+                return Response({'success': False, 'error': f'id_pago_unico inválido en fila {idx+1}: "{raw_idp}" (solo dígitos)'}, status=400)
+        normalized.append(row)
 
-        for item in records:
-            ent = _resolver_entidad(
-                item.get('propietario'),
-                item.get('entidadinterna'),
-                entidad_cache,
-                CREATE_MISSING_ENTIDADES
-            )
+    # 2) Asignar bloque para faltantes
+    if missing_indexes:
+        new_ids = allocate_id_pago_unico_block(len(missing_indexes))
+        for i, new_id in zip(missing_indexes, new_ids):
+            normalized[i]['id_pago_unico'] = new_id
 
-            payload = {}
-            for col in columnas:
-                if col == 'entidad':
-                    continue
-                payload[col] = limpiar_valor(item.get(col)) if 'limpiar_valor' in globals() else item.get(col)
+    # 3) Duplicados dentro del payload
+    idps = [str(r.get('id_pago_unico')).strip() for r in normalized]
+    dup_in_payload = {x for x in idps if idps.count(x) > 1}
+    if dup_in_payload:
+        return Response(
+            {'success': False, 'error': f'id_pago_unico duplicado en el archivo: {", ".join(sorted(dup_in_payload))}'},
+            status=400
+        )
 
-            obj = BaseDeDatosBia(**payload)
-            if ent:
-                obj.entidad = ent
-            registros.append(obj)
+    # 4) Duplicados contra la DB
+    existing = set(
+        BaseDeDatosBia.objects.filter(id_pago_unico__in=idps).values_list('id_pago_unico', flat=True)
+    )
+    if existing:
+        return Response(
+            {'success': False, 'error': f'id_pago_unico ya existente en base: {", ".join(sorted(existing))}'},
+            status=400
+        )
 
-        BaseDeDatosBia.objects.bulk_create(registros, batch_size=200)
-        # limpiar sesión si venía de ahí
-        if 'datos_cargados' in request.session:
-            request.session.pop('datos_cargados', None)
+    # 5) Construcción de objetos + resolución de FK
+    entidad_cache = _build_entidad_cache()
+    to_create = []
+    for row in normalized:
+        payload = {}
+        for col in columnas:
+            if col == 'entidad':
+                continue
+            payload[col] = limpiar_valor(row.get(col)) if 'limpiar_valor' in globals() else row.get(col)
 
-        return Response({'success': True, 'created_count': len(registros)})
+        ent = _resolver_entidad(payload.get('propietario'), payload.get('entidadinterna'),
+                                entidad_cache, CREATE_MISSING_ENTIDADES)
+        obj = BaseDeDatosBia(**payload)
+        if ent:
+            obj.entidad = ent
+        to_create.append(obj)
 
-    except Exception as e:
-        import traceback
-        logger.error("Error en api_confirmar_carga:\n%s", traceback.format_exc())
-        return Response({'success': False, 'error': str(e)}, status=500)
+    # 6) Persistencia en bloque
+    BaseDeDatosBia.objects.bulk_create(to_create, batch_size=200)
+
+    # 7) Limpiamos sesión si venían de ahí
+    if 'datos_cargados' in request.session:
+        request.session.pop('datos_cargados', None)
+
+    return Response({
+        'success': True,
+        'created_count': len(to_create),
+        'updated_count': 0,
+        'skipped_count': 0,
+        'errors_count': 0,
+    })
 
 # =========================
 # ERRORES VALIDACIÓN (web)
@@ -440,18 +450,27 @@ def actualizar_datos_bia(request, pk: int):
     """
     PUT/PATCH /api/mostrar-datos-bia/<id>/
     Actualiza parcialmente o totalmente el registro.
-    Bloquea cambios de 'id' y (opcional) valida dni/id_pago_unico.
+    - 'id' no editable
+    - Si vienen 'dni' o 'id_pago_unico' en el cuerpo y difieren del registro, devuelve 400 (conflicto de datos).
     """
     obj = get_object_or_404(BaseDeDatosBia, pk=pk)
 
-    # si te mandan dni/id_pago_unico distinto, bloquear
-    if 'dni' in request.data and str(request.data['dni']).strip() != str(obj.dni or '').strip():
-        return Response({"detail": "El DNI del cuerpo no coincide con el registro."}, status=403)
-    if 'id_pago_unico' in request.data and str(request.data['id_pago_unico']).strip() != str(obj.id_pago_unico or '').strip():
-        return Response({"detail": "El id_pago_unico del cuerpo no coincide con el registro."}, status=403)
+    def _norm(s):
+      return '' if s is None else str(s).strip()
 
+    body_dni = request.data.get('dni', None)
+    body_idp = request.data.get('id_pago_unico', None)
+
+    if body_dni is not None and _norm(body_dni) != _norm(obj.dni):
+        return Response({"detail": "El DNI del cuerpo no coincide con el registro."}, status=400)
+
+    if body_idp is not None and _norm(body_idp) != _norm(obj.id_pago_unico):
+        return Response({"detail": "El id_pago_unico del cuerpo no coincide con el registro."}, status=400)
+
+    NO_EDITABLES = {'id'}
     clean = {k: v for k, v in request.data.items() if k not in NO_EDITABLES}
-    ser = BaseDeDatosBiaSerializer(obj, data=clean, partial=True)
+
+    ser = BaseDeDatosBiaSerializer(obj, data=clean, partial=(request.method == 'PATCH'))
     ser.is_valid(raise_exception=True)
     ser.save()
     return Response(ser.data, status=200)

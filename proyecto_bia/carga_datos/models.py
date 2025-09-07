@@ -1,20 +1,71 @@
-# carga_datos/models.py
-from django.db import models
+from django.db import models, transaction
 from django.db.models.functions import Lower
+from django.db.models import Q
 import uuid
 from django.conf import settings
 from django.utils import timezone
 
 
+# ============================
+# Contador transaccional simple
+# ============================
+class BusinessKeyCounter(models.Model):
+    """
+    Contador para claves de negocio. Usamos una sola fila con name='id_pago_unico'
+    y last_value incrementándose bajo select_for_update (a prueba de carreras).
+    """
+    name = models.CharField(max_length=50, primary_key=True)
+    last_value = models.BigIntegerField(default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'business_key_counter'
+
+
+@transaction.atomic
+def allocate_id_pago_unico_block(n: int) -> list[str]:
+    """
+    Reserva un bloque de 'n' IDs consecutivos de forma atómica.
+    Devuelve una lista de strings (para compatibilidad con CharField).
+    """
+    if n <= 0:
+        return []
+    counter, _ = BusinessKeyCounter.objects.select_for_update().get_or_create(
+        name='id_pago_unico', defaults={'last_value': 0}
+    )
+    start = counter.last_value + 1
+    counter.last_value = counter.last_value + n
+    counter.save(update_fields=['last_value', 'updated_at'])
+    return [str(i) for i in range(start, start + n)]
+
+
+@transaction.atomic
+def allocate_id_pago_unico() -> str:
+    """
+    Reserva un único ID nuevo.
+    """
+    return allocate_id_pago_unico_block(1)[0]
+
+
 class BaseDeDatosBia(models.Model):
-    id = models.BigAutoField(primary_key=True)  # PK técnica recomendada
-    id_pago_unico   = models.CharField(max_length=50, db_index=True, null=True, blank=True, unique=True)
+    id = models.BigAutoField(primary_key=True)
+
+    # ⚠️ Si ya tenés registros con id_pago_unico = NULL/vacío, primero corrélos con
+    # un backfill y recién después cambiá null=False/blank=False en una migración.
+    # Aun así, con la lógica de asignación ya nunca se crearán nulos.
+    id_pago_unico   = models.CharField(
+        max_length=50,
+        db_index=True,
+        unique=True,
+        null=False,
+        blank=False   
+    )
+
     creditos        = models.CharField(max_length=255, blank=True, null=True)
     propietario     = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     entidadoriginal = models.CharField(max_length=255, blank=True, null=True)
     entidadinterna  = models.CharField(max_length=255, db_index=True)
 
-    # FK canónica a Entidad (emisora). Al principio puede ser null; después la volvés obligatoria.
     entidad         = models.ForeignKey(
         'certificado_ldd.Entidad',
         on_delete=models.PROTECT,
@@ -59,13 +110,11 @@ class BaseDeDatosBia(models.Model):
     total_plan           = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     saldo                = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
 
-    # Compatibilidad temporal
     @property
     def entidad_obj(self):
         if self.entidad_id:
             return self.entidad
         from certificado_ldd.models import Entidad
-        # preferir propietario; si no, entidadinterna
         if self.propietario:
             ent = Entidad.objects.filter(nombre__iexact=self.propietario).first()
             if ent:
@@ -75,11 +124,31 @@ class BaseDeDatosBia(models.Model):
     class Meta:
         db_table = 'db_bia'
         managed  = True
-        # (Opcional, PostgreSQL) índices funcionales para búsquedas case-insensitive
         indexes = [
             models.Index(Lower('propietario'), name='idx_bdb_prop_lower'),
             models.Index(Lower('entidadinterna'), name='idx_bdb_entint_lower'),
         ]
+        # Si usás PostgreSQL  (Django 4.1+): valida que id_pago_unico tenga sólo dígitos cuando no es NULL.
+        # Si tu proyecto NO usa Postgres o versión vieja de Django, podés omitir este CheckConstraint.
+        constraints = [
+            models.CheckConstraint(
+                name='id_pago_unico_digits_or_null',
+                check=Q(id_pago_unico__regex=r'^\d+$') | Q(id_pago_unico__isnull=True),
+            ),
+        ]
+
+    def __str__(self):
+        return f'{self.id_pago_unico or "—"} / {self.dni or ""}'
+
+    # Nota: bulk_create NO llama save(). Por eso la asignación se hace en las vistas masivas.
+    def save(self, *args, **kwargs):
+        # Si viene vacío/None, asignamos uno nuevo.
+        if not self.id_pago_unico or str(self.id_pago_unico).strip() == '':
+            self.id_pago_unico = allocate_id_pago_unico()
+        else:
+            # Normalizamos a string y sin espacios
+            self.id_pago_unico = str(self.id_pago_unico).strip()
+        super().save(*args, **kwargs)
 
 
 class BulkJob(models.Model):
@@ -91,7 +160,7 @@ class BulkJob(models.Model):
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     filename = models.CharField(max_length=255, blank=True, default='')
-    file_hash = models.CharField(max_length=128, blank=True, default='')  # sha256 sugerido
+    file_hash = models.CharField(max_length=128, blank=True, default='')
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, null=True, blank=True,
         on_delete=models.SET_NULL, related_name='bulk_jobs'
@@ -99,7 +168,7 @@ class BulkJob(models.Model):
     status = models.CharField(
         max_length=32, choices=Status.choices, default=Status.READY, db_index=True
     )
-    summary = models.JSONField(default=dict, blank=True)  # contadores, columnas afectadas, etc.
+    summary = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     committed_at = models.DateTimeField(null=True, blank=True)
 
@@ -132,10 +201,9 @@ class StagingBulkChange(models.Model):
     )
     business_key = models.CharField(max_length=255)  # ej: id_pago_unico / dni
     op = models.CharField(max_length=16, choices=Operation.choices, default=Operation.UPDATE)
-    payload = models.JSONField(default=dict, blank=True)            # fila propuesta (valores nuevos)
-    validation_errors = models.JSONField(default=list, blank=True)  # lista[str] o dict por campo
+    payload = models.JSONField(default=dict, blank=True)
+    validation_errors = models.JSONField(default=list, blank=True)
     can_apply = models.BooleanField(default=False)
-
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

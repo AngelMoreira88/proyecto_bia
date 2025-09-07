@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import api from '../services/api';
 import Header from './Header';
+import BackHomeLink from './BackHomeLink'; // si lo tenés, opcional
 
 export default function ConfirmarCarga() {
   const navigate = useNavigate();
@@ -11,13 +12,15 @@ export default function ConfirmarCarga() {
   const [loading, setLoading] = useState(true);
   const [okMsg, setOkMsg] = useState('');
   const [errMsg, setErrMsg] = useState('');
+  const [metrics, setMetrics] = useState({}); // created_count, updated_count, etc.
 
   const confirmar = async () => {
     setLoading(true);
     setOkMsg('');
     setErrMsg('');
+    setMetrics({});
 
-    // Si venían records desde la vista previa, los enviamos; si no, payload vacío.
+    // Si venían records desde la vista previa, los enviamos; si no, payload vacío (usa sesión backend)
     const records = location.state?.records;
     const payload =
       Array.isArray(records) && records.length > 0 ? { records } : {};
@@ -29,19 +32,20 @@ export default function ConfirmarCarga() {
 
       const data = res?.data || {};
       if (data.success) {
-        // Construimos un mensaje amigable con métricas si existen
         const parts = [];
         if (typeof data.created_count === 'number') parts.push(`creados: ${data.created_count}`);
         if (typeof data.updated_count === 'number') parts.push(`actualizados: ${data.updated_count}`);
         if (typeof data.skipped_count === 'number') parts.push(`omitidos: ${data.skipped_count}`);
         if (typeof data.errors_count === 'number') parts.push(`errores: ${data.errors_count}`);
-
+        setMetrics({
+          created_count: data.created_count,
+          updated_count: data.updated_count,
+          skipped_count: data.skipped_count,
+          errors_count: data.errors_count,
+        });
         setOkMsg(`✅ Carga confirmada${parts.length ? ` (${parts.join(' · ')})` : ''}.`);
-
-        // Redirige a la vista de errores web (resumen) tras 2s
-        setTimeout(() => navigate('/carga-datos/errores-web'), 2000);
+        // ❌ Ya no redirigimos automáticamente a errores.
       } else {
-        // Normalizamos errores devueltos por backend
         const backendErrors =
           Array.isArray(data.errors) ? data.errors.join(' | ') :
           typeof data.error === 'string' ? data.error :
@@ -62,10 +66,19 @@ export default function ConfirmarCarga() {
   };
 
   useEffect(() => {
-    // Si no hay records en state, igual confirmamos (backend tomará lo de sesión/cache)
     confirmar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const ErrorsButton = () => (
+    <button
+      className="btn btn-success"
+      onClick={() => navigate('/carga-datos/errores')}
+      title="Ver errores / resumen de validación"
+    >
+      Ver errores / resumen
+    </button>
+  );
 
   return (
     <>
@@ -92,28 +105,41 @@ export default function ConfirmarCarga() {
             </div>
           )}
 
+          {!loading && !errMsg && (
+            <div className="text-center text-muted mb-2">
+              {typeof metrics.created_count === 'number' && (
+                <div>Creados: <strong>{metrics.created_count}</strong></div>
+              )}
+              {typeof metrics.updated_count === 'number' && (
+                <div>Actualizados: <strong>{metrics.updated_count}</strong></div>
+              )}
+              {typeof metrics.skipped_count === 'number' && (
+                <div>Omitidos: <strong>{metrics.skipped_count}</strong></div>
+              )}
+              {typeof metrics.errors_count === 'number' && (
+                <div>Errores: <strong>{metrics.errors_count}</strong></div>
+              )}
+            </div>
+          )}
+
           <div className="d-flex justify-content-center gap-2 mt-2">
             {!loading && (
               <>
-                <button className="btn btn-outline-secondary" onClick={() => navigate(-1)}>
-                  Volver
+                {/* Volver al portal */}
+                <button className="btn btn-outline-secondary" onClick={() => navigate('/portal')}>
+                  Volver al portal
                 </button>
+
+                {/* Reintentar confirmación */}
                 <button className="btn btn-outline-primary" onClick={confirmar}>
                   Reintentar
                 </button>
-                <button
-                  className="btn btn-success"
-                  onClick={() => navigate('/carga-datos/errores-web')}
-                >
-                  Ver errores / resumen
-                </button>
+
+                {/* Ver errores/resumen sólo si querés revisarlos (puede devolver 404 si no hay) */}
+                <ErrorsButton />
               </>
             )}
           </div>
-
-          <p className="text-muted text-center mt-3">
-            {loading ? 'No cierres esta ventana…' : 'Redirigiendo automáticamente…'}
-          </p>
         </div>
       </div>
     </>

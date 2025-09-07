@@ -1,14 +1,17 @@
 // frontend/src/components/CargaDatos.jsx
 import React, { useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { subirExcel } from '../services/api';
-import { Link } from 'react-router-dom';
 
 const MAX_FILE_MB = 20;
 const ALLOWED_EXT = ['.csv', '.xls', '.xlsx'];
 
 export default function CargaDatos() {
+  const navigate = useNavigate();
+
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState('');
+  const [records, setRecords] = useState([]); // 👈 guardamos los datos para confirmar
   const [errors, setErrors] = useState([]);
   const [uploading, setUploading] = useState(false);
   const inputRef = useRef(null);
@@ -32,6 +35,7 @@ export default function CargaDatos() {
     const f = e.target.files?.[0] ?? null;
     setErrors([]);
     setPreview('');
+    setRecords([]);
     setFile(f);
     const vErr = validateFile(f);
     if (vErr) setErrors([vErr]);
@@ -40,6 +44,7 @@ export default function CargaDatos() {
   const resetAll = () => {
     setFile(null);
     setPreview('');
+    setRecords([]);
     setErrors([]);
     setUploading(false);
     if (inputRef.current) inputRef.current.value = '';
@@ -49,6 +54,7 @@ export default function CargaDatos() {
     e.preventDefault();
     setErrors([]);
     setPreview('');
+    setRecords([]);
 
     const vErr = validateFile(file);
     if (vErr) {
@@ -64,8 +70,11 @@ export default function CargaDatos() {
       const res = await subirExcel(formData);
       const data = res?.data ?? {};
       if (data.success) {
-        // backend devuelve html sanitizado (preview)
+        // backend devuelve html sanitizado (preview) y data (registros)
         setPreview(String(data.preview || ''));
+        if (Array.isArray(data.data)) {
+          setRecords(data.data); // 👈 guardamos los registros para Confirmar
+        }
       } else {
         // normalizamos errores posibles
         const backendErrors =
@@ -104,7 +113,12 @@ export default function CargaDatos() {
           <button type="submit" className="btn btn-primary" disabled={uploading || !file}>
             {uploading ? 'Subiendo…' : 'Subir'}
           </button>
-          <button type="button" className="btn btn-outline-secondary" onClick={resetAll} disabled={uploading && !preview && !errors.length}>
+          <button
+            type="button"
+            className="btn btn-outline-secondary"
+            onClick={resetAll}
+            disabled={uploading && !preview && !errors.length}
+          >
             Limpiar
           </button>
         </div>
@@ -127,13 +141,21 @@ export default function CargaDatos() {
             // El backend devuelve HTML seguro para mostrar (tabla/resumen)
             dangerouslySetInnerHTML={{ __html: preview }}
           />
-          <div className="mt-3">
-            <Link
-              to="/carga-datos/confirmar-web"
+          <div className="mt-3 d-flex gap-2">
+            <button
+              type="button"
               className="btn btn-success"
+              onClick={() => navigate('/carga-datos/confirmar', { state: { records } })}
+              disabled={!records.length}
+              title={!records.length ? 'Primero generá la vista previa válida' : 'Confirmar y aplicar'}
             >
               Confirmar carga
-            </Link>
+            </button>
+            {!records.length && (
+              <small className="text-muted align-self-center">
+                * Si este botón está deshabilitado, volvé a subir el archivo.
+              </small>
+            )}
           </div>
         </div>
       )}

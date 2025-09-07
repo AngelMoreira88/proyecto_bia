@@ -113,7 +113,7 @@ api.interceptors.request.use((config) => {
 // ===================================
 // Interceptor de RESPONSE
 // - Si 401 y hay refresh, intenta renovar y reintenta
-// - Si falla, hace logout y redirige a /login
+// - *** CAMBIO: 403 ya no hace logout; devuelve el error a la UI
 // ===================================
 api.interceptors.response.use(
   (response) => response,
@@ -189,13 +189,21 @@ api.interceptors.response.use(
       }
     }
 
-    // 401/403 sin refresh o tras fallo de refresh → salir a login
-    if (status === 401 || status === 403) {
+    // *** CAMBIO: 401 (sin refresh posible) => logout + redirección
+    if (status === 401) {
       await safeLogout();
       try { history.push('/login'); } catch {}
       window.location.reload();
+      return Promise.reject(error);
     }
 
+    // *** CAMBIO: 403: NO cerrar sesión; devolver error para que la UI lo maneje
+    if (status === 403) {
+      console.warn('403 Forbidden:', error?.response?.data || '(sin detalle)');
+      return Promise.reject(error);
+    }
+
+    // Resto de errores: se devuelven a la UI
     return Promise.reject(error);
   }
 );
@@ -219,9 +227,11 @@ export function subirExcel(formData) {
 /**
  * Confirma la carga después de la vista previa.
  * records: payload validado del backend
+ * (⚠️ Si no pasás `records`, envía `{}` para que el backend use lo guardado en sesión.)
  */
 export function confirmarCarga(records) {
-  return api.post('/carga-datos/api/confirmar/', { records }, {
+  const payload = Array.isArray(records) && records.length > 0 ? { records } : {};
+  return api.post('/carga-datos/api/confirmar/', payload, {
     headers: { 'Content-Type': 'application/json' },
   });
 }
