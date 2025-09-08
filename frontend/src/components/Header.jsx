@@ -117,16 +117,18 @@ export default function Header() {
                       id="deudoresDropdown"
                       role="button"
                       data-bs-toggle="dropdown"
+                      data-bs-display="static"      /* 👈 evita auto-reposicionamiento */
                       aria-expanded="false"
                     >
                       Obligaciones
                     </a>
 
                     <div
-                      className="dropdown-menu dropdown-menu-end dropdown-menu-modern p-3"
+                      className="dropdown-menu dropdown-menu-start dropdown-menu-modern p-3" /* 👈 fija a la izquierda */
+                      data-bs-popper="static"                                            /* 👈 posición estática */
                       aria-labelledby="deudoresDropdown"
                     >
-                      <div className="d-grid gap-2" style={{ minWidth: 320 }}>
+                      <div className="d-grid gap-2" style={{ minWidth: 260 }}>
                         <NavLink to="/carga-datos/upload" className="modern-item d-flex align-items-start gap-3 text-decoration-none">
                           <span className="modern-icon" aria-hidden="true">
                             {/* Upload */}
