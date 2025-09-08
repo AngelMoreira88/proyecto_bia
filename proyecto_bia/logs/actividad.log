@@ -2186,3 +2186,89 @@ django.template.exceptions.TemplateSyntaxError: Unused ''images/bia.png'' at end
 [2025-09-07 20:03:57,222] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views.py changed, reloading.
 [2025-09-07 20:03:59,104] INFO django.utils.autoreload - Watching for file changes with StatReloader
 [2025-09-07 20:05:46,625] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-07 20:08:13,648] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-07 20:22:48,095] ERROR django.request - Internal Server Error: /carga-datos/api/bulk-update/commit
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.errors.NotNullViolation: null value in column "entidadinterna" of relation "db_bia" violates not-null constraint
+DETAIL:  Failing row contains (40, 205774.0, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 14.0000, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null).
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\decorators.py", line 50, in handler
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views_bulk.py", line 426, in bulk_commit
+    BaseDeDatosBia.objects.bulk_create(inserts_instances, ignore_conflicts=True)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 835, in bulk_create
+    returned_columns = self._batched_insert(
+                       ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 1886, in _batched_insert
+    self._insert(
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\sql\compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.IntegrityError: null value in column "entidadinterna" of relation "db_bia" violates not-null constraint
+DETAIL:  Failing row contains (40, 205774.0, null, null, null, null, null, null, null, null, null, null, null, null, null, null, 14.0000, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null).
+
+[2025-09-08 00:58:36,236] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views_bulk.py changed, reloading.
+[2025-09-08 00:58:38,417] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-08 00:59:09,352] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\utils_preview.py changed, reloading.
+[2025-09-08 00:59:11,183] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-08 01:02:12,946] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\admin.py changed, reloading.
+[2025-09-08 01:02:14,938] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-08 01:04:17,113] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\urls.py changed, reloading.
+[2025-09-08 01:04:19,096] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-08 01:08:34,549] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-08 01:09:20,064] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-08 01:09:20,103] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-08 01:09:28,629] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-08 01:09:28,648] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
