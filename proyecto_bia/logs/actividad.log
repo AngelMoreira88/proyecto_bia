@@ -350,7 +350,7 @@ NameError: name 'HttpResponse' is not defined. Did you mean: 'JsonResponse'?
 [2025-08-24 19:41:11,481] INFO django.request - [angel] Faltan columnas en archivo 'clientes_ficticios_50.xlsx': ['entidad']
 [2025-08-24 19:41:11,482] WARNING django.request - Bad Request: /carga-datos/api/cargar/
 [2025-08-24 20:04:29,877] WARNING django.request - Unauthorized: /carga-datos/api/cargar/
-[2025-08-24 20:04:48,717] INFO django.request - [angel] Previsualización cargada de 'clientes_ficticios_50.xlsx' con 50 registros.
+[2025-08-24 20:04:48,717] INFO django.request - [angel] Previsualizaciï¿½n cargada de 'clientes_ficticios_50.xlsx' con 50 registros.
 [2025-08-24 20:04:50,053] ERROR django.request - Error en api_confirmar_carga:
 Traceback (most recent call last):
   File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
@@ -1622,7 +1622,7 @@ django.template.base.VariableDoesNotExist: Failed lookup for key [razon_social] 
 [2025-09-01 00:37:22,104] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=cancelado -> True
 [2025-09-01 00:37:22,104] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=con deuda -> False
 [2025-09-01 00:37:22,104] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
-[2025-09-01 00:37:22,110] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados. is_ajax=True seleccionar_url=http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-09-01 00:37:22,110] INFO certificado_ldd.views - [_handle_post_generar] Mï¿½ltiples cancelados. is_ajax=True seleccionar_url=http://localhost:8000/api/certificado/seleccionar/?dni=14752495
 [2025-09-01 00:37:22,110] WARNING django.request - Bad Request: /api/certificado/generar/
 [2025-09-01 00:40:43,840] WARNING django.request - Unauthorized: /api/certificado/entidades/
 [2025-09-01 00:40:53,602] WARNING django.request - Unauthorized: /api/certificado/entidades/
@@ -1723,7 +1723,7 @@ django.core.exceptions.ValidationError: ['El archivo supera 300 KB.']
 [2025-09-01 01:15:00,749] INFO django.utils.autoreload - Watching for file changes with StatReloader
 [2025-09-01 01:15:15,629] INFO django.utils.autoreload - Watching for file changes with StatReloader
 [2025-09-01 01:27:55,038] WARNING django.request - Unauthorized: /carga-datos/api/cargar/
-[2025-09-01 01:27:56,668] INFO django.request - [angel] Previsualización cargada de 'modelo de columnas prara cargar nuevos clientes2.xlsx' con 1 registros.
+[2025-09-01 01:27:56,668] INFO django.request - [angel] Previsualizaciï¿½n cargada de 'modelo de columnas prara cargar nuevos clientes2.xlsx' con 1 registros.
 [2025-09-01 01:27:56,987] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
 [2025-09-01 01:27:56,991] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
 [2025-09-01 01:27:58,663] ERROR django.request - Error en api_confirmar_carga:
@@ -2032,7 +2032,7 @@ django.template.exceptions.TemplateSyntaxError: Unused ''images/bia.png'' at end
 [2025-09-07 17:55:46,477] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=cancelado -> True
 [2025-09-07 17:55:46,477] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=con deuda -> False
 [2025-09-07 17:55:46,478] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
-[2025-09-07 17:55:46,483] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados. is_ajax=True seleccionar_url=http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-09-07 17:55:46,483] INFO certificado_ldd.views - [_handle_post_generar] Mï¿½ltiples cancelados. is_ajax=True seleccionar_url=http://localhost:8000/api/certificado/seleccionar/?dni=14752495
 [2025-09-07 17:56:05,290] INFO certificado_ldd.views - [api_generar_certificado] method=GET
 [2025-09-07 17:56:05,291] INFO certificado_ldd.views - [_handle_get_generar] GET dni='14752495' id_pago_unico='27810'
 [2025-09-07 17:56:05,813] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=cancelado -> True
@@ -2082,7 +2082,7 @@ django.template.exceptions.TemplateSyntaxError: Unused ''images/bia.png'' at end
 [2025-09-07 17:57:46,806] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=cancelado -> True
 [2025-09-07 17:57:46,807] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=con deuda -> False
 [2025-09-07 17:57:46,807] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=2 pendientes=1
-[2025-09-07 17:57:46,807] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados. is_ajax=True seleccionar_url=http://localhost:8000/api/certificado/seleccionar/?dni=14752495
+[2025-09-07 17:57:46,807] INFO certificado_ldd.views - [_handle_post_generar] Mï¿½ltiples cancelados. is_ajax=True seleccionar_url=http://localhost:8000/api/certificado/seleccionar/?dni=14752495
 [2025-09-07 17:57:49,469] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
 [2025-09-07 17:57:49,481] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
 [2025-09-07 17:57:51,024] WARNING django.request - Unauthorized: /api/certificado/entidades/
@@ -2102,16 +2102,16 @@ django.template.exceptions.TemplateSyntaxError: Unused ''images/bia.png'' at end
 [2025-09-07 18:13:36,873] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
 [2025-09-07 18:13:36,875] WARNING django.request - Unauthorized: /api/certificado/entidades/
 [2025-09-07 18:13:53,908] WARNING django.request - Unauthorized: /carga-datos/api/cargar/
-[2025-09-07 18:13:56,687] INFO django.request - [angel] Previsualización cargada de 'db_bia_20250907210456.xlsx' con 1 registros.
+[2025-09-07 18:13:56,687] INFO django.request - [angel] Previsualizaciï¿½n cargada de 'db_bia_20250907210456.xlsx' con 1 registros.
 [2025-09-07 18:13:57,020] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
 [2025-09-07 18:13:57,029] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
 [2025-09-07 18:13:57,039] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
 [2025-09-07 18:13:57,326] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
-[2025-09-07 18:37:32,390] INFO django.request - [angel] Previsualización cargada de 'db_bia_20250907210456.xlsx' con 1 registros.
+[2025-09-07 18:37:32,390] INFO django.request - [angel] Previsualizaciï¿½n cargada de 'db_bia_20250907210456.xlsx' con 1 registros.
 [2025-09-07 18:37:48,781] WARNING django.request - Not Found: /carga-datos/api/errores/
 [2025-09-07 18:37:49,387] WARNING django.request - Not Found: /carga-datos/api/errores/
 [2025-09-07 18:37:56,529] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
-[2025-09-07 18:40:34,807] INFO django.request - [angel] Previsualización cargada de 'db_bia_20250907321654.xlsx' con 1 registros.
+[2025-09-07 18:40:34,807] INFO django.request - [angel] Previsualizaciï¿½n cargada de 'db_bia_20250907321654.xlsx' con 1 registros.
 [2025-09-07 18:40:41,422] WARNING django.request - Bad Request: /carga-datos/api/confirmar/
 [2025-09-07 18:44:43,513] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
 [2025-09-07 18:44:47,535] WARNING django.request - Unauthorized: /carga-datos/api/errores/
@@ -2119,7 +2119,7 @@ django.template.exceptions.TemplateSyntaxError: Unused ''images/bia.png'' at end
 [2025-09-07 18:44:48,722] WARNING django.request - Not Found: /carga-datos/api/errores/
 [2025-09-07 18:44:49,323] WARNING django.request - Not Found: /carga-datos/api/errores/
 [2025-09-07 18:45:10,925] WARNING django.request - Unauthorized: /carga-datos/api/cargar/
-[2025-09-07 18:45:12,137] INFO django.request - [angel] Previsualización cargada de 'db_bia_20250907321654.xlsx' con 1 registros.
+[2025-09-07 18:45:12,137] INFO django.request - [angel] Previsualizaciï¿½n cargada de 'db_bia_20250907321654.xlsx' con 1 registros.
 [2025-09-07 18:45:12,507] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
 [2025-09-07 18:45:12,510] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
 [2025-09-07 18:45:12,523] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
@@ -2128,10 +2128,10 @@ django.template.exceptions.TemplateSyntaxError: Unused ''images/bia.png'' at end
 [2025-09-07 18:45:15,599] WARNING django.request - Unauthorized: /carga-datos/api/errores/
 [2025-09-07 18:45:16,757] WARNING django.request - Not Found: /carga-datos/api/errores/
 [2025-09-07 18:45:17,286] WARNING django.request - Not Found: /carga-datos/api/errores/
-[2025-09-07 18:49:28,707] INFO django.request - [angel] Previsualización cargada de 'db_bia_20250907321654.xlsx' con 1 registros.
+[2025-09-07 18:49:28,707] INFO django.request - [angel] Previsualizaciï¿½n cargada de 'db_bia_20250907321654.xlsx' con 1 registros.
 [2025-09-07 18:49:31,943] WARNING django.request - Not Found: /carga-datos/api/errores/
 [2025-09-07 18:49:32,489] WARNING django.request - Not Found: /carga-datos/api/errores/
-[2025-09-07 18:53:35,231] INFO django.request - [angel] Previsualización cargada de 'db_bia_20250907321654.xlsx' con 1 registros.
+[2025-09-07 18:53:35,231] INFO django.request - [angel] Previsualizaciï¿½n cargada de 'db_bia_20250907321654.xlsx' con 1 registros.
 [2025-09-07 18:54:38,145] WARNING django.request - Not Found: /carga-datos/api/errores/
 [2025-09-07 18:54:38,699] WARNING django.request - Not Found: /carga-datos/api/errores/
 [2025-09-07 19:15:22,697] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
@@ -2166,7 +2166,7 @@ django.template.exceptions.TemplateSyntaxError: Unused ''images/bia.png'' at end
 [2025-09-07 19:48:13,354] DEBUG certificado_ldd.views - [_is_cancelado] id=231550 estado=cancelado -> True
 [2025-09-07 19:48:13,355] DEBUG certificado_ldd.views - [_is_cancelado] id=987568 estado=agencia externa -> False
 [2025-09-07 19:48:13,355] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=17864985 -> cancelados=2 pendientes=1
-[2025-09-07 19:48:13,371] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados. is_ajax=True seleccionar_url=http://localhost:8000/api/certificado/seleccionar/?dni=17864985
+[2025-09-07 19:48:13,371] INFO certificado_ldd.views - [_handle_post_generar] Mï¿½ltiples cancelados. is_ajax=True seleccionar_url=http://localhost:8000/api/certificado/seleccionar/?dni=17864985
 [2025-09-07 19:49:19,351] INFO certificado_ldd.views - [api_generar_certificado] method=POST
 [2025-09-07 19:49:19,352] INFO certificado_ldd.views - [_handle_post_generar] hdr X-Requested-With='XMLHttpRequest' Accept='application/json, text/plain, */*' Content-Type='multipart/form-data; boundary=----WebKitFormBoundarymRRWW7qsQycBSsys' Referer='http://localhost:3000/certificado' UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'
 [2025-09-07 19:49:19,353] INFO certificado_ldd.views - [_handle_post_generar] POST dni='15324568' id_pago_unico='' prefer_html=False is_ajax=True
@@ -2272,3 +2272,62 @@ DETAIL:  Failing row contains (40, 205774.0, null, null, null, null, null, null,
 [2025-09-08 01:09:20,103] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
 [2025-09-08 01:09:28,629] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
 [2025-09-08 01:09:28,648] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 22:42:51,632] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-07 22:43:09,712] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 22:43:09,718] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 22:43:15,017] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 22:43:15,018] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-07 22:43:15,031] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 22:43:15,032] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-07 22:43:17,261] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 22:43:17,266] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 22:43:18,066] WARNING django.request - Unauthorized: /carga-datos/api/admin/roles
+[2025-09-07 22:43:18,958] WARNING django.request - Unauthorized: /carga-datos/api/admin/roles
+[2025-09-07 22:52:12,746] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-07 22:55:41,958] WARNING django.request - Not Found: /main.33da850c4083acffc64a.hot-update.json
+[2025-09-07 22:57:48,943] WARNING django.request - Not Found: /main.ecfb0b85ef22056ac315.hot-update.json
+[2025-09-07 23:27:18,654] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-07 23:28:54,599] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-07 23:28:59,465] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-07 23:29:10,633] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-07 23:29:32,456] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 23:29:32,459] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-07 23:29:32,470] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-07 23:29:32,481] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 23:29:53,452] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-07 23:30:03,432] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-07 23:31:15,405] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-07 23:32:20,786] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-07 23:32:56,827] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-07 23:33:56,113] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 23:33:56,126] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 23:34:20,912] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-07 23:38:47,297] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-07 23:41:23,816] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 23:41:23,817] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-07 23:41:23,833] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 23:41:23,834] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-07 23:43:58,879] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 23:43:58,884] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 23:44:03,017] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 23:44:03,019] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-07 23:44:03,029] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-07 23:44:03,032] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 23:47:40,123] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-07 23:48:00,205] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-07 23:49:38,156] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 23:49:38,163] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 23:49:40,163] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 23:49:40,165] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-07 23:49:40,172] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-07 23:49:40,174] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-07 23:50:55,718] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-07 23:51:02,845] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-07 23:51:08,117] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-07 23:51:08,828] WARNING django.request - Bad Request: /carga-datos/api/mostrar-datos-bia/
+[2025-09-07 23:51:34,379] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-07 23:51:43,288] WARNING django.request - Unauthorized: /carga-datos/api/exportar-datos-bia.csv
+[2025-09-07 23:52:01,461] WARNING django.request - Unauthorized: /carga-datos/api/exportar-datos-bia.csv
+[2025-09-07 23:58:45,955] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/9/
+[2025-09-08 00:14:35,105] WARNING django.request - Not Found: /main.5e0b8fb08f0d52113314.hot-update.json
+[2025-09-08 00:26:44,375] WARNING django.request - Unauthorized: /carga-datos/api/admin/roles

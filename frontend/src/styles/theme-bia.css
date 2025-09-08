@@ -1,243 +1,226 @@
 /* =====================================================================
-   Grupo BIA – Theme consolidado (sin duplicados, ordenado)
+   Grupo BIA – Theme consolidado (limpio y ordenado)
    Guardar como: src/styles/theme-bia.css
    ===================================================================== */
 
 /* ===========================
    1) TOKENS & VARIABLES
    =========================== */
-   :root {
-    /* Color corporativo */
-    --bia-blue: #1D48A6;          /* RGB 29,72,166 */
-    --bia-blue-600: #163e8a;      /* hover */
-    --bia-blue-700: #12306c;      /* active */
+   :root{
+    /* Colores corporativos */
+    --bia-blue:#1D48A6;
+    --bia-blue-600:#163e8a;
+    --bia-blue-700:#12306c;
   
     /* Grises / texto / bordes */
-    --bia-gray: #4a4a4a;          /* gris del logo (footer) */
-    --bia-dark-text: #212529;     /* texto oscuro */
-    --bia-border-gray: #ced4da;   /* divisores sutiles */
+    --bia-gray:#4a4a4a;
+    --bia-dark-text:#212529;
+    --bia-border-gray:#ced4da;
   
-    /* Fondo app tipo chat */
-    --app-bg: #f6f7f9;
+    /* Fondo app */
+    --app-bg:#f6f7f9;
   
     /* Layout */
-    --header-h: 100px;            /* alto header (desktop) */
+    --header-h:100px;
   }
-  @media (max-width: 991.98px) {
-    :root { --header-h: 88px; }   /* alto header (mobile/tablet) */
+  @media (max-width:991.98px){
+    :root{ --header-h:88px; }
   }
   
   /* ===========================
      2) UTILITARIOS BÁSICOS
      =========================== */
-  .text-bia      { color: var(--bia-blue) !important; }
-  .border-bia    { border-color: var(--bia-blue) !important; }
-  .bg-bia-subtle { background-color: rgba(29,72,166,.08) !important; }
+  .text-bia{ color:var(--bia-blue) !important; }
+  .border-bia{ border-color:var(--bia-blue) !important; }
+  .bg-bia-subtle{ background-color:rgba(29,72,166,.08) !important; }
   
-  .link-bia { color: var(--bia-blue); text-decoration: none; }
-  .link-bia:hover { color: var(--bia-blue-600); text-decoration: underline; }
+  .link-bia{ color:var(--bia-blue); text-decoration:none; }
+  .link-bia:hover{ color:var(--bia-blue-600); text-decoration:underline; }
   
-  .bg-app  { background-color: var(--app-bg) !important; }
-  .app-shell { padding-top: var(--header-h); } /* wrapper principal */
-  .page-fill { min-height: calc(100vh - var(--header-h)); } /* vistas a pantalla */
+  .bg-app{ background-color:var(--app-bg) !important; }
+  .app-shell{ padding-top:var(--header-h); }
+  .page-fill{ min-height:calc(100vh - var(--header-h)); }
   
   /* ===========================
      3) BOTONES
      =========================== */
-  .btn-bia {
-    --bs-btn-color: #fff;
-    --bs-btn-bg: var(--bia-blue);
-    --bs-btn-border-color: var(--bia-blue);
+  .btn-bia{
+    --bs-btn-color:#fff;
+    --bs-btn-bg:var(--bia-blue);
+    --bs-btn-border-color:var(--bia-blue);
   
-    --bs-btn-hover-color: #fff;
-    --bs-btn-hover-bg: var(--bia-blue-600);
-    --bs-btn-hover-border-color: var(--bia-blue-600);
+    --bs-btn-hover-color:#fff;
+    --bs-btn-hover-bg:var(--bia-blue-600);
+    --bs-btn-hover-border-color:var(--bia-blue-600);
   
-    --bs-btn-active-color: #fff;
-    --bs-btn-active-bg: var(--bia-blue-700);
-    --bs-btn-active-border-color: var(--bia-blue-700);
+    --bs-btn-active-color:#fff;
+    --bs-btn-active-bg:var(--bia-blue-700);
+    --bs-btn-active-border-color:var(--bia-blue-700);
   
-    --bs-btn-disabled-color: #fff;
-    --bs-btn-disabled-bg: var(--bia-blue);
-    --bs-btn-disabled-border-color: var(--bia-blue);
+    --bs-btn-disabled-color:#fff;
+    --bs-btn-disabled-bg:var(--bia-blue);
+    --bs-btn-disabled-border-color:var(--bia-blue);
   
-    --bs-btn-focus-shadow-rgb: 29, 72, 166;
+    --bs-btn-focus-shadow-rgb:29,72,166;
   }
-  .btn-outline-bia {
-    --bs-btn-color: var(--bia-blue);
-    --bs-btn-border-color: var(--bia-blue);
+  .btn-outline-bia{
+    --bs-btn-color:var(--bia-blue);
+    --bs-btn-border-color:var(--bia-blue);
   
-    --bs-btn-hover-color: #fff;
-    --bs-btn-hover-bg: var(--bia-blue);
-    --bs-btn-hover-border-color: var(--bia-blue);
+    --bs-btn-hover-color:#fff;
+    --bs-btn-hover-bg:var(--bia-blue);
+    --bs-btn-hover-border-color:var(--bia-blue);
   
-    --bs-btn-active-color: #fff;
-    --bs-btn-active-bg: var(--bia-blue-600);
-    --bs-btn-active-border-color: var(--bia-blue-600);
+    --bs-btn-active-color:#fff;
+    --bs-btn-active-bg:var(--bia-blue-600);
+    --bs-btn-active-border-color:var(--bia-blue-600);
   
-    --bs-btn-disabled-color: var(--bia-blue);
-    --bs-btn-disabled-bg: transparent;
-    --bs-btn-disabled-border-color: var(--bia-blue);
+    --bs-btn-disabled-color:var(--bia-blue);
+    --bs-btn-disabled-bg:transparent;
+    --bs-btn-disabled-border-color:var(--bia-blue);
   
-    --bs-btn-focus-shadow-rgb: 29, 72, 166;
+    --bs-btn-focus-shadow-rgb:29,72,166;
   }
   
   /* ===========================
      4) HEADER (GLASS)
      =========================== */
-  .header-glass {
-    backdrop-filter: blur(8px);
-    background: rgba(255,255,255,.85) !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,.06);
-    height: var(--header-h);
+  .header-glass{
+    backdrop-filter:blur(8px);
+    background:rgba(255,255,255,.85) !important;
+    box-shadow:0 2px 8px rgba(0,0,0,.06);
+    height:var(--header-h);
   }
-  .header-glass .nav-link {
-    line-height: calc(var(--header-h) - 24px);
+  .header-glass .nav-link{ line-height:calc(var(--header-h) - 24px); }
+  .header-glass .btn{
+    line-height:1.1 !important;
+    padding:.2rem .55rem !important;
+    font-size:.85rem !important;
+    border-radius:.45rem;
   }
-  .header-glass .btn {
-    line-height: 1.1 !important;
-    padding: .2rem .55rem !important;
-    font-size: .85rem !important;
-    border-radius: .45rem;
-  }
-  .btn-nav-compact-s {
-    padding: .28rem .7rem;
-    font-size: .9rem;
-    line-height: 1.1;
-    border-radius: .48rem;
-  }
-  .header-glass .btn-nav-compact-s {
-    padding: .28rem .7rem !important;
-    font-size: .9rem !important;
-    line-height: 1.1 !important;
+  .btn-nav-compact-s{
+    padding:.28rem .7rem;
+    font-size:.9rem;
+    line-height:1.1;
+    border-radius:.48rem;
   }
   
   /* Logo responsive */
-  .brand-logo { height: 44px; object-fit: contain; }
-  @media (min-width: 768px) { .brand-logo { height: 64px; } }
+  .brand-logo{ height:44px; object-fit:contain; }
+  @media (min-width:768px){ .brand-logo{ height:64px; } }
   
   /* ===========================
      5) NAV UNDERLINE
      =========================== */
-  .nav-underline .nav-link {
-    position: relative;
-    border-bottom: none !important;
-    font-weight: 400 !important;
+  .nav-underline .nav-link{
+    position:relative;
+    border-bottom:none !important;
+    font-weight:400 !important;
   }
-  .nav-underline .nav-link.active {
-    border-bottom: none !important;
-    font-weight: 400 !important;
-    color: inherit;
+  .nav-underline .nav-link.active{
+    border-bottom:none !important;
+    font-weight:400 !important;
+    color:inherit;
   }
-  .nav-underline .nav-link::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    bottom: .35rem;
-    width: 0;
-    height: 2px;
-    background: var(--bia-blue);
-    transition: width .2s ease;
+  .nav-underline .nav-link::after{
+    content:"";
+    position:absolute;
+    left:0; bottom:.35rem;
+    width:0; height:2px;
+    background:var(--bia-blue);
+    transition:width .2s ease;
   }
   .nav-underline .nav-link:hover::after,
   .nav-underline .nav-link:focus::after,
-  .nav-underline .nav-link.active::after {
-    width: 100%;
+  .nav-underline .nav-link.active::after{
+    width:100%;
   }
   
   /* ===========================
-     6) OFFCANVAS Y DROPDOWN MODERNO
+     6) OFFCANVAS & DROPDOWN
      =========================== */
-  .offcanvas-nav { width: min(86vw, 360px); }
+  .offcanvas-nav{ width:min(86vw,360px); }
   
-  .dropdown-menu-modern {
-    border: 1px solid rgba(16,24,40,.06);
-    border-radius: 1rem;
+  .dropdown-menu-modern{
+    border:1px solid rgba(16,24,40,.06);
+    border-radius:1rem;
     box-shadow:
       0 12px 28px rgba(16,24,40,.08),
       0 4px 12px rgba(16,24,40,.06);
   }
-  .modern-item {
-    padding: .6rem .7rem;
-    border: 1px solid transparent;
-    border-radius: .75rem;
-    color: inherit;
-    transition: background-color .15s ease, border-color .15s ease, transform .05s ease;
+  .modern-item{
+    padding:.6rem .7rem;
+    border:1px solid transparent;
+    border-radius:.75rem;
+    color:inherit;
+    transition:background-color .15s ease, border-color .15s ease, transform .05s ease;
   }
-  .modern-item:hover,
-  .modern-item:focus {
-    background-color: rgba(29,72,166,.06);
-    border-color: rgba(29,72,166,.15);
-    text-decoration: none;
+  .modern-item:hover,.modern-item:focus{
+    background-color:rgba(29,72,166,.06);
+    border-color:rgba(29,72,166,.15);
+    text-decoration:none;
   }
-  .modern-title { font-weight: 600; }
-  .modern-icon {
-    width: 36px; height: 36px;
-    border-radius: .75rem;
-    display: inline-flex;
-    align-items: center; justify-content: center;
-    background: rgba(29,72,166,.12);
-    color: var(--bia-blue);
+  .modern-title{ font-weight:600; }
+  .modern-icon{
+    width:36px; height:36px;
+    border-radius:.75rem;
+    display:inline-flex;
+    align-items:center; justify-content:center;
+    background:rgba(29,72,166,.12);
+    color:var(--bia-blue);
   }
-  @media (min-width: 992px) {
-    .dropdown-hover:hover > .dropdown-menu { display: block; }
-    .dropdown-hover .dropdown-toggle::after { display: none; }
+  @media (min-width:992px){
+    .dropdown-hover:hover > .dropdown-menu{ display:block; }
+    .dropdown-hover .dropdown-toggle::after{ display:none; }
   }
   
   /* ===========================
-     7) DROPZONE BIA
+     7) DROPZONE
      =========================== */
-  .dropzone-bia {
-    border: 2px dashed rgba(29,72,166,.35);
-    border-radius: 16px;
-    padding: 18px;
-    text-align: center;
-    cursor: pointer;
-    transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .05s ease;
-    background: #fff;
+  .dropzone-bia{
+    border:2px dashed rgba(29,72,166,.35);
+    border-radius:16px;
+    padding:18px;
+    text-align:center;
+    cursor:pointer;
+    transition:background-color .15s ease, border-color .15s ease, box-shadow .15s ease, transform .05s ease;
+    background:#fff;
   }
-  .dropzone-bia:hover { border-color: var(--bia-blue); }
-  .dropzone-bia.dragover {
-    background-color: rgba(29,72,166,.06);
-    border-color: var(--bia-blue);
-    box-shadow: 0 0 0 3px rgba(29,72,166,.14) inset;
+  .dropzone-bia:hover{ border-color:var(--bia-blue); }
+  .dropzone-bia.dragover{
+    background-color:rgba(29,72,166,.06);
+    border-color:var(--bia-blue);
+    box-shadow:0 0 0 3px rgba(29,72,166,.14) inset;
   }
-  /* Icono más grande dentro de dropzone sin afectar el resto */
-  .dropzone-bia .modern-icon {
-    width: 42px; height: 42px; border-radius: .9rem;
-  }
+  .dropzone-bia .modern-icon{ width:42px; height:42px; border-radius:.9rem; }
   
   /* ===========================
      8) FOOTER
      =========================== */
-  .bg-bia-gray       { background-color: var(--bia-gray) !important; }
-  .text-bia-contrast { color: #ffffff !important; }
-  .footer-bia .divider-vertical {
-    border-left: 1px solid rgba(255,255,255,0.3);
-    height: 100%;
-    margin: 0 1rem;
+  .bg-bia-gray{ background-color:var(--bia-gray) !important; }
+  .text-bia-contrast{ color:#fff !important; }
+  .footer-bia .divider-vertical{
+    border-left:1px solid rgba(255,255,255,0.3);
+    height:100%;
+    margin:0 1rem;
   }
   
   /* ===========================
      9) LAYOUT “HERO”
      =========================== */
-  .hero-slice { min-height: calc(100vh - var(--header-h)); } /* Login full-bleed */
+  .hero-slice{ min-height:calc(100vh - var(--header-h)); }
   
-  .pm-hero-bg {
-    position: absolute;
-    inset: 0;
-    background-image: url(/public/images/PuertoMadero.png);
-    background-size: cover;
-    background-position: center;
-    transform: scale(1.03);
-    will-change: transform;
-    pointer-events: none;
+  .pm-hero-bg{
+    position:absolute; inset:0;
+    background-image:url(/public/images/PuertoMadero.png);
+    background-size:cover; background-position:center;
+    transform:scale(1.03);
+    will-change:transform;
+    pointer-events:none;
   }
-  .pm-hero-vignette {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: linear-gradient(
+  .pm-hero-vignette{
+    position:absolute; inset:0; pointer-events:none;
+    background:linear-gradient(
       to bottom,
       rgba(0,0,0,0.20) 0%,
       rgba(0,0,0,0.12) 40%,
@@ -249,88 +232,230 @@
   /* ===========================
      10) GLASS (TRANSLÚCIDOS)
      =========================== */
-  /* Base */
-  .glass-card {
-    background: rgba(255, 255, 255, 0.30);
-    border: 1px solid rgba(255, 255, 255, 0.35);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
-    backdrop-filter: blur(16px) saturate(140%);
-    box-shadow: 0 10px 30px rgba(0,0,0,.12);
+  .glass-card{
+    background:rgba(255,255,255,0.30);
+    border:1px solid rgba(255,255,255,0.35);
+    -webkit-backdrop-filter:blur(16px) saturate(140%);
+    backdrop-filter:blur(16px) saturate(140%);
+    box-shadow:0 10px 30px rgba(0,0,0,.12);
   }
-  /* Más opaco (Login + Generar Certificado público) */
-  .glass-card--firm {
-    background: rgba(255, 255, 255, 0.52);
-    border-color: rgba(255, 255, 255, 0.60);
-    -webkit-backdrop-filter: blur(12px) saturate(130%);
-    backdrop-filter: blur(12px) saturate(130%);
+  .glass-card--firm{
+    background:rgba(255,255,255,0.52);
+    border-color:rgba(255,255,255,0.60);
+    -webkit-backdrop-filter:blur(12px) saturate(130%);
+    backdrop-filter:blur(12px) saturate(130%);
   }
-  /* Intermedio */
-  .glass-card--ultra {
-    background: rgba(255, 255, 255, 0.76);
-    border-color: rgba(255, 255, 255, 0.45);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
-    backdrop-filter: blur(16px) saturate(140%);
+  .glass-card--ultra{
+    background:rgba(255,255,255,0.76);
+    border-color:rgba(255,255,255,0.45);
+    -webkit-backdrop-filter:blur(16px) saturate(140%);
+    backdrop-filter:blur(16px) saturate(140%);
   }
-  /* Más transparente (por si lo querés en Home) */
-  .glass-card--lite {
-    background: rgba(255, 255, 255, 0.60);
-    border-color: rgba(255, 255, 255, 0.35);
-    -webkit-backdrop-filter: blur(16px) saturate(140%);
-    backdrop-filter: blur(16px) saturate(140%);
+  .glass-card--lite{
+    background:rgba(255,255,255,0.60);
+    border-color:rgba(255,255,255,0.35);
+    -webkit-backdrop-filter:blur(16px) saturate(140%);
+    backdrop-filter:blur(16px) saturate(140%);
   }
   
   /* ===========================
      11) HOME – TILES & IMAGEN
      =========================== */
-  .home-tile {
-    min-height: clamp(520px, 72vh, 780px);
-    display: flex;
+  .home-tile{
+    min-height:clamp(520px,72vh,780px);
+    display:flex;
   }
-  @media (max-width: 767.98px) { .home-tile { min-height: auto; } }
+  @media (max-width:767.98px){ .home-tile{ min-height:auto; } }
   
-  .home-image {
-    background-image: url(/public/images/PuertoMadero.png);
-    background-size: cover;
-    background-position: center;
-    width: 100%; height: 100%;
+  .home-image{
+    background-image:url(/public/images/PuertoMadero.png);
+    background-size:cover; background-position:center;
+    width:100%; height:100%;
   }
   
   /* ===========================
      12) LOGIN – IMAGEN FULL DERECHA
      =========================== */
-  .login-hero {
-    background-image: url(/public/images/PuertoMadero.png);
-    background-size: cover;
-    background-position: center;
+  .login-hero{
+    background-image:url(/public/images/PuertoMadero.png);
+    background-size:cover; background-position:center;
   }
   
   /* ===========================
      13) TABLAS – “MOSTRAR DATOS”
      =========================== */
-  .table-scroll {
-    max-height: calc(100vh - var(--header-h) - 280px);
-    overflow: auto;
+  .table-scroll{
+    max-height:calc(100vh - var(--header-h) - 280px);
+    overflow:auto;
   }
-  @media (max-width: 576px) {
-    .table-scroll { max-height: calc(100vh - var(--header-h) - 320px); }
+  @media (max-width:576px){
+    .table-scroll{ max-height:calc(100vh - var(--header-h) - 320px); }
   }
-  .thead-sticky th {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    background: var(--bs-light);
+  
+  /* Header fijo */
+  .thead-sticky th{
+    position:sticky; top:0; z-index:2;
+    background:var(--bs-light);
   }
-  /* Columna Acciones pegada a la derecha si hay scroll horizontal */
-  .sticky-actions { position: sticky; right: 0; z-index: 2; }
+  
+  /* Acciones pegadas a la derecha en scroll horizontal */
+  .sticky-actions{ position:sticky; right:0; z-index:2; }
+  
+  /* Primera columna fija en scroll horizontal */
+  .sticky-first{
+    position:sticky; left:0; z-index:2;
+    background:#fff;
+    box-shadow:1px 0 0 var(--bs-border-color);
+  }
+  
+  /* Líneas verticales en toda la grilla */
+  .table.bia-grid thead th,
+  .table.bia-grid tbody td{
+    border-left:1px solid var(--bs-border-color);
+  }
+  .table.bia-grid thead th:first-child,
+  .table.bia-grid tbody td:first-child{
+    border-left:0;
+  }
+  
   /* Truncado elegante */
-  .truncate-200 {
-    max-width: 200px;
-    display: inline-block;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    vertical-align: bottom;
+  .truncate-200{
+    max-width:200px;
+    display:inline-block;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    vertical-align:bottom;
   }
+  
   /* Resaltado de fila en edición */
-  .table-active { --bs-table-bg: rgba(29, 72, 166, 0.06); }
+  .table-active{ --bs-table-bg:rgba(29,72,166,.06); }
+  
+  /* Tabla coloreada (header + filas impares) */
+  .table-colored thead tr th{
+    background:linear-gradient(180deg, rgba(29,72,166,.14), rgba(29,72,166,.06));
+    color:#0f2c6b;
+    border-bottom:1px solid rgba(29,72,166,.25);
+  }
+  .table-colored tbody tr:nth-child(odd) td{
+    background-color:rgba(29,72,166,.02);
+  }
+  
+  /* Estado por fila (borde interno a la izquierda) */
+  .table-colored tbody tr.row-ok{  box-shadow:inset 4px 0 0 #198754; }
+  .table-colored tbody tr.row-bad{ box-shadow:inset 4px 0 0 #dc3545; }
+  
+  /* Mostrar acciones al hover en la última columna */
+  .row-hover-actions td:last-child .btn{ opacity:0; transition:opacity .12s ease; }
+  .row-hover-actions:hover td:last-child .btn{ opacity:1; }
+  
+  /* ===========================
+     14) “MOSTRAR DATOS” – ESTILO MODERNO
+     =========================== */
+  
+  /* Toolbar con gradiente suave */
+  .gradient-toolbar .card-body{
+    background:linear-gradient(90deg, rgba(29,72,166,.06), rgba(29,72,166,.02));
+    border-radius:1rem;
+  }
+  
+  /* Chips de estado (Tabs) */
+  .btn-chip{
+    border:1px solid rgba(16,24,40,.12);
+    background:#fff;
+    color:inherit;
+    padding:.35rem .65rem;
+    border-radius:999px;
+    font-size:.85rem;
+    transition:background-color .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .btn-chip.active,
+  .btn-chip:hover{ border-color:rgba(29,72,166,.35); }
+  
+  /* Verde para “cancelado”, rojo para “no cancelado” */
+  .btn-chip.chip-cancelado{
+    background:rgba(25,135,84,.10);
+    border-color:rgba(25,135,84,.30);
+    color:#198754;
+  }
+  .btn-chip.chip-cancelado.active,
+  .btn-chip.chip-cancelado:hover{
+    background:rgba(25,135,84,.18);
+    border-color:rgba(25,135,84,.45);
+    color:#146c43;
+  }
+  .btn-chip.chip-no-cancelado{
+    background:rgba(220,53,69,.10);
+    border-color:rgba(220,53,69,.30);
+    color:#dc3545;
+  }
+  .btn-chip.chip-no-cancelado.active,
+  .btn-chip.chip-no-cancelado:hover{
+    background:rgba(220,53,69,.18);
+    border-color:rgba(220,53,69,.45);
+    color:#b02a37;
+  }
+  
+  /* Tarjetas con acento de estado (arriba) */
+  .card-accent-ok,.card-accent-bad{ position:relative; overflow:hidden; }
+  .card-accent-ok::before,
+  .card-accent-bad::before{
+    content:"";
+    position:absolute; top:0; left:0; right:0; height:4px;
+  }
+  .card-accent-ok::before { background:linear-gradient(90deg,#198754,#8fd4a8); }
+  .card-accent-bad::before{ background:linear-gradient(90deg,#dc3545,#f5a3ab); }
+  
+  /* Hover suave en tarjetas */
+  .card-hover{ transition:transform .08s ease, box-shadow .18s ease; }
+  .card-hover:hover{ transform:translateY(-2px); box-shadow:0 14px 28px rgba(16,24,40,.12); }
+  
+  /* Skeleton para cargas */
+  .skeleton-card{
+    height:180px;
+    background:linear-gradient(90deg, rgba(0,0,0,0.04) 25%, rgba(0,0,0,0.06) 37%, rgba(0,0,0,0.04) 63%);
+    background-size:400% 100%;
+    animation:shimmer 1.2s ease-in-out infinite;
+    border-radius:1rem;
+  }
+  @keyframes shimmer{
+    0%{ background-position:100% 0; }
+    100%{ background-position:-100% 0; }
+  }
+  
+  /* Drawer lateral */
+  .side-drawer{
+    position:fixed;
+    top:0; right:-520px;
+    width:min(520px,92vw);
+    height:100%;
+    background:#fff;
+    border-left:1px solid rgba(16,24,40,.08);
+    box-shadow:-18px 0 36px rgba(16,24,40,.16);
+    z-index:1050;
+    display:flex; flex-direction:column;
+    transition:right .18s ease;
+  }
+  .side-drawer.open{ right:0; }
+  .side-drawer-header,
+  .side-drawer-footer{
+    padding:.9rem 1rem;
+    border-bottom:1px solid rgba(16,24,40,.08);
+  }
+  .side-drawer-header{
+    background:linear-gradient(90deg, rgba(29,72,166,.06), rgba(29,72,166,0));
+  }
+  .side-drawer-footer{
+    border-top:1px solid rgba(16,24,40,.08);
+    border-bottom:0;
+    margin-top:auto;
+  }
+  .side-drawer-body{ padding:1rem; overflow:auto; }
+  
+  /* Backdrop */
+  .backdrop{
+    position:fixed; inset:0;
+    background:rgba(16,24,40,.24);
+    z-index:1040;
+  }
   

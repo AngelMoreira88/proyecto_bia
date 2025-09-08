@@ -40,7 +40,7 @@ export default function HomePortalBia() {
           <div className="card-body p-4 p-md-5">
             {/* Encabezado */}
             <div className="text-center mb-4">
-              <img src="/images/LogoBIA.png" alt="Grupo BIA" height="40" className="mb-2" />
+              {/* Logo removido */}
               <h2 className="fw-bold text-bia mb-1">Portal de Grupo BIA</h2>
               <small className="text-secondary">
                 Accedé a las funcionalidades internas y herramientas de gestión
