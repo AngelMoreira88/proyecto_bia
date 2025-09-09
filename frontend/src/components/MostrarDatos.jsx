@@ -1,5 +1,5 @@
-// src/components/MostrarDatosPro.jsx
-import React, { useMemo, useState } from 'react';
+// src/components/MostrarDatos.jsx
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   listarDatosBia,
   actualizarDatoBia,
@@ -9,7 +9,46 @@ import {
 import { getUserRole } from '../services/auth';
 import BackToHomeButton from './BackToHomeButton';
 
-export default function MostrarDatosPro() {
+/* ============================
+   Constantes estables
+   ============================ */
+const VISIBLE_COLUMNS = [
+  'id_pago_unico', 'dni', 'nombre_apellido', 'estado',
+  'entidadinterna', 'creditos', 'fecl', 'total_plan',
+];
+
+const MASTER_COLUMNS = [
+  ...VISIBLE_COLUMNS,
+  'propietario', 'entidadoriginal', 'grupo', 'tramo',
+  'comision', 'interes_total', 'fecha_apertura', 'cuit',
+];
+
+const LABELS = {
+  id: 'ID',
+  id_pago_unico: 'ID pago único',
+  dni: 'DNI',
+  nombre_apellido: 'Nombre y apellido',
+  estado: 'Estado',
+  entidadinterna: 'Entidad interna',
+  propietario: 'Propietario',
+  entidadoriginal: 'Entidad original',
+  grupo: 'Grupo',
+  tramo: 'Tramo',
+  creditos: 'Créditos',
+  comision: 'Comisión',
+  total_plan: 'Total plan',
+  saldo_capital: 'Saldo capital',
+  interes_total: 'Interés total',
+  fecl: 'FECL',
+  fecha_apertura: 'Fecha apertura',
+  cuit: 'CUIT',
+};
+
+const pretty = (k) => LABELS[k] || k;
+const isCancelado = (v) => String(v || '').trim().toLowerCase() === 'cancelado';
+const estadoBucket = (v) => (isCancelado(v) ? 'cancelado' : 'no_cancelado');
+
+export default function MostrarDatos() {
   const [query, setQuery] = useState('');
   const [datos, setDatos] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -22,48 +61,32 @@ export default function MostrarDatosPro() {
   const [formData, setFormData] = useState({});
   const [hasSearched, setHasSearched] = useState(false);
   const [estadoTab, setEstadoTab] = useState('todos'); // 'todos' | 'cancelado' | 'no_cancelado'
-  const isAdmin = getUserRole() === 'admin';
+  const [device, setDevice] = useState('desktop'); // 'mobile' | 'tablet' | 'desktop'
 
-  // Columnas visibles en la tabla (y orden de lectura)
-  const VISIBLE_COLUMNS = [
-    'id_pago_unico', 'dni', 'nombre_apellido', 'estado',
-    'entidadinterna', 'creditos', 'fecl', 'total_plan'
-  ];
+  // Roles/permisos
+  const roleRaw = getUserRole?.() ?? '';
+  const role = String(roleRaw).toLowerCase();
+  const isAdmin = role === 'admin';
+  const canWrite = isAdmin || role === 'write';
 
-  // Esquema base + extras para Drawer/Export DNI
-  const MASTER_COLUMNS = [
-    ...VISIBLE_COLUMNS,
-    'propietario', 'entidadoriginal', 'grupo', 'tramo',
-    'comision', 'interes_total', 'fecha_apertura', 'cuit'
-  ];
+  /* ====== Detección simple de dispositivo (bloquea móviles) ====== */
+  useEffect(() => {
+    const detect = () => {
+      const ua = navigator.userAgent.toLowerCase();
+      const isMobileUA = /android|iphone|ipod|iemobile|blackberry|opera mini/.test(ua);
+      const w = window.innerWidth;
+      const isMobileW = w < 576;
+      const isTabletW = w >= 576 && w < 992;
+      if (isMobileUA || isMobileW) setDevice('mobile');
+      else if (isTabletW) setDevice('tablet');
+      else setDevice('desktop');
+    };
+    detect();
+    window.addEventListener('resize', detect);
+    return () => window.removeEventListener('resize', detect);
+  }, []);
 
-  const LABELS = {
-    id: 'ID',
-    id_pago_unico: 'ID pago único',
-    dni: 'DNI',
-    nombre_apellido: 'Nombre y apellido',
-    estado: 'Estado',
-    entidadinterna: 'Entidad interna',
-    propietario: 'Propietario',
-    entidadoriginal: 'Entidad original',
-    grupo: 'Grupo',
-    tramo: 'Tramo',
-    creditos: 'Créditos',
-    comision: 'Comisión',
-    total_plan: 'Total plan',
-    saldo_capital: 'Saldo capital',
-    interes_total: 'Interés total',
-    fecl: 'FECL',
-    fecha_apertura: 'Fecha apertura',
-    cuit: 'CUIT',
-  };
-  const pretty = (k) => LABELS[k] || k;
-
-  // --- helpers de estado ---
-  const isCancelado = (v) => String(v || '').trim().toLowerCase() === 'cancelado';
-  const estadoBucket = (v) => (isCancelado(v) ? 'cancelado' : 'no_cancelado');
-
-  // Columnas reales + extras detectadas en resultados
+  /* ====== Columnas reales + extras detectadas en resultados ====== */
   const columnas = useMemo(() => {
     const seen = new Set();
     for (const row of datos) Object.keys(row || {}).forEach(k => seen.add(k));
@@ -71,9 +94,10 @@ export default function MostrarDatosPro() {
     return MASTER_COLUMNS.concat(extras);
   }, [datos]);
 
-  // Pill de estado: verde si cancelado, rojo si no
+  /* ====== Celdas y badges ====== */
   const EstadoPill = ({ value }) => {
-    const cls = isCancelado(value) ? 'success' : 'danger';
+    const ok = isCancelado(value);
+    const cls = ok ? 'success' : 'danger';
     const text = value ?? '—';
     return <span className={`badge rounded-pill bg-${cls}`}>{text}</span>;
   };
@@ -84,6 +108,7 @@ export default function MostrarDatosPro() {
     return <span className="truncate-200" title={String(val)}>{String(val)}</span>;
   };
 
+  /* ====== Normalización de payload ====== */
   const normalizeResults = (payload) => {
     if (Array.isArray(payload)) return payload;
     if (payload && Array.isArray(payload.results)) return payload.results;
@@ -91,6 +116,7 @@ export default function MostrarDatosPro() {
     return [];
   };
 
+  /* ====== Búsqueda ====== */
   const doSearch = async () => {
     const q = String(query).trim();
     setHasSearched(true);
@@ -119,20 +145,46 @@ export default function MostrarDatosPro() {
 
   const handleSubmit = (e) => { e.preventDefault(); doSearch(); };
 
-  const openRow = (row) => { setActiveRow(row); setFormData({ ...row }); setDrawerOpen(true); };
+  /* ====== Drawer ====== */
+  const openRow  = (row) => {
+    // Guardamos el valor EXACTO de DB para Estado
+    const estadoRaw = (row?.estado ?? '').toString();
+    setActiveRow(row);
+    setFormData({ ...row, estado: estadoRaw });
+    setDrawerOpen(true);
+  };
+
   const closeDrawer = () => { setDrawerOpen(false); setActiveRow(null); setFormData({}); };
+
   const onChangeForm = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
+
+  // Campos no editables (siempre bloqueados)
+  const LOCKED_FIELDS = new Set(['id', 'id_pago_unico']);
+
+  const isFieldEditable = (k) => {
+    if (!canWrite) return false;
+    if (LOCKED_FIELDS.has(k)) return false;
+    return true;
+  };
 
   const hasChanges = useMemo(() => {
     if (!activeRow) return false;
-    return Object.keys(formData).some(k => (formData[k] ?? '') !== (activeRow[k] ?? ''));
+    return Object.keys(formData).some(k => {
+      const curr = (formData[k] ?? '').toString().trim();
+      const orig = (activeRow[k] ?? '').toString().trim();
+      return curr !== orig;
+    });
   }, [formData, activeRow]);
 
   const saveRow = async () => {
-    if (!activeRow) return;
+    if (!activeRow || !canWrite) return;
     const changes = {};
     Object.keys(formData).forEach((k) => {
-      if ((formData[k] ?? '') !== (activeRow[k] ?? '')) changes[k] = formData[k];
+      const curr = (formData[k] ?? '').toString();
+      const orig = (activeRow[k] ?? '').toString();
+      if (curr !== orig && !LOCKED_FIELDS.has(k)) {
+        changes[k] = curr;
+      }
     });
     if (!Object.keys(changes).length) { closeDrawer(); return; }
     setSaving(true);
@@ -148,8 +200,9 @@ export default function MostrarDatosPro() {
     }
   };
 
+  /* ====== Eliminar (write y admin) ====== */
   const handleDelete = async (id) => {
-    if (!isAdmin) return;
+    if (!canWrite) return;
     const row = datos.find(d => d.id === id);
     const refText = row?.id_pago_unico || id;
     if (!window.confirm(`¿Eliminar el registro ${refText}? Esta acción no se puede deshacer.`)) return;
@@ -167,28 +220,26 @@ export default function MostrarDatosPro() {
     }
   };
 
-  // ====== FILTRO + ORDEN ======
-  // 1) filtro por pestaña (todos | cancelado | no_cancelado)
+  /* ====== Filtro + orden ====== */
   const filtered = useMemo(() => {
     if (estadoTab === 'todos') return datos;
     return datos.filter(d => estadoBucket(d.estado) === estadoTab);
   }, [datos, estadoTab]);
 
-  // 2) orden: primero "no_cancelado", luego "cancelado" (estable)
   const rows = useMemo(() => {
     const arr = filtered.map((r, idx) => ({ r, idx }));
     const weight = (x) => (estadoBucket(x.r.estado) === 'no_cancelado' ? 0 : 1);
     arr.sort((a, b) => {
       const w = weight(a) - weight(b);
       if (w !== 0) return w;
-      const na = String(a.r.nombre_apellido ?? '').localeCompare(String(b.r.nombre_apellido ?? ''), 'es', { sensitivity: 'base' });
-      if (na !== 0) return na;
-      return a.idx - b.idx;
+      const na = String(a.r.nombre_apellido ?? '')
+        .localeCompare(String(b.r.nombre_apellido ?? ''), 'es', { sensitivity: 'base' });
+      return na !== 0 ? na : (a.idx - b.idx);
     });
     return arr.map(x => x.r);
   }, [filtered]);
 
-  // ====== EXPORTES ======
+  /* ====== CSV ====== */
   const toCsvValue = (val) => {
     const s = val == null ? '' : String(val);
     const needs = /[",\n\r]/.test(s);
@@ -196,7 +247,6 @@ export default function MostrarDatosPro() {
     return needs ? `"${esc}"` : esc;
   };
 
-  // Exporta TODO (API completa)
   const handleExportTodo = async () => {
     try {
       const res = await exportarDatosBiaCSV();
@@ -214,13 +264,12 @@ export default function MostrarDatosPro() {
     }
   };
 
-  // Exporta TODO del DNI/ID actual (todas las filas y columnas disponibles del resultado)
   const handleExportTodoDNI = () => {
     if (!datos.length) { alert('Realizá una búsqueda primero.'); return; }
-    const cols = columnas; // todas las columnas detectadas para este resultado
+    const cols = columnas;
     const headers = cols.map(pretty).join(',');
     const lines = datos.map(r => cols.map(c => toCsvValue(r[c])).join(','));
-    const csv = '\uFEFF' + [headers, ...lines].join('\r\n'); // BOM para Excel
+    const csv = '\uFEFF' + [headers, ...lines].join('\r\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -232,7 +281,21 @@ export default function MostrarDatosPro() {
     window.URL.revokeObjectURL(url);
   };
 
-  // UI – pestañas de estado
+  /* ====== Bloquea móviles ====== */
+  if (device === 'mobile') {
+    return (
+      <div className="container mt-4 pb-5 page-fill d-flex align-items-center justify-content-center">
+        <div className="alert alert-warning border shadow-sm rounded-4 p-4 text-center" role="alert" style={{ maxWidth: 520 }}>
+          <h5 className="mb-2">No disponible en celulares</h5>
+          <p className="mb-0 text-secondary">
+            Este portal solo puede usarse desde <strong>PC</strong> o <strong>tablet</strong>.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  /* ====== Chips de estado ====== */
   const EstadoTabs = () => (
     <div className="d-flex flex-wrap gap-2">
       <button
@@ -262,10 +325,17 @@ export default function MostrarDatosPro() {
     </div>
   );
 
+  // Mostrar chips cuando HAY resultados totales (aunque la pestaña activa quede vacía)
+  const showEstadoTabs = hasSearched && datos.length > 0;
+
+  /* ====== UI ====== */
   return (
-    <div className="container pb-3 page-fill bg-app">
+    <div
+      className="container mt-4 mt-md-5 pb-3 page-fill bg-app"
+      style={{ marginTop: 'clamp(12px, 2vh, 28px)' }}
+    >
       {/* Toolbar */}
-      <div className="card shadow-sm border-0 rounded-4 mb-3 gradient-toolbar">
+      <div className="card shadow-sm border-0 rounded-4 mb-3 gradient-toolbar glass-card glass-card--ultra">
         <div className="card-body d-flex flex-column gap-3">
           <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-2">
             <div className="d-flex align-items-center gap-3">
@@ -310,20 +380,31 @@ export default function MostrarDatosPro() {
 
           {/* Búsqueda + vista */}
           <form onSubmit={handleSubmit} className="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            {/* Input más corto con botón pegado */}
-            <div className="input-group" style={{ maxWidth: 460 }}>
-              <input
-                id="busqueda"
-                type="text"
-                className="form-control"
-                placeholder="DNI o ID pago único"
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-              />
-              <button className="btn btn-bia" type="submit" disabled={loading}>
-                {loading && <span className="spinner-border spinner-border-sm me-2" />}
-                {loading ? 'Buscando…' : 'Buscar'}
-              </button>
+            {/* Slab con halo azul (match GenerarCertificado) */}
+            <div
+              className="w-100 rounded-4"
+              style={{
+                maxWidth: 520,
+                background: '#fff',
+                border: '1px solid rgba(16,24,40,.08)',
+                boxShadow: '0 0 0 4px rgba(29,72,166,.10), 0 10px 24px rgba(16,24,40,.10)',
+                padding: 8
+              }}
+            >
+              <div className="input-group">
+                <input
+                  id="busqueda"
+                  type="text"
+                  className="form-control"
+                  placeholder="DNI o ID pago único"
+                  value={query}
+                  onChange={e => setQuery(e.target.value)}
+                />
+                <button className="btn btn-bia" type="submit" disabled={loading}>
+                  {loading && <span className="spinner-border spinner-border-sm me-2" />}
+                  {loading ? 'Buscando…' : 'Buscar'}
+                </button>
+              </div>
             </div>
 
             {/* Botones de vista más pequeños */}
@@ -347,8 +428,8 @@ export default function MostrarDatosPro() {
             </div>
           </form>
 
-          {/* Pestañas por estado */}
-          <EstadoTabs />
+          {/* Pestañas por estado: SOLO cuando hay resultados totales */}
+          {showEstadoTabs && <EstadoTabs />}
         </div>
       </div>
 
@@ -356,7 +437,7 @@ export default function MostrarDatosPro() {
       {error && hasSearched && <div className="alert alert-danger">{error}</div>}
       {!loading && !error && hasSearched && rows.length === 0 && (
         <div className="alert alert-light border d-flex align-items-center gap-2">
-          <span>😕</span> No hay resultados para “{query}”.
+          <span></span> No hay resultados para “{query}”.
         </div>
       )}
 
@@ -397,8 +478,8 @@ export default function MostrarDatosPro() {
                     </div>
 
                     <div className="mt-2 d-flex justify-content-between gap-2">
-                      <button className="btn btn-sm btn-outline-bia" onClick={() => openRow(row)}>Ver detalle</button>
-                      {isAdmin && (
+                      <button className="btn btn-sm btn-outline-bia" onClick={() => openRow(row)}>Editar</button>
+                      {canWrite && (
                         <button
                           className="btn btn-sm btn-outline-danger"
                           onClick={() => handleDelete(row.id)}
@@ -442,8 +523,8 @@ export default function MostrarDatosPro() {
                         ))}
                         <td className="text-end sticky-actions bg-white">
                           <div className="d-flex gap-2 justify-content-end">
-                            <button className="btn btn-sm btn-outline-bia" onClick={() => openRow(row)}>Detalle</button>
-                            {isAdmin && (
+                            <button className="btn btn-sm btn-outline-bia" onClick={() => openRow(row)}>Editar</button>
+                            {canWrite && (
                               <button
                                 className="btn btn-sm btn-outline-danger"
                                 onClick={() => handleDelete(row.id)}
@@ -464,53 +545,55 @@ export default function MostrarDatosPro() {
         </div>
       )}
 
-      {/* Drawer lateral */}
+      {/* Drawer lateral (Detalles) */}
       <div className={`side-drawer ${drawerOpen ? 'open' : ''}`}>
-        <div className="side-drawer-header">
+        {/* Header elegante con badge de estado */}
+        <div className="side-drawer-header" style={{ background: 'linear-gradient(90deg, rgba(29,72,166,.06), rgba(29,72,166,0))' }}>
           <div className="d-flex align-items-center justify-content-between">
             <div className="d-flex flex-column">
-              <strong>{activeRow?.nombre_apellido ?? 'Detalle'}</strong>
-              <small className="text-secondary">DNI: {activeRow?.dni ?? '—'} • ID: {activeRow?.id_pago_unico ?? '—'}</small>
+              <strong className="fs-6">{activeRow?.nombre_apellido ?? 'Detalle'}</strong>
+              <small className="text-secondary">
+                DNI: {activeRow?.dni ?? '—'} • ID: {activeRow?.id_pago_unico ?? '—'}
+              </small>
             </div>
-            <button className="btn btn-sm btn-outline-secondary" onClick={closeDrawer}>Cerrar</button>
+            {activeRow && <EstadoPill value={activeRow?.estado} />}
           </div>
         </div>
+
+        {/* Body form-floating (moderno y limpio) */}
         <div className="side-drawer-body">
           {activeRow && (
             <div className="row g-3">
-              {columnas.map((k) => (
-                <div key={k} className="col-12 col-md-6">
-                  <label className="form-label small text-secondary mb-1">{pretty(k)}</label>
-                  {k === 'estado' ? (
-                    <select
-                      className="form-select"
-                      value={formData[k] ?? ''}
-                      onChange={e => onChangeForm(k, e.target.value)}
-                    >
-                      <option value="">—</option>
-                      <option value="cancelado">cancelado</option>
-                      <option value="pendiente">pendiente</option>
-                      <option value="correcto">correcto</option>
-                      <option value="incompleto">incompleto</option>
-                      <option value="rechazado">rechazado</option>
-                      <option value="error">error</option>
-                    </select>
-                  ) : (
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={formData[k] ?? ''}
-                      onChange={e => onChangeForm(k, e.target.value)}
-                    />
-                  )}
-                </div>
-              ))}
+              {columnas.map((k) => {
+                const editable = isFieldEditable(k);
+                const isEstado = k === 'estado';
+                const value = (formData[k] ?? '').toString();
+
+                return (
+                  <div key={k} className="col-12 col-md-6">
+                    <div className="form-floating">
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={value}
+                        onChange={e => onChangeForm(k, e.target.value)}
+                        readOnly={!editable}
+                        placeholder=" "
+                      />
+                      <label className="text-secondary">
+                        {pretty(k)}{(!editable && (k === 'id' || k === 'id_pago_unico')) ? ' (no editable)' : ''}
+                      </label>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
+
         <div className="side-drawer-footer">
           <div className="d-flex justify-content-between w-100">
-            {isAdmin ? (
+            {canWrite ? (
               <>
                 <button className="btn btn-outline-bia" onClick={closeDrawer} disabled={saving}>Cancelar</button>
                 <button className="btn btn-bia" onClick={saveRow} disabled={saving || !hasChanges}>
