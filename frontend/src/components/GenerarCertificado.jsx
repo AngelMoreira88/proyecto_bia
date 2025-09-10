@@ -1,3 +1,4 @@
+// frontend/src/components/GenerarCertificado.jsx
 import { useState } from "react";
 import api, { listarDatosBia } from "../services/api";
 import { isLoggedIn } from "../services/auth";
@@ -117,24 +118,21 @@ const collectArrays = (payload) => {
   return arrays;
 };
 
+/** Dedupe SOLO por ID. Si no hay ID, solo quita duplicados idénticos (JSON igual). */
 const dedupeRows = (arr) => {
-  const byId = new Map();
-  const bySig = new Set();
+  const seenIds = new Set();
+  const seenExact = new Set();
   const out = [];
   for (const x of arr) {
     const id = readIdPagoUnico(x);
     if (id) {
-      if (byId.has(id)) continue;
-      byId.set(id, true);
+      if (seenIds.has(id)) continue;
+      seenIds.add(id);
       out.push(x);
     } else {
-      const sig = JSON.stringify({
-        propietario: x?.propietario ?? "",
-        entidadinterna: x?.entidadinterna ?? "",
-        estado: readEstado(x),
-      });
-      if (bySig.has(sig)) continue;
-      bySig.add(sig);
+      const sig = JSON.stringify(x);
+      if (seenExact.has(sig)) continue;
+      seenExact.add(sig);
       out.push(x);
     }
   }
@@ -158,37 +156,35 @@ const pickSoloCancelados = (payload) => {
   return dedupeRows(only);
 };
 
-// Une ambas colecciones en UNA sola tabla, forzando estado visible
+/** Merge para la tabla: une sin borrar filas “sin ID”.
+ *  Si se repite el mismo ID, se queda una sola fila priorizando “cancelado”.
+ */
 const mergeRowsForTable = (noCancelados, cancelados) => {
-  const normRow = (x, hintedCat) => {
+  const out = [];
+  const byIdIndex = new Map();
+
+  const push = (x, hintedCat) => {
     const id = readIdPagoUnico(x);
     const raw = (readEstado(x) || "").trim();
-    const cancel = raw ? isCanceladoValue(raw) : hintedCat === "cancelado";
-    const display = raw || (cancel ? "cancelado" : "pendiente");
-    return {
-      ...x,
-      _id: id,
-      _cat: cancel ? "cancelado" : "no_cancelado",
-      _estado: display,
-    };
+    const isCanc = raw ? isCanceladoValue(raw) : hintedCat === "cancelado";
+    const display = raw || (isCanc ? "cancelado" : "pendiente");
+    const row = { ...x, _id: id, _cat: isCanc ? "cancelado" : "no_cancelado", _estado: display };
+
+    if (id) {
+      if (byIdIndex.has(id)) {
+        const idx = byIdIndex.get(id);
+        // si llega “cancelado” y el existente no lo es, reemplazamos
+        if (row._cat === "cancelado" && out[idx]._cat !== "cancelado") out[idx] = row;
+        return;
+      }
+      byIdIndex.set(id, out.length);
+    }
+    out.push(row);
   };
 
-  const all = [
-    ...noCancelados.map((x) => normRow(x, "no_cancelado")),
-    ...cancelados.map((x) => normRow(x, "cancelado")),
-  ];
-
-  // dedupe privilegiando "cancelado"
-  const map = new Map();
-  const keyOf = (r) =>
-    r._id || `${r.propietario ?? ""}|${r.entidadinterna ?? ""}|${r._estado ?? ""}`;
-  for (const r of all) {
-    const k = keyOf(r);
-    const prev = map.get(k);
-    if (!prev) map.set(k, r);
-    else if (r._cat === "cancelado" && prev._cat !== "cancelado") map.set(k, r);
-  }
-  return Array.from(map.values());
+  noCancelados.forEach((x) => push(x, "no_cancelado"));
+  cancelados.forEach((x) => push(x, "cancelado"));
+  return out;
 };
 
 // Extrae un id posible del Content-Disposition (cuando el POST devuelve PDF)
@@ -224,6 +220,21 @@ const fetchMetaById = async (dniTrim, idp) => {
   }
 };
 
+/** Fallback: trae TODO por DNI y lo divide en cancelados / no cancelados */
+const fetchAllByDni = async (dniTrim) => {
+  try {
+    const res = await listarDatosBia({ dni: dniTrim, page: 1 });
+    const all = normalizeResults(res?.data || {});
+    const nc = dedupeRows(all.filter((x) => !isCanceladoValue(readEstado(x))));
+    const ok = dedupeRows(all.filter((x) => isCanceladoValue(readEstado(x))));
+    console.debug("[CERT] Fallback listarDatosBia -> total:", all.length, " nc:", nc.length, " ok:", ok.length);
+    return { nc, ok };
+  } catch (e) {
+    console.debug("[CERT] Fallback listarDatosBia error:", e?.message);
+    return { nc: [], ok: [] };
+  }
+};
+
 /* ========= UI ========= */
 function CertificadoForm({
   dni,
@@ -231,9 +242,9 @@ function CertificadoForm({
   loading,
   msg,
   setMsg,
-  deudas,        // NO cancelados
+  deudas, // NO cancelados
   setDeudas,
-  varios,        // SOLO cancelados
+  varios, // SOLO cancelados
   setVarios,
   onSubmit,
   onDescargarPorId,
@@ -246,9 +257,7 @@ function CertificadoForm({
 
   return (
     <>
-      <h2 className="text-bia fw-bold mb-3 text-center">
-        Generar Certificado Libre de Deuda
-      </h2>
+      <h2 className="text-bia fw-bold mb-3 text-center">Generar Certificado Libre de Deuda</h2>
       <p className="text-muted text-center mb-4">Ingresá tu DNI a continuación:</p>
 
       <form onSubmit={onSubmit} className="mx-auto" style={{ maxWidth: 420 }}>
@@ -316,7 +325,7 @@ function CertificadoForm({
                 const waText =
                   `${WA_MSG_DEFAULT} DNI: ${dniTrim}` + (idp ? ` • ID pago único: ${idp}` : "");
                 const waHref = buildWAUrl(WA_PHONE, waText);
-                const key = `${idp || `${r.propietario}-${r.entidadinterna}-${i}`}`;
+                const key = `row-${idp || ""}-${r.propietario || ""}-${r.entidadinterna || ""}-${estado}-${i}`;
 
                 return (
                   <tr key={key}>
@@ -453,7 +462,6 @@ export default function GenerarCertificado() {
       const ct = (res.headers?.["content-type"] || "").toLowerCase();
 
       // Caso: backend devuelve PDF directo (un único cancelado).
-      // Mostramos la fila y dejamos "Emitir LDD", pero esta vez completando meta desde la BD.
       if (ct.includes("application/pdf")) {
         const cd = res.headers?.["content-disposition"] || "";
         const idp = idFromContentDisposition(cd);
@@ -470,6 +478,11 @@ export default function GenerarCertificado() {
           type: "success",
           text: "Sin deudas. Podés emitir el certificado desde la tabla.",
         });
+
+        // Además traigo todo por DNI por si hay otras coincidencias
+        const fb = await fetchAllByDni(dniTrim);
+        setVarios((prev) => dedupeRows([...prev, ...fb.ok]));
+        setDeudas((prev) => dedupeRows([...prev, ...fb.nc]));
         return;
       }
 
@@ -477,8 +490,14 @@ export default function GenerarCertificado() {
       const text = await toBlobText(res.data);
       const payload = JSON.parse(text || "{}");
 
-      const detOK = pickSoloCancelados(payload);
-      const detNC = pickNoCancelados(payload);
+      let detOK = pickSoloCancelados(payload);
+      let detNC = pickNoCancelados(payload);
+      console.debug("[CERT] POST -> cancelados (OK):", detOK.length, " no-cancelados:", detNC.length);
+
+      // Fallback: sumo lo que venga de la DB por DNI
+      const fb = await fetchAllByDni(dniTrim);
+      detOK = dedupeRows([...detOK, ...fb.ok]);
+      detNC = dedupeRows([...detNC, ...fb.nc]);
 
       if (detOK.length) setVarios(detOK);
       if (detNC.length) setDeudas(detNC);
@@ -523,14 +542,19 @@ export default function GenerarCertificado() {
               payload.mensaje ||
               "Tenés varias entidades sin deuda. Descargá el que corresponda.",
           });
-          setVarios(dedupeRows(payload.opciones));
-          const detNC = pickNoCancelados(payload);
-          if (detNC.length) setDeudas(detNC);
+          const fb = await fetchAllByDni(dniTrim);
+          setVarios(dedupeRows([...(payload.opciones || []), ...fb.ok]));
+          setDeudas(dedupeRows([...fb.nc]));
           return;
         }
 
-        const detOK = pickSoloCancelados(payload);
-        const detNC = pickNoCancelados(payload);
+        let detOK = pickSoloCancelados(payload);
+        let detNC = pickNoCancelados(payload);
+
+        const fb = await fetchAllByDni(dniTrim);
+        detOK = dedupeRows([...detOK, ...fb.ok]);
+        detNC = dedupeRows([...detNC, ...fb.nc]);
+
         if (detOK.length) setVarios(detOK);
         if (detNC.length) setDeudas(detNC);
 
@@ -587,7 +611,7 @@ export default function GenerarCertificado() {
                   varios={varios}
                   setVarios={setVarios}
                   onSubmit={handleSubmit}
-                  onDescargarPorId={descargarPorId}
+                  onDescargarPorId={descargarPorId /* <- evita refactor accidentales */}
                 />
               </div>
             </div>
@@ -614,7 +638,7 @@ export default function GenerarCertificado() {
               varios={varios}
               setVarios={setVarios}
               onSubmit={handleSubmit}
-              onDescargarPorId={descargarPorId}
+              onDescargarPorId={descargarPorId /* <- evita refactor accidentales */}
             />
           </div>
         </div>
