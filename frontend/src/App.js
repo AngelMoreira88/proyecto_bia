@@ -5,7 +5,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Header             from './components/Header';
 import Footer             from './components/Footer';
 import Home               from './components/Home';
-import HomePortalBia      from './components/HomePortalBIA';
+import HomePortalBIA      from './components/HomePortalBIA';
 import Login              from './components/Login';
 import Logout             from './components/Logout';
 import GenerarCertificado from './components/GenerarCertificado';
@@ -14,10 +14,12 @@ import ErroresValidacion  from './components/ErroresValidacion';
 import UploadForm         from './components/UploadForm';
 import PrivateRoute       from './components/PrivateRoute';
 import MostrarDatos       from './components/MostrarDatos';
-import Entidades          from './components/Entidades';
 import Perfil             from './components/Perfil';
 
-// ⬇️ Nuevo: importar el componente de Modificación Masiva
+// ✅ Import correcto: dashboard (form + listado)
+import EntidadDashboard   from './components/EntidadDashboard/EntidadDashboard';
+
+// Modificación masiva
 import ModificarMasivo    from './components/ModificarMasivo';
 
 import { isLoggedIn } from './services/auth';
@@ -40,98 +42,36 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      {/* app-shell aplica el padding-top global según la altura del header */}
       <div className="d-flex flex-column min-vh-100 app-shell">
         <Header />
-
-        {/* Fondo gris claro solo cuando hay login */}
         <div className={`flex-grow-1 ${logged ? 'bg-app' : ''}`}>
           <Routes>
             <Route path="/" element={<Home />} />
 
-            <Route
-              path="/portal"
-              element={
-                <PrivateRoute>
-                  <HomePortalBia />
-                </PrivateRoute>
-              }
-            />
-
-            <Route
-              path="/perfil"
-              element={
-                <PrivateRoute>
-                  <Perfil />
-                </PrivateRoute>
-              }
-            />
+            <Route path="/portal" element={<PrivateRoute><HomePortalBIA /></PrivateRoute>} />
+            <Route path="/perfil" element={<PrivateRoute><Perfil /></PrivateRoute>} />
 
             <Route path="/login"  element={<Login />} />
             <Route path="/logout" element={<Logout />} />
             <Route path="/certificado" element={<GenerarCertificado />} />
 
             {/* Carga de datos (altas) */}
-            <Route
-              path="/carga-datos/upload"
-              element={
-                <PrivateRoute>
-                  <UploadForm />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/carga-datos/confirmar"
-              element={
-                <PrivateRoute>
-                  <ConfirmarCarga />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/carga-datos/errores"
-              element={
-                <PrivateRoute>
-                  <ErroresValidacion />
-                </PrivateRoute>
-              }
-            />
+            <Route path="/carga-datos/upload"    element={<PrivateRoute><UploadForm /></PrivateRoute>} />
+            <Route path="/carga-datos/confirmar" element={<PrivateRoute><ConfirmarCarga /></PrivateRoute>} />
+            <Route path="/carga-datos/errores"   element={<PrivateRoute><ErroresValidacion /></PrivateRoute>} />
 
             {/* Mostrar datos */}
-            <Route
-              path="/datos/mostrar"
-              element={
-                <PrivateRoute>
-                  <MostrarDatos />
-                </PrivateRoute>
-              }
-            />
+            <Route path="/datos/mostrar" element={<PrivateRoute><MostrarDatos /></PrivateRoute>} />
 
-            {/* Entidades */}
-            <Route
-              path="/entidades"
-              element={
-                <PrivateRoute>
-                  <Entidades />
-                </PrivateRoute>
-              }
-            />
+            {/* ✅ Entidades → apunta al dashboard correcto */}
+            <Route path="/entidades" element={<PrivateRoute><EntidadDashboard /></PrivateRoute>} />
 
-            {/* ⬇️ Nuevo: Modificación masiva desde Excel/CSV */}
-            <Route
-              path="/modificar-masivo"
-              element={
-                <PrivateRoute>
-                  <ModificarMasivo />
-                </PrivateRoute>
-              }
-            />
+            {/* Modificación masiva */}
+            <Route path="/modificar-masivo" element={<PrivateRoute><ModificarMasivo /></PrivateRoute>} />
 
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
-
-        {/* El footer solo para no logueados */}
         {!logged && <Footer />}
       </div>
     </BrowserRouter>
