@@ -258,7 +258,7 @@ function CertificadoForm({
   return (
     <>
       <h2 className="text-bia fw-bold mb-3 text-center">Generar Certificado Libre de Deuda</h2>
-      <p className="text-muted text-center mb-4">Ingresá tu DNI a continuación:</p>
+      <p className="text-muted text-center mb-4">Ingresá tu DNI a continuación</p>
 
       <form onSubmit={onSubmit} className="mx-auto" style={{ maxWidth: 420 }}>
         <div className="mb-2 text-start">
@@ -285,10 +285,7 @@ function CertificadoForm({
           />
         </div>
 
-        {/* Mostrar SOLO si hay más de una opción */}
-        {hasResultados && filas.length > 1 && (
-          <div className="alert alert-info py-2 mb-2">Seleccioná una opción.</div>
-        )}
+
 
         {msg && (
           <div className={`alert alert-${msg.type} mt-2 mb-0`} role="alert">
@@ -311,9 +308,9 @@ function CertificadoForm({
             <thead className="table-light">
               <tr>
                 <th>Propietario</th>
-                <th>Entidad interna</th>
-                <th>Estado</th>
-                <th className="text-end">Acción</th>
+                <th>Entidad actual</th>
+                <th>Estado de la deuda</th>
+                <th className="text-end">¿Desea descargar su PDF?</th>
               </tr>
             </thead>
             <tbody>
@@ -341,7 +338,7 @@ function CertificadoForm({
                           rel="noopener noreferrer"
                           title="Contactar por WhatsApp"
                         >
-                          WhatsApp
+                          Contactános a traves de WhatsApp
                         </a>
                       ) : (
                         <button
@@ -350,7 +347,7 @@ function CertificadoForm({
                           disabled={!idp}
                           title={idp ? "Descargar certificado" : "Falta ID para descargar"}
                         >
-                          Certificado LDD
+                          Descarga tu libre de deuda en PDF 
                         </button>
                       )}
                     </td>
@@ -471,12 +468,12 @@ export default function GenerarCertificado() {
             id_pago_unico: idp || "",
             propietario: meta.propietario,
             entidadinterna: meta.entidadinterna,
-            estado: "cancelado",
+            estado: "Cancelado",
           },
         ]);
         setMsg({
           type: "success",
-          text: "Sin deudas. Podés emitir el certificado desde la tabla.",
+          text: "Podés emitir el/los certificado.",
         });
 
         // Además traigo todo por DNI por si hay otras coincidencias
