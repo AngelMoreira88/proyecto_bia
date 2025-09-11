@@ -3127,3 +3127,368 @@ DETAIL:  Failing row contains (40, 205774.0, null, null, null, null, null, null,
 [2025-09-10 00:12:33,356] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
 [2025-09-10 00:15:20,855] INFO django.utils.autoreload - Watching for file changes with StatReloader
 [2025-09-10 00:15:56,774] WARNING django.request - Not Found: /main.8b84517371ab643c7e93.hot-update.json
+[2025-09-11 00:02:24,398] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-11 00:06:10,675] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:06:10,688] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:06:23,018] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:06:23,025] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:06:24,266] WARNING django.request - Unauthorized: /carga-datos/api/admin/roles
+[2025-09-11 00:06:24,849] WARNING django.request - Unauthorized: /carga-datos/api/admin/roles
+[2025-09-11 00:06:42,526] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-11 00:06:42,537] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-11 00:09:23,437] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:09:23,443] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:09:30,582] WARNING django.request - Unauthorized: /carga-datos/api/exportar-datos-bia.csv
+[2025-09-11 00:20:21,252] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:20:21,260] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:20:37,720] WARNING django.request - Unauthorized: /carga-datos/api/cargar/
+[2025-09-11 00:20:38,862] INFO django.request - [angel] Faltan columnas en archivo 'bia_todo_20250911030932.csv': ['id_pago_unico', 'creditos', 'propietario', 'entidadoriginal', 'entidadinterna', 'entidad', 'grupo', 'tramo', 'comision', 'dni', 'cuit', 'nombre_apellido', 'fecha_apertura', 'fecha_deuda', 'saldo_capital', 'saldo_exigible', 'interes_diario', 'interes_total', 'saldo_actualizado', 'cancel_min', 'cod_rp', 'agencia', 'estado', 'sub_estado', 'tel1', 'tel2', 'tel3', 'tel4', 'tel5', 'mail1', 'mail2', 'mail3', 'provincia', 'pago_acumulado', 'ultima_fecha_pago', 'fecha_plan', 'anticipo', 'cuotas', 'importe', 'total_plan', 'saldo']
+[2025-09-11 00:20:38,863] WARNING django.request - Bad Request: /carga-datos/api/cargar/
+[2025-09-11 00:21:30,098] WARNING django.request - Unauthorized: /carga-datos/api/cargar/
+[2025-09-11 00:21:31,702] INFO django.request - [angel] Previsualización cargada de 'bia_todo_20250911030932.xlsx' con 2 registros.
+[2025-09-11 00:21:32,024] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:21:32,027] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-09-11 00:21:32,038] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-09-11 00:21:32,041] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:22:14,491] WARNING django.request - Unauthorized: /carga-datos/api/errores/
+[2025-09-11 00:22:14,500] WARNING django.request - Unauthorized: /carga-datos/api/errores/
+[2025-09-11 00:22:15,769] WARNING django.request - Not Found: /carga-datos/api/errores/
+[2025-09-11 00:22:16,305] WARNING django.request - Not Found: /carga-datos/api/errores/
+[2025-09-11 00:22:18,531] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:22:18,539] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-09-11 00:22:18,542] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-09-11 00:22:18,561] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:22:23,850] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:22:23,860] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:43:56,739] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views.py changed, reloading.
+[2025-09-11 00:43:57,777] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-11 00:44:19,163] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:44:19,169] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:44:26,201] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-11 00:44:26,212] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-11 00:45:20,022] WARNING django.request - Unauthorized: /carga-datos/api/cargar/
+[2025-09-11 00:45:21,699] INFO django.request - [angel] Previsualización cargada de 'bia_todo_20250911030939.xlsx' con 2 registros (tras limpieza).
+[2025-09-11 00:45:22,018] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:45:22,020] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-09-11 00:45:22,029] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-09-11 00:45:22,032] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:48:10,770] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:48:10,777] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:52:10,459] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views.py changed, reloading.
+[2025-09-11 00:52:11,534] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-11 00:52:53,632] WARNING django.request - Unauthorized: /carga-datos/api/cargar/
+[2025-09-11 00:52:55,372] INFO django.request - [angel] Preview 'bia_todo_20250911030939.xlsx' con 2 filas limpias.
+[2025-09-11 00:52:55,695] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:52:55,698] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-09-11 00:52:55,707] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-09-11 00:52:55,721] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:53:01,395] WARNING django.request - Unauthorized: /carga-datos/api/errores/
+[2025-09-11 00:53:01,403] WARNING django.request - Unauthorized: /carga-datos/api/errores/
+[2025-09-11 00:53:02,550] WARNING django.request - Not Found: /carga-datos/api/errores/
+[2025-09-11 00:53:03,137] WARNING django.request - Not Found: /carga-datos/api/errores/
+[2025-09-11 00:53:04,274] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:53:04,279] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-09-11 00:53:04,288] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-09-11 00:53:04,292] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:53:06,780] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:53:06,790] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:55:10,419] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views.py changed, reloading.
+[2025-09-11 00:55:11,586] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-11 00:56:34,367] WARNING django.request - Unauthorized: /carga-datos/api/cargar/
+[2025-09-11 00:56:35,868] INFO django.request - [angel] Previsualización cargada de 'bia_todo_20250911030939.xlsx' con 2 registros (tras limpieza).
+[2025-09-11 00:56:36,177] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:56:36,187] WARNING django.request - Unauthorized: /carga-datos/api/confirmar/
+[2025-09-11 00:56:36,203] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:56:51,508] WARNING django.request - Unauthorized: /carga-datos/api/errores/
+[2025-09-11 00:56:51,516] WARNING django.request - Unauthorized: /carga-datos/api/errores/
+[2025-09-11 00:56:52,677] WARNING django.request - Not Found: /carga-datos/api/errores/
+[2025-09-11 00:56:53,242] WARNING django.request - Not Found: /carga-datos/api/errores/
+[2025-09-11 00:56:54,430] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:56:54,439] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:57:24,510] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-11 00:58:08,301] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-09-11 00:58:08,302] INFO certificado_ldd.views - [_handle_post_generar] hdr X-Requested-With='XMLHttpRequest' Accept='application/json, */*' Content-Type='multipart/form-data; boundary=----WebKitFormBoundarybvymkKYAeSJ4WQTD' Referer='http://localhost:3000/certificado' UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'
+[2025-09-11 00:58:08,302] INFO certificado_ldd.views - [_handle_post_generar] POST dni='12654987' id_pago_unico='' prefer_html=False is_ajax=True
+[2025-09-11 00:58:09,044] DEBUG certificado_ldd.views - [_is_cancelado] id=21 estado=agencia externa -> False
+[2025-09-11 00:58:09,045] DEBUG certificado_ldd.views - [_is_cancelado] id=22 estado=cancelado -> True
+[2025-09-11 00:58:09,045] DEBUG certificado_ldd.views - [_is_cancelado] id=21 estado=agencia externa -> False
+[2025-09-11 00:58:09,045] DEBUG certificado_ldd.views - [_is_cancelado] id=22 estado=cancelado -> True
+[2025-09-11 00:58:09,046] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=12654987 -> cancelados=1 pendientes=1
+[2025-09-11 00:58:09,046] INFO certificado_ldd.views - [_render_pdf_for_registro] Preparando PDF para id_pago_unico=22
+[2025-09-11 00:58:09,385] DEBUG certificado_ldd.views - [get_entidad_emisora] id=22 propietario='EGEO' interna='BIA' -> emisora=EGEO
+[2025-09-11 00:58:09,450] DEBUG certificado_ldd.views - [_render_pdf_for_registro] Contexto plantilla: keys=['client', 'firma_url', 'responsable', 'cargo', 'entidad_firma', 'entidad_bia', 'entidad_otras']
+[2025-09-11 00:58:09,487] DEBUG certificado_ldd.views - [_render_pdf_for_registro] HTML renderizado (len=3642)
+[2025-09-11 00:58:09,487] DEBUG certificado_ldd.views - [generate_pdf] Iniciando render HTML->PDF (len(html)=3642)
+[2025-09-11 00:58:09,629] DEBUG certificado_ldd.views - [generate_pdf] PDF generado OK (120182 bytes)
+[2025-09-11 00:58:09,709] INFO certificado_ldd.views - [_render_pdf_for_registro] PDF guardado como certificado_22.pdf
+[2025-09-11 00:58:09,710] INFO certificado_ldd.views - [_handle_post_generar] PDF entregado id=22 (120182 bytes)
+[2025-09-11 00:58:09,720] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-11 00:58:11,577] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-11 00:59:23,682] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:59:23,689] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 00:59:37,225] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-09-11 00:59:37,225] INFO certificado_ldd.views - [_handle_post_generar] hdr X-Requested-With='XMLHttpRequest' Accept='application/json, */*' Content-Type='multipart/form-data; boundary=----WebKitFormBoundaryRTyw4dS1Brh88e89' Referer='http://localhost:3000/certificado' UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'
+[2025-09-11 00:59:37,226] INFO certificado_ldd.views - [_handle_post_generar] POST dni='5159639' id_pago_unico='' prefer_html=False is_ajax=True
+[2025-09-11 00:59:37,823] DEBUG certificado_ldd.views - [_is_cancelado] id=426178 estado=agencia externa -> False
+[2025-09-11 00:59:37,823] DEBUG certificado_ldd.views - [_is_cancelado] id=61200 estado=cancelado -> True
+[2025-09-11 00:59:37,823] DEBUG certificado_ldd.views - [_is_cancelado] id=426178 estado=agencia externa -> False
+[2025-09-11 00:59:37,824] DEBUG certificado_ldd.views - [_is_cancelado] id=61200 estado=cancelado -> True
+[2025-09-11 00:59:37,824] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=5159639 -> cancelados=1 pendientes=1
+[2025-09-11 00:59:37,824] INFO certificado_ldd.views - [_render_pdf_for_registro] Preparando PDF para id_pago_unico=61200
+[2025-09-11 00:59:37,896] WARNING certificado_ldd.views - [_render_pdf_for_registro] pdf_file apunta a 'certificados_generados/certificado_61200.pdf' pero no existe en storage; se limpia.
+[2025-09-11 00:59:37,962] DEBUG certificado_ldd.views - [get_entidad_emisora] id=61200 propietario='PROMOTORA S.A' interna='WENANCE I' -> emisora=PROMOTORA S.A
+[2025-09-11 00:59:38,027] DEBUG certificado_ldd.views - [_render_pdf_for_registro] Contexto plantilla: keys=['client', 'firma_url', 'responsable', 'cargo', 'entidad_firma', 'entidad_bia', 'entidad_otras']
+[2025-09-11 00:59:38,028] DEBUG certificado_ldd.views - [_render_pdf_for_registro] HTML renderizado (len=3368)
+[2025-09-11 00:59:38,028] DEBUG certificado_ldd.views - [generate_pdf] Iniciando render HTML->PDF (len(html)=3368)
+[2025-09-11 00:59:38,074] DEBUG certificado_ldd.views - [generate_pdf] PDF generado OK (51594 bytes)
+[2025-09-11 00:59:38,153] INFO certificado_ldd.views - [_render_pdf_for_registro] PDF guardado como certificado_61200.pdf
+[2025-09-11 00:59:38,153] INFO certificado_ldd.views - [_handle_post_generar] PDF entregado id=61200 (51594 bytes)
+[2025-09-11 00:59:38,164] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-11 00:59:39,557] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-11 01:00:40,738] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-09-11 01:00:40,739] INFO certificado_ldd.views - [_handle_post_generar] hdr X-Requested-With='XMLHttpRequest' Accept='application/json, */*' Content-Type='multipart/form-data; boundary=----WebKitFormBoundaryqXSq3Uwf9qqHDh2A' Referer='http://localhost:3000/certificado' UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'
+[2025-09-11 01:00:40,739] INFO certificado_ldd.views - [_handle_post_generar] POST dni='2293190' id_pago_unico='' prefer_html=False is_ajax=True
+[2025-09-11 01:00:41,511] DEBUG certificado_ldd.views - [_is_cancelado] id=211816 estado=agente externo -> False
+[2025-09-11 01:00:41,511] DEBUG certificado_ldd.views - [_is_cancelado] id=211816 estado=agente externo -> False
+[2025-09-11 01:00:41,511] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=2293190 -> cancelados=0 pendientes=1
+[2025-09-11 01:00:41,512] INFO certificado_ldd.views - [_handle_post_generar] Sin cancelados, devolviendo lista de pendientes
+[2025-09-11 01:00:41,512] DEBUG certificado_ldd.views - [_row_minimal] {'dni': '2293190', 'id_pago_unico': '211816', 'propietario': 'MACRO SOLUTIONS', 'entidadinterna': 'MACRO SOLUTIONS', 'estado': 'Agente Externo'}
+[2025-09-11 01:00:41,523] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-11 01:00:57,381] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-09-11 01:00:57,382] INFO certificado_ldd.views - [_handle_post_generar] hdr X-Requested-With='XMLHttpRequest' Accept='application/json, */*' Content-Type='multipart/form-data; boundary=----WebKitFormBoundary20zlgipd4qSuMA1A' Referer='http://localhost:3000/certificado' UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/139.0.0.0 Safari/537.36'
+[2025-09-11 01:00:57,383] INFO certificado_ldd.views - [_handle_post_generar] POST dni='18828465' id_pago_unico='' prefer_html=False is_ajax=True
+[2025-09-11 01:00:57,981] DEBUG certificado_ldd.views - [_is_cancelado] id=212921 estado=cancelado -> True
+[2025-09-11 01:00:57,982] DEBUG certificado_ldd.views - [_is_cancelado] id=212921 estado=cancelado -> True
+[2025-09-11 01:00:57,982] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=18828465 -> cancelados=1 pendientes=0
+[2025-09-11 01:00:57,982] INFO certificado_ldd.views - [_render_pdf_for_registro] Preparando PDF para id_pago_unico=212921
+[2025-09-11 01:00:58,068] INFO certificado_ldd.views - [_render_pdf_for_registro] PDF existente reutilizado (131968 bytes)
+[2025-09-11 01:00:58,069] INFO certificado_ldd.views - [_handle_post_generar] PDF entregado id=212921 (131968 bytes)
+[2025-09-11 01:00:58,078] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-11 01:00:59,411] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-11 01:01:03,926] INFO certificado_ldd.views - [api_generar_certificado] method=GET
+[2025-09-11 01:01:03,926] INFO certificado_ldd.views - [_handle_get_generar] GET dni='18828465' id_pago_unico='212921'
+[2025-09-11 01:01:04,542] DEBUG certificado_ldd.views - [_is_cancelado] id=212921 estado=cancelado -> True
+[2025-09-11 01:01:04,543] INFO certificado_ldd.views - [_render_pdf_for_registro] Preparando PDF para id_pago_unico=212921
+[2025-09-11 01:01:04,607] INFO certificado_ldd.views - [_render_pdf_for_registro] PDF existente reutilizado (131968 bytes)
+[2025-09-11 01:01:04,607] INFO certificado_ldd.views - [_handle_get_generar] PDF entregado id=212921 (131968 bytes)
+[2025-09-11 01:02:06,555] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 01:02:06,562] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 01:02:57,663] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 01:02:57,674] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-11 01:09:18,369] WARNING django.request - Unauthorized: /carga-datos/api/bulk-update/validate
+[2025-09-11 01:09:19,652] WARNING django.request - Bad Request: /carga-datos/api/bulk-update/validate
+[2025-09-11 01:22:44,015] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views.py changed, reloading.
+[2025-09-11 01:22:45,595] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-11 01:28:04,331] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views.py changed, reloading.
+[2025-09-11 01:28:06,274] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-11 01:28:37,641] WARNING django.request - Unauthorized: /carga-datos/api/bulk-update/validate
+[2025-09-11 01:28:39,029] WARNING django.request - Bad Request: /carga-datos/api/bulk-update/validate
+[2025-09-11 01:36:46,797] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views_bulk.py changed, reloading.
+[2025-09-11 01:36:47,815] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-11 01:37:30,240] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-11 01:37:30,246] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-11 01:37:41,035] WARNING django.request - Unauthorized: /carga-datos/api/bulk-update/validate
+[2025-09-11 01:37:42,377] WARNING django.request - Bad Request: /carga-datos/api/bulk-update/validate
+[2025-09-11 01:38:56,210] WARNING django.request - Unauthorized: /carga-datos/api/exportar-datos-bia.csv
+[2025-09-11 01:40:11,712] WARNING django.request - Unauthorized: /carga-datos/api/exportar-datos-bia.csv
+[2025-09-11 01:46:29,287] WARNING django.request - Unauthorized: /carga-datos/api/bulk-update/validate
+[2025-09-11 01:46:31,496] ERROR django.request - [bulk_validate] Error: Object of type Timestamp is not JSON serializable
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 948, in get_or_create
+    return self.get(**kwargs), False
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 649, in get
+    raise self.model.DoesNotExist(
+carga_datos.models.StagingBulkChange.DoesNotExist: StagingBulkChange matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views_bulk.py", line 305, in bulk_validate
+    StagingBulkChange.objects.update_or_create(
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 986, in update_or_create
+    obj, created = self.select_for_update().get_or_create(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 955, in get_or_create
+    return self.create(**params), True
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 679, in create
+    obj.save(force_insert=True, using=self.db)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\base.py", line 892, in save
+    self.save_base(
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\base.py", line 998, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\base.py", line 1161, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\base.py", line 1202, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\sql\compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\postgresql\psycopg_any.py", line 113, in getquoted
+    quoted = super().getquoted()
+             ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\psycopg2\_json.py", line 78, in getquoted
+    s = self.dumps(self.adapted)
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\psycopg2\_json.py", line 72, in dumps
+    return self._dumps(obj)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\AppData\Local\Programs\Python\Python312\Lib\json\__init__.py", line 231, in dumps
+    return _default_encoder.encode(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\AppData\Local\Programs\Python\Python312\Lib\json\encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\AppData\Local\Programs\Python\Python312\Lib\json\encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\AppData\Local\Programs\Python\Python312\Lib\json\encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type Timestamp is not JSON serializable
+[2025-09-11 01:46:31,589] ERROR django.request - Internal Server Error: /carga-datos/api/bulk-update/validate
+[2025-09-11 01:49:25,372] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views_bulk.py changed, reloading.
+[2025-09-11 01:49:26,469] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-11 01:49:53,290] WARNING django.request - Unauthorized: /carga-datos/api/bulk-update/validate
+[2025-09-11 01:51:45,505] WARNING django.request - Unauthorized: /carga-datos/api/bulk-update/commit
+[2025-09-11 01:51:46,848] WARNING django.request - Bad Request: /carga-datos/api/bulk-update/commit
+[2025-09-11 01:55:14,961] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views_bulk.py changed, reloading.
+[2025-09-11 01:55:16,993] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-11 01:57:09,880] WARNING django.request - Unauthorized: /carga-datos/api/bulk-update/validate
+[2025-09-11 02:00:56,030] WARNING django.request - Unauthorized: /carga-datos/api/bulk-update/validate
+[2025-09-11 02:22:27,825] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views_bulk.py changed, reloading.
+[2025-09-11 02:22:29,980] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-11 02:22:53,722] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views_bulk.py changed, reloading.
+[2025-09-11 02:22:55,943] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-11 02:24:42,731] ERROR django.request - Internal Server Error: /carga-datos/api/bulk-update/validate
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 948, in get_or_create
+    return self.get(**kwargs), False
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 649, in get
+    raise self.model.DoesNotExist(
+carga_datos.models.StagingBulkChange.DoesNotExist: StagingBulkChange matching query does not exist.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 512, in dispatch
+    response = handler(request, *args, **kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\decorators.py", line 50, in handler
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views_bulk.py", line 340, in bulk_validate
+    StagingBulkChange.objects.update_or_create(
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 986, in update_or_create
+    obj, created = self.select_for_update().get_or_create(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 955, in get_or_create
+    return self.create(**params), True
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 679, in create
+    obj.save(force_insert=True, using=self.db)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\base.py", line 892, in save
+    self.save_base(
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\base.py", line 998, in save_base
+    updated = self._save_table(
+              ^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\base.py", line 1161, in _save_table
+    results = self._do_insert(
+              ^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\base.py", line 1202, in _do_insert
+    return manager._insert(
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 1847, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\sql\compiler.py", line 1836, in execute_sql
+    cursor.execute(sql, params)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 122, in execute
+    return super().execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\postgresql\psycopg_any.py", line 113, in getquoted
+    quoted = super().getquoted()
+             ^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\psycopg2\_json.py", line 78, in getquoted
+    s = self.dumps(self.adapted)
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\psycopg2\_json.py", line 72, in dumps
+    return self._dumps(obj)
+           ^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\AppData\Local\Programs\Python\Python312\Lib\json\__init__.py", line 231, in dumps
+    return _default_encoder.encode(obj)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\AppData\Local\Programs\Python\Python312\Lib\json\encoder.py", line 200, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\AppData\Local\Programs\Python\Python312\Lib\json\encoder.py", line 258, in iterencode
+    return _iterencode(o, 0)
+           ^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\AppData\Local\Programs\Python\Python312\Lib\json\encoder.py", line 180, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+TypeError: Object of type Timestamp is not JSON serializable
+[2025-09-11 02:29:21,957] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views_bulk.py changed, reloading.
+[2025-09-11 02:29:24,266] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-11 02:30:22,332] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-11 02:37:08,889] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\urls.py changed, reloading.
+[2025-09-11 02:37:10,950] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-11 02:55:36,423] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\urls.py changed, reloading.
+[2025-09-11 02:55:38,504] INFO django.utils.autoreload - Watching for file changes with StatReloader

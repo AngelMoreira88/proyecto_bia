@@ -14,7 +14,7 @@ from .views import (
     actualizar_datos_bia,
     exportar_datos_bia_csv,
 )
-from carga_datos.views_bulk import bulk_validate, bulk_commit
+from carga_datos.views_bulk import bulk_validate, bulk_commit, bulk_template_xlsx
 from carga_datos.views_roles import me, roles_list, users_search, user_roles
 
 
@@ -43,6 +43,8 @@ urlpatterns = [
     # Bulk update
     path("api/bulk-update/validate", bulk_validate, name="bulk_update_validate"),
     path("api/bulk-update/commit",   bulk_commit,   name="bulk_update_commit"),
+    path("api/bulk-update/template.xlsx", bulk_template_xlsx, name="bulk_template_xlsx"),
+
     # Admin roles
     path("api/admin/me",                         me,          name="admin_me"),
     path("api/admin/roles",                      roles_list,  name="admin_roles"),

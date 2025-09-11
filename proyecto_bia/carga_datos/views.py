@@ -1,6 +1,9 @@
+# carga_datos/views.py
 import os
 import logging
 import unicodedata
+import json
+import hashlib
 from io import StringIO
 
 import pandas as pd
@@ -11,7 +14,7 @@ from django.http import HttpResponse
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.core.validators import RegexValidator
-from django.apps import apps  # <- import perezoso de modelos de otras apps
+from django.apps import apps  # import perezoso de modelos de otras apps
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -40,9 +43,12 @@ from django.utils import timezone
 # Si True: si no existe la Entidad (por propietario o entidadinterna), se crea automáticamente.
 CREATE_MISSING_ENTIDADES = True
 
-# ==========
-# UTILIDADES
-# ==========
+# (Opcional) Exigir clave en confirmación para considerar válida la fila.
+# Si lo activás, sólo se aceptarán filas que tengan al menos DNI o id_pago_unico no vacío.
+REQUIRE_KEY_FOR_ROW = False
+KEY_FIELDS = ('dni', 'id_pago_unico')
+
+# ========== UTILIDADES ==========
 def _strip_accents(s: str) -> str:
     if s is None:
         return ""
@@ -79,7 +85,7 @@ def validar_columnas_obligatorias(df_columns):
     Si querés que 'creditos' sea opcional, podés excluirlo aquí como ejemplo.
     """
     columnas_modelo = [f.name for f in BaseDeDatosBia._meta.fields if f.name != 'id']
-    # Ejemplo: si 'creditos' NO debe ser obligatoria, descomentar:
+    # Ejemplo para hacer opcional:
     # if 'creditos' in columnas_modelo:
     #     columnas_modelo.remove('creditos')
 
@@ -91,6 +97,65 @@ def validar_columnas_obligatorias(df_columns):
         if normalizada not in columnas_excel_norm:
             faltantes.append(columnas_modelo[i])
     return faltantes
+
+# ---------- Helpers de limpieza de filas ----------
+def df_drop_blank_rows(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Elimina filas completamente vacías (None/NaN/''/espacios).
+    Evita que pandas cuente filas con formato/bordes como válidas.
+    """
+    if df is None or df.empty:
+        return df
+
+    # Normalizamos NaN -> None
+    df = df.where(pd.notnull(df), None)
+
+    # Drop filas con todo None/NaN
+    df = df.dropna(how='all')
+    if df.empty:
+        return df
+
+    # Considerar strings vacíos/espacios como vacíos
+    def _row_is_blank(row) -> bool:
+        for v in row:
+            if v is None:
+                continue
+            if isinstance(v, str):
+                if v.strip() != '':
+                    return False
+            else:
+                # Números/fechas/etc. cuentan como "no vacío"
+                return False
+        return True
+
+    mask = df.apply(_row_is_blank, axis=1)
+    return df.loc[~mask]
+
+def _row_is_blank_dict(d: dict) -> bool:
+    """
+    True si todas las celdas del dict están vacías (None/''/espacios).
+    """
+    if not isinstance(d, dict):
+        return True
+    for _, v in d.items():
+        if v is None:
+            continue
+        if isinstance(v, str):
+            if v.strip() != '':
+                return False
+        else:
+            # Números/fechas/etc. significan "no vacía"
+            return False
+    return True
+
+def _has_key_fields(d: dict) -> bool:
+    for k in KEY_FIELDS:
+        v = d.get(k)
+        if v is None:
+            continue
+        if str(v).strip() != '':
+            return True
+    return False
 
 # ==============================
 # RESOLVER FK ENTIDAD (OPCIÓN 3)
@@ -124,18 +189,13 @@ def _resolver_entidad(propietario: str, entidadinterna: str, cache: dict, create
         key = normalizar_valor_nombre(cand)
         if key in cache:
             return cache[key]
-        # no está en cache
         if create_missing:
-            # crear y cachear
             ent = Entidad.objects.create(nombre=cand, responsable="", cargo="")
             cache[key] = ent
             return ent
-        # no crear => None (seguimos al siguiente candidato o devolvemos None)
     return None
 
-# ==============
-# VISTAS WEB UI
-# ==============
+# ============== VISTAS WEB UI ==============
 @login_required
 def confirmar_carga(request):
     """
@@ -182,6 +242,8 @@ def cargar_excel(request):
                 else:
                     df = pd.read_excel(archivo)
 
+                # 🔧 NUEVO: eliminar filas totalmente vacías antes de seguir
+                df = df_drop_blank_rows(df)
                 df = df.where(pd.notnull(df), None)
 
                 # Validación de columnas
@@ -201,6 +263,9 @@ def cargar_excel(request):
                             columna_map[col] = campo
                             break
                 df.rename(columns=columna_map, inplace=True)
+
+                # 🔧 NUEVO: por si el rename generó columnas vacías, limpiar otra vez
+                df = df_drop_blank_rows(df)
                 df = df.where(pd.notnull(df), None)
 
                 # Resolver FK 'entidad' por fila (propietario -> entidadinterna)
@@ -209,6 +274,9 @@ def cargar_excel(request):
                 registros = []
                 for i in df.index:
                     fila = {col: df.at[i, col] for col in columnas if col in df.columns}
+                    # Ignorar filas vacías defensivamente
+                    if _row_is_blank_dict(fila):
+                        continue
                     ent = _resolver_entidad(
                         fila.get('propietario'),
                         fila.get('entidadinterna'),
@@ -220,9 +288,12 @@ def cargar_excel(request):
                         obj.entidad = ent
                     registros.append(obj)
 
-                BaseDeDatosBia.objects.bulk_create(registros, batch_size=200)
-                mensaje = f"✅ Se cargaron {len(registros)} registros."
-                logger.info(f"[{request.user}] Cargó archivo '{archivo.name}' con {len(registros)} registros (web).")
+                if not registros:
+                    mensaje = "⚠️ No se encontraron filas válidas para insertar."
+                else:
+                    BaseDeDatosBia.objects.bulk_create(registros, batch_size=200)
+                    mensaje = f"✅ Se cargaron {len(registros)} registros."
+                    logger.info(f"[{request.user}] Cargó archivo '{archivo.name}' con {len(registros)} registros (web).")
 
             except Exception as e:
                 mensaje = f"❌ Error al procesar el archivo: {e}"
@@ -230,11 +301,9 @@ def cargar_excel(request):
     else:
         form = ExcelUploadForm()
 
-    return render(request, 'upload_form.html', {'form': form, 'mensaje': mensaje})
+    return render(request, 'upload_form.html', {'form': ExcelUploadForm(), 'mensaje': mensaje})
 
-# =========
-# API REST
-# =========
+# ========= API REST =========
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def api_cargar_excel(request):
@@ -263,6 +332,8 @@ def api_cargar_excel(request):
         else:
             df = pd.read_excel(archivo)
 
+        # 🔧 NUEVO: sacar filas completamente vacías
+        df = df_drop_blank_rows(df)
         df = df.where(pd.notnull(df), None)
 
         # Validación de columnas
@@ -282,14 +353,26 @@ def api_cargar_excel(request):
                     columna_map[col] = campo
                     break
         df.rename(columns=columna_map, inplace=True)
+
+        # 🔧 NUEVO: limpiar nuevamente tras rename
+        df = df_drop_blank_rows(df)
         df = df.where(pd.notnull(df), None)
 
-        # Previsualización (NO seteamos aún entidad_id para no “escribir nombres” sin querer)
+        # Previsualización
         preview_html = df.head(5).to_html(escape=False, index=False)
         data = df.astype(str).where(pd.notnull(df), None).to_dict(orient='records')
+
+        # 🔧 NUEVO: Guardar SOLO filas no vacías en sesión
+        data = [r for r in data if not _row_is_blank_dict(r)]
+        if REQUIRE_KEY_FOR_ROW:
+            data = [r for r in data if _has_key_fields(r)]
+
+        if not data:
+            return Response({'success': False, 'errors': ['No hay filas válidas en el archivo.']}, status=400)
+
         request.session['datos_cargados'] = data
 
-        logger.info(f"[{request.user}] Previsualización cargada de '{archivo.name}' con {len(df)} registros.")
+        logger.info(f"[{request.user}] Previsualización cargada de '{archivo.name}' con {len(data)} registros (tras limpieza).")
         return Response({'success': True, 'preview': preview_html, 'data': data})
 
     except Exception as e:
@@ -308,20 +391,31 @@ def api_confirmar_carga(request):
     if not records:
         return Response({'success': False, 'error': 'No hay datos para confirmar'}, status=400)
 
+    # 🔧 NUEVO: Filtrar dicts "vacíos"
+    records = [r for r in records if not _row_is_blank_dict(r)]
+    if REQUIRE_KEY_FOR_ROW:
+        records = [r for r in records if _has_key_fields(r)]
+    if not records:
+        return Response({'success': False, 'error': 'Todas las filas están vacías o sin claves requeridas.'}, status=400)
+
+    # (Opcional) Guard anti-doble confirmación por hash de payload
+    # payload_hash = hashlib.sha256(json.dumps(records, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
+    # last_hash = request.session.get('last_confirm_hash')
+    # if last_hash == payload_hash:
+    #     return Response({'success': False, 'error': 'El mismo payload ya fue confirmado recientemente.'}, status=409)
+    # request.session['last_confirm_hash'] = payload_hash
+
     columnas = [f.name for f in BaseDeDatosBia._meta.fields if f.name != 'id']
 
     # 1) Normalizar + detectar faltantes de id_pago_unico
     normalized = []
     missing_indexes = []
-    forced_empty = set()  # ids declarados vacíos explícitamente
     for idx, item in enumerate(records):
         row = dict(item or {})
-        # normaliza id_pago_unico a string o ''
         raw_idp = (row.get('id_pago_unico') or '').strip()
         if raw_idp == '':
             missing_indexes.append(idx)
         else:
-            # validar que sea sólo dígitos
             if not raw_idp.isdigit():
                 return Response({'success': False, 'error': f'id_pago_unico inválido en fila {idx+1}: "{raw_idp}" (solo dígitos)'}, status=400)
         normalized.append(row)
@@ -361,12 +455,19 @@ def api_confirmar_carga(request):
                 continue
             payload[col] = limpiar_valor(row.get(col)) if 'limpiar_valor' in globals() else row.get(col)
 
+        # Ignorar defensivamente filas que quedaron "vacías" luego de limpiar
+        if _row_is_blank_dict(payload):
+            continue
+
         ent = _resolver_entidad(payload.get('propietario'), payload.get('entidadinterna'),
                                 entidad_cache, CREATE_MISSING_ENTIDADES)
         obj = BaseDeDatosBia(**payload)
         if ent:
             obj.entidad = ent
         to_create.append(obj)
+
+    if not to_create:
+        return Response({'success': False, 'error': 'No hay filas válidas para insertar.'}, status=400)
 
     # 6) Persistencia en bloque
     BaseDeDatosBia.objects.bulk_create(to_create, batch_size=200)
@@ -429,7 +530,6 @@ def mostrar_datos_bia(request):
     if not dni and not idp:
         return Response({"detail": "Debes enviar un dni o un id_pago_unico"}, status=400)
 
-    # Validaciones simples (ajustá si tus campos permiten letras)
     if dni and not dni.isdigit():
         return Response({"detail": "dni inválido. Use solo dígitos."}, status=400)
     if idp and not idp.isdigit():
@@ -456,7 +556,7 @@ def actualizar_datos_bia(request, pk: int):
     obj = get_object_or_404(BaseDeDatosBia, pk=pk)
 
     def _norm(s):
-      return '' if s is None else str(s).strip()
+        return '' if s is None else str(s).strip()
 
     body_dni = request.data.get('dni', None)
     body_idp = request.data.get('id_pago_unico', None)
@@ -467,15 +567,12 @@ def actualizar_datos_bia(request, pk: int):
     if body_idp is not None and _norm(body_idp) != _norm(obj.id_pago_unico):
         return Response({"detail": "El id_pago_unico del cuerpo no coincide con el registro."}, status=400)
 
-    NO_EDITABLES = {'id'}
     clean = {k: v for k, v in request.data.items() if k not in NO_EDITABLES}
 
     ser = BaseDeDatosBiaSerializer(obj, data=clean, partial=(request.method == 'PATCH'))
     ser.is_valid(raise_exception=True)
     ser.save()
     return Response(ser.data, status=200)
-
-
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -487,29 +584,24 @@ def exportar_datos_bia_csv(request):
     dni = (request.query_params.get('dni') or '').strip()
     idp = (request.query_params.get('id_pago_unico') or '').strip()
 
-    # Campos a exportar: todos los fields del modelo (incluye 'id' y 'entidad_id' si existe)
     fields = [f.name for f in BaseDeDatosBia._meta.fields]
 
-    # Query base + filtros opcionales
     qs = BaseDeDatosBia.objects.all().order_by('id')
     if dni:
         qs = qs.filter(dni=dni)
     if idp:
         qs = qs.filter(id_pago_unico=idp)
 
-    # Stream CSV sin cargar todo en memoria (patrón Echo)
     class Echo:
-        def write(self, value):  # csv.writer pide un "file-like object" con write()
+        def write(self, value):
             return value
 
     def row_iter():
         pseudo_buffer = Echo()
         writer = csv.writer(pseudo_buffer)
-        # Header
         yield writer.writerow(fields)
-        # Filas
         for row in qs.values_list(*fields).iterator(chunk_size=2000):
-            yield writer.writerow(['' if v is None else str(v) for v in row])
+            yield writer.writerow(['' if v is None else str (v) for v in row])
 
     ts = timezone.localtime().strftime('%Y%m%d_%H%M%S')
     response = StreamingHttpResponse(row_iter(), content_type='text/csv; charset=utf-8')
