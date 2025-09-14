@@ -46,6 +46,9 @@ from .serializers import EntidadSerializer
 
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.filters import SearchFilter
+from rest_framework import viewsets, filters
+from .models import Entidad
+from .serializers import EntidadSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -579,8 +582,11 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
 # ---------------------------------------------------------------------------
 # API Entidades (CRUD)
 # ---------------------------------------------------------------------------
-class EntidadViewSet(ModelViewSet):
-    queryset = Entidad.objects.all()
+class EntidadViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Entidad.objects.all().order_by('id')  # 👈 orden estable
     serializer_class = EntidadSerializer
-    filter_backends = [SearchFilter]
-    search_fields = ['nombre', 'responsable', 'cargo', 'razon_social']
+
+    # (opcional) permitir ordenar por querystring: ?ordering=nombre o ?ordering=-nombre
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['id', 'nombre', 'responsable']  # campos permitidos
+    ordering = ['id']  # orden por defecto si el cliente no envía ?ordering=

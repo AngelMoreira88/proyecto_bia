@@ -24,6 +24,7 @@ export default function UploadForm() {
   const [error, setError] = useState('');
   const [subiendo, setSubiendo] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   const fileInputRef = useRef(null);
   const navigate = useNavigate();
@@ -114,8 +115,70 @@ export default function UploadForm() {
               <div className="card-body p-4 p-md-5">
                 <h2 className="text-bia fw-bold text-center mb-2">Subir Archivo Excel</h2>
                 <p className="text-secondary text-center mb-4">
-                  Cargá un <span className="fw-semibold">.xls/.xlsx</span> o <span className="fw-semibold">.csv</span> para actualizar deudores.
+                  Cargá un <span className="fw-semibold">.xls/.xlsx</span> o <span className="fw-semibold">.csv</span> para actualizar listado de clientes con deuda.
                 </p>
+
+                {/* Botón/Toggle Tutorial */}
+                <div className="d-flex justify-content-center mb-3">
+                  <button
+                    type="button"
+                    className={`btn ${showHelp ? 'btn-outline-bia' : 'btn-light'} border`}
+                    onClick={() => setShowHelp((v) => !v)}
+                    aria-expanded={showHelp}
+                    aria-controls="tutorial-subida"
+                  >
+                    {showHelp ? 'Ocultar tutorial' : '¿Cómo usar esta carga?'}
+                  </button>
+                </div>
+
+                {/* Tutorial */}
+                {showHelp && (
+                  <div id="tutorial-subida" className="border rounded-4 p-3 mb-4 bg-light" role="region" aria-label="Tutorial de uso">
+                    <ol className="mb-3 ps-3">
+                      <li className="mb-2"><strong>Prepará tu archivo</strong>: en <code>.csv</code>, <code>.xls</code> o <code>.xlsx</code>. Asegurate de que los encabezados coincidan con el formato esperado por el sistema (por ejemplo: <em>DNI</em>, <em>Nombre</em>, <em>Deuda</em>, etc.).</li>
+                      <li className="mb-2"><strong>Elegí el archivo</strong> de cualquiera de estas formas:
+                        <ul className="mt-2">
+                          <li>Arrastrá y soltá sobre el recuadro.</li>
+                          <li>Hacé clic en el recuadro para abrir el selector.</li>
+                          <li>Pegá con <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> + <kbd>V</kbd> si lo tenés copiado.</li>
+                        </ul>
+                      </li>
+                      <li className="mb-2"><strong>Revisá el nombre del archivo</strong> que aparece debajo. Si te equivocaste, tocá <em>Quitar</em> y volvé a elegir.</li>
+                      <li className="mb-2"><strong>Subí y previsualizá</strong>: presioná <em>Subir y previsualizar</em>. Si todo está OK, verás un resumen y pasarás a la pantalla de <em>Confirmación</em> para aplicar los cambios.</li>
+                      <li className="mb-2"><strong>Confirmá cambios</strong> en la siguiente pantalla. Nada se escribe definitivamente hasta que confirmás.</li>
+                    </ol>
+
+                    <div className="row g-3">
+                      <div className="col-12 col-md-6">
+                        <div className="p-3 border rounded-3 h-100 bg-white">
+                          <h6 className="fw-semibold mb-2">Atajos y tips</h6>
+                          <ul className="mb-0">
+                            <li><kbd>Ctrl/Cmd</kbd> + <kbd>V</kbd>: pegar archivos desde el portapapeles.</li>
+                            <li>Podés cambiar el archivo las veces que quieras antes de subir.</li>
+                            <li>Si el archivo es grande, esperá a que termine la carga (verás un spinner).</li>
+                          </ul>
+                        </div>
+                      </div>
+                      <div className="col-12 col-md-6">
+                        <div className="p-3 border rounded-3 h-100 bg-white">
+                          <h6 className="fw-semibold mb-2">Formatos aceptados</h6>
+                          <p className="mb-1"><code>.csv</code>, <code>.xls</code>, <code>.xlsx</code></p>
+                          <p className="small text-secondary mb-0">Evitá fórmulas complejas, celdas combinadas y hojas protegidas. En CSV usá codificación UTF-8 y separador coma o punto y coma.</p>
+                        </div>
+                      </div>
+                      <div className="col-12">
+                        <div className="p-3 border rounded-3 bg-white">
+                          <h6 className="fw-semibold mb-2">Errores frecuentes y cómo resolverlos</h6>
+                          <ul className="mb-0">
+                            <li><strong>“Formato no permitido”</strong>: convertí el archivo a CSV/XLS/XLSX y volvé a intentar.</li>
+                            <li><strong>“No se pudo procesar el archivo”</strong>: revisá encabezados, tipos de datos (por ej., DNI solo dígitos) y filas vacías.</li>
+                            <li><strong>Columnas faltantes</strong>: asegurate de incluir todas las columnas mínimas requeridas por el sistema.</li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Dropzone */}
                 <div
@@ -195,6 +258,11 @@ export default function UploadForm() {
                     />
                   </div>
                 )}
+
+                {/* Nota de privacidad/opcional */}
+                <p className="text-center text-secondary small mt-4 mb-0">
+                  Los datos se procesan de forma segura. No se guardan cambios hasta la confirmación explícita.
+                </p>
               </div>
             </div>
           </div>
