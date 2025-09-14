@@ -36,7 +36,6 @@ from django.template.loader import render_to_string
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 
-from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
 from xhtml2pdf import pisa
@@ -44,6 +43,9 @@ from xhtml2pdf import pisa
 from carga_datos.models import BaseDeDatosBia
 from .models import Certificate, Entidad
 from .serializers import EntidadSerializer
+
+from rest_framework.viewsets import ModelViewSet
+from rest_framework.filters import SearchFilter
 
 logger = logging.getLogger(__name__)
 
@@ -577,8 +579,8 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
 # ---------------------------------------------------------------------------
 # API Entidades (CRUD)
 # ---------------------------------------------------------------------------
-
-class EntidadViewSet(viewsets.ModelViewSet):
-    queryset = Entidad.objects.all().order_by("nombre")
+class EntidadViewSet(ModelViewSet):
+    queryset = Entidad.objects.all()
     serializer_class = EntidadSerializer
-    permission_classes = [IsAuthenticated]
+    filter_backends = [SearchFilter]
+    search_fields = ['nombre', 'responsable', 'cargo', 'razon_social']

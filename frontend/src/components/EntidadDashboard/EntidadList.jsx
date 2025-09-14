@@ -3,8 +3,8 @@ import { listarEntidades, eliminarEntidad } from '../../services/api';
 
 export default function EntidadList({ onEdit, refreshKey = 0 }) {
   const [rows, setRows]     = useState([]);
-  const [count, setCount]   = useState(0);     // Total para paginación DRF
-  const [page, setPage]     = useState(1);     // 1-index
+  const [count, setCount]   = useState(0);
+  const [page, setPage]     = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,13 +19,13 @@ export default function EntidadList({ onEdit, refreshKey = 0 }) {
     try {
       setLoading(true);
       setErr('');
+      const q = (search || '').trim();
       const { data } = await listarEntidades({
-        search: search || undefined,
+        search: q || undefined,
         page,
         page_size: pageSize,
       });
 
-      // Soporta tanto DRF paginado {results,count} como un array simple
       if (Array.isArray(data)) {
         setRows(data);
         setCount(data.length);
@@ -41,15 +41,25 @@ export default function EntidadList({ onEdit, refreshKey = 0 }) {
     }
   }
 
-  // Cargar al montar, al cambiar paginación/busqueda o cuando el padre pida refresh
+  // fetch inicial y cuando cambian page/pageSize/refreshKey
   useEffect(() => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, pageSize, refreshKey]);
 
+  // ✅ debounce de 300 ms al escribir en search
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setPage(1); // resetear a primera página
+      fetchData();
+    }, 300);
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
+
   const submitSearch = (e) => {
     e.preventDefault();
-    setPage(1); // resetea a la primera página
+    setPage(1);
     fetchData();
   };
 
@@ -58,7 +68,6 @@ export default function EntidadList({ onEdit, refreshKey = 0 }) {
     if (!ok) return;
     try {
       await eliminarEntidad(id);
-      // Ajustar página si borrás la última fila visible
       const nextCount = Math.max(0, count - 1);
       const nextTotalPages = Math.max(1, Math.ceil(nextCount / pageSize));
       if (page > nextTotalPages) setPage(nextTotalPages);
@@ -77,10 +86,11 @@ export default function EntidadList({ onEdit, refreshKey = 0 }) {
           <form className="d-flex gap-2" onSubmit={submitSearch}>
             <input
               className="form-control"
-              placeholder="Buscar por nombre, responsable o razón social…"
+              placeholder="Buscá por Nombre, Responsable, Cargo o Razon Social..."
+              title="Buscá por Nombre, Responsable, Cargo o Razón Social"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              style={{ minWidth: 260 }}
+              style={{ minWidth: 380, width: 'clamp(320px, 40vw, 640px)' }}
             />
             <button className="btn btn-outline-secondary" type="submit" disabled={loading}>
               Buscar

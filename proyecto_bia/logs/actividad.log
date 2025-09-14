@@ -3492,3 +3492,11 @@ TypeError: Object of type Timestamp is not JSON serializable
 [2025-09-11 02:37:10,950] INFO django.utils.autoreload - Watching for file changes with StatReloader
 [2025-09-11 02:55:36,423] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\urls.py changed, reloading.
 [2025-09-11 02:55:38,504] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-14 18:31:52,258] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-14 19:09:01,619] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-14 19:12:24,796] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\certificado_ldd\views.py changed, reloading.
+[2025-09-14 19:12:27,239] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-14 19:27:02,617] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\certificado_ldd\views.py changed, reloading.
+[2025-09-14 19:27:04,908] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-14 19:27:29,558] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\certificado_ldd\views.py changed, reloading.
+[2025-09-14 19:27:31,954] INFO django.utils.autoreload - Watching for file changes with StatReloader
