@@ -7,6 +7,53 @@ import api from '../services/api';
 const ALLOWED_EXT = ['.csv', '.xls', '.xlsx'];
 const MAX_FILE_MB = 20;
 
+// Campos del models.py (todas las columnas de db_bia, sin 'id')
+const ALL_MODEL_FIELDS = [
+  'creditos',
+  'propietario',
+  'entidadoriginal',
+  'entidadinterna',
+  'entidad',              // FK: cargar ID numérico o nombre (el backend resuelve)
+  'grupo',
+  'tramo',
+  'comision',
+  'dni',
+  'cuit',
+  'nombre_apellido',
+  'fecha_apertura',
+  'fecha_deuda',
+  'saldo_capital',
+  'saldo_exigible',
+  'interes_diario',
+  'interes_total',
+  'saldo_actualizado',
+  'cancel_min',
+  'cod_rp',
+  'agencia',
+  'estado',
+  'sub_estado',
+  'tel1',
+  'tel2',
+  'tel3',
+  'tel4',
+  'tel5',
+  'mail1',
+  'mail2',
+  'mail3',
+  'provincia',
+  'pago_acumulado',
+  'ultima_fecha_pago',
+  'fecha_plan',
+  'anticipo',
+  'cuotas',
+  'importe',
+  'total_plan',
+  'saldo',
+];
+
+// Campos que NO se pueden modificar en UPDATE (el backend los ignora)
+const NON_EDITABLE_IN_UPDATE = ['id_pago_unico', 'dni', 'cuit', 'fecha_apertura'];
+
 export default function ModificarMasivo() {
   const navigate = useNavigate();
 
@@ -30,63 +77,33 @@ export default function ModificarMasivo() {
 
   const filename = useMemo(() => file?.name || '', [file]);
 
-  // ====== LISTA COMPLETA DE COLUMNAS del models.py (excepto 'id' e 'id_pago_unico') ======
-  // Si agregás campos al modelo, sumalos acá para que salgan en la plantilla.
-  const MODEL_FIELDS_EXCEPT_KEY = [
-    'creditos',
-    'propietario',
-    'entidadoriginal',
-    'entidadinterna',
-    'entidad',              // FK: colocar el ID numérico de la entidad
-    'grupo',
-    'tramo',
-    'comision',
-    'dni',
-    'cuit',
-    'nombre_apellido',
-    'fecha_apertura',
-    'fecha_deuda',
-    'saldo_capital',
-    'saldo_exigible',
-    'interes_diario',
-    'interes_total',
-    'saldo_actualizado',
-    'cancel_min',
-    'cod_rp',
-    'agencia',
-    'estado',
-    'sub_estado',
-    'tel1',
-    'tel2',
-    'tel3',
-    'tel4',
-    'tel5',
-    'mail1',
-    'mail2',
-    'mail3',
-    'provincia',
-    'pago_acumulado',
-    'ultima_fecha_pago',
-    'fecha_plan',
-    'anticipo',
-    'cuotas',
-    'importe',
-    'total_plan',
-    'saldo',
-  ];
+  // ====== Descargar la BASE desde el backend (todas las columnas + __op) ======
+  const downloadExportXLSX = async () => {
+    try {
+      const res = await api.get('/carga-datos/api/bulk-update/export.xlsx', {
+        responseType: 'blob',
+      });
+      const blob = new Blob([res.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'db_bia_export.xlsx';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('No se pudo descargar el Excel:', err);
+      alert('No se pudo descargar el Excel. Verificá que estés logueado.');
+    }
+  };
 
-  // ====== PLANTILLA XLSX ======
+  // ====== PLANTILLA XLSX (opcional, generada en front) ======
   const buildTemplateAOA = () => {
-    // Cabecera: clave + __op + todas las columnas editables
-    const header = ['id_pago_unico', '__op', ...MODEL_FIELDS_EXCEPT_KEY];
+    const header = ['id_pago_unico', '__op', ...ALL_MODEL_FIELDS];
 
-    // Filas de ejemplo:
-    // - UPDATE: no cambies id_pago_unico (solo identifica el registro)
-    // - INSERT: id_pago_unico debe ser único/nuevo
-    // - DELETE: se ignoran otros campos
     const rowUpdate = [
       '10001', 'UPDATE',
-      // Relleno rápido para algunas columnas, el resto vacío:
       'CRED-XYZ', 'BANCO DEMO', 'ORIGINAL S.A.', 'INT-01', 1,
       'G1', 'T1', '10.50', '30111222', '20-30111222-3', 'Juan Pérez',
       '2024-01-10', '2024-02-15', '1000.00', '1500.00', '0.1234', '200.00', '1700.00',
@@ -107,8 +124,7 @@ export default function ModificarMasivo() {
 
     const rowDelete = [
       '30001', 'DELETE',
-      // El resto de columnas importa poco para DELETE:
-      ...Array(MODEL_FIELDS_EXCEPT_KEY.length).fill('')
+      ...Array(ALL_MODEL_FIELDS.length).fill('')
     ];
 
     return [header, rowUpdate, rowInsert, rowDelete];
@@ -118,42 +134,26 @@ export default function ModificarMasivo() {
     const aoa = buildTemplateAOA();
     const ws  = XLSX.utils.aoa_to_sheet(aoa);
 
-    // Anchos de columnas dinámicos (un poco más anchos para campos largos)
     const headers = aoa[0];
-    ws['!cols'] = headers.map((h, i) => {
+    ws['!cols'] = headers.map((h) => {
       const base = Math.min(Math.max((String(h).length + 2), 12), 32);
-      // agrandar un poco columnas conocidas
       const wider = ['nombre_apellido', 'provincia', 'entidadoriginal', 'entidadinterna', 'mail1', 'mail2', 'mail3'];
       return { wch: wider.includes(h) ? Math.max(base, 22) : base };
     });
 
-    // Hoja de instrucciones
     const instrucciones = [
       ['Cómo usar la planilla'],
-      [
-        "• 'id_pago_unico' es la clave de negocio: NO se modifica en UPDATE; se usa para identificar el registro."
-      ],
-      [
-        "• '__op' es opcional: UPDATE (o vacío), INSERT, DELETE. Si lo dejás vacío, se infiere por diferencias."
-      ],
-      [
-        "• Para UPDATE completá solo las columnas a modificar; dejá vacías las que no cambian."
-      ],
-      [
-        "• Para INSERT, 'id_pago_unico' debe ser nuevo y único."
-      ],
-      [
-        "• Para DELETE solo se usa 'id_pago_unico'; el resto de columnas se ignoran."
-      ],
-      [
-        "• Formatos: fechas YYYY-MM-DD; decimales con punto; 'entidad' es el ID numérico de la entidad."
-      ],
-      [
-        "• Esta plantilla incluye TODAS las columnas del modelo; podés borrar columnas que no necesites para tu UPDATE."
-      ],
+      [`• 'id_pago_unico' es la clave de negocio: NO se modifica en UPDATE; identifica el registro.`],
+      [`• '__op' es opcional: UPDATE (o vacío), INSERT, DELETE, NOCHANGE. Si está vacío se infiere.`],
+      [`• Para UPDATE podés dejar en blanco las columnas que no cambian.`],
+      [`• Para INSERT, 'id_pago_unico' debe ser nuevo y único.`],
+      [`• Para DELETE se usa solo 'id_pago_unico'.`],
+      [`• Fechas: YYYY-MM-DD; decimales con punto; 'entidad' puede ser ID o nombre (el backend resuelve).`],
+      [`• Esta plantilla incluye TODAS las columnas del modelo.`],
+      [`• En UPDATE el backend ignorará cambios en: ${NON_EDITABLE_IN_UPDATE.join(', ')}.`],
     ];
     const wsInfo = XLSX.utils.aoa_to_sheet(instrucciones);
-    wsInfo['!cols'] = [{ wch: 110 }];
+    wsInfo['!cols'] = [{ wch: 120 }];
 
     const wb  = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Datos');
@@ -203,7 +203,6 @@ export default function ModificarMasivo() {
     setSummary(null);
     setJobId(null);
     if (inputRef.current) inputRef.current.value = '';
-    // nueva clave de idempotencia si volvés a empezar
     idemKeyRef.current = makeUUID();
   };
 
@@ -226,7 +225,6 @@ export default function ModificarMasivo() {
 
     try {
       setUploading(true);
-      // NO setear Content-Type, que lo ponga el navegador
       const res = await api.post('/carga-datos/api/bulk-update/validate', form);
       const data = res?.data || {};
 
@@ -325,27 +323,36 @@ export default function ModificarMasivo() {
 
       {/* ====== BLOQUE INSTRUCTIVO ====== */}
       <div className="card border-0 rounded-4 shadow-sm mb-3">
-        <div className="card-header bg-white border-0">
-          <strong className="text-bia">Cómo usar este módulo</strong>
+        <div className="card-header bg-white border-0 d-flex flex-wrap gap-2 align-items-center">
+          <strong className="text-bia me-2">Cómo usar este módulo</strong>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-primary btn-outline-bia"
+            onClick={downloadExportXLSX}
+            title="Descargar la base actual en formato .xlsx"
+          >
+            Descargar base (.xlsx)
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary"
+            onClick={downloadTemplateXLSX}
+            title="Descargar una planilla de ejemplo generada en el navegador"
+          >
+            Descargar plantilla (.xlsx)
+          </button>
         </div>
         <div className="card-body">
           <ol className="mb-3">
             <li className="mb-1">
-              Descargá la{' '}
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-primary btn-outline-bia"
-                onClick={downloadTemplateXLSX}
-              >
-                plantilla .xlsx
-              </button>
-              .
+              Usá <strong>Descargar base</strong> para obtener un Excel con <em>todas las columnas</em> de la tabla.
+              También podés usar la <em>plantilla</em> para pruebas puntuales.
             </li>
             <li className="mb-1">
               Completá una fila por registro. <strong>Obligatorio:</strong>{' '}
-              <code>id_pago_unico</code> (o <code>business_key</code>) como clave de negocio.
+              <code>id_pago_unico</code> (o <code>business_key</code>) como clave.
               <br />
-              <span className="text-muted small">No modifiques la clave para UPDATE; solo identifica el registro.</span>
+              <span className="text-muted small">No cambies la clave en UPDATE; solo identifica el registro.</span>
             </li>
             <li className="mb-1">
               <strong>Acciones</strong> (<code>__op</code>):{' '}
@@ -353,6 +360,10 @@ export default function ModificarMasivo() {
               <span className="badge text-bg-success">INSERT</span> /{' '}
               <span className="badge text-bg-danger">DELETE</span> /{' '}
               <span className="badge text-bg-secondary">NOCHANGE</span> (o vacío).
+            </li>
+            <li className="mb-1">
+              <strong>Campos no editables en UPDATE:</strong>{' '}
+              <code>{NON_EDITABLE_IN_UPDATE.join(', ')}</code>. Si los cambiás, el backend los ignorará.
             </li>
             <li className="mb-1">
               Guardá el archivo como <code>.xlsx</code> (también acepta <code>.xls</code> o <code>.csv</code>) y{' '}
@@ -364,8 +375,11 @@ export default function ModificarMasivo() {
             </li>
           </ol>
           <div className="small text-muted">
-            La plantilla incluye <strong>todas las columnas</strong> del modelo; para UPDATE podés dejar en blanco
-            las que no quieras modificar. Para INSERT completá lo necesario; para DELETE solo la clave.
+            Colores de la vista previa: <span className="badge text-bg-success">INSERT</span>,{' '}
+            <span className="badge text-bg-warning">UPDATE</span>,{' '}
+            <span className="badge text-bg-danger">errores</span>,{' '}
+            <span className="badge text-bg-secondary">sin cambios</span>. Permisos: validar (admin/editor/aprobador),
+            confirmar (admin/aprobador).
           </div>
         </div>
       </div>
