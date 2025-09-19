@@ -3739,3 +3739,30 @@ django.db.utils.OperationalError: could not translate host name "bia.postgres.da
 [2025-09-17 00:30:43,298] INFO django.utils.autoreload - Watching for file changes with StatReloader
 [2025-09-17 00:31:00,792] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\urls.py changed, reloading.
 [2025-09-17 00:31:02,681] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-18 19:51:06,213] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-18 20:18:48,587] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-18 20:22:45,732] WARNING django.request - Unauthorized: /carga-datos/api/admin/users
+[2025-09-18 20:22:55,748] WARNING django.request - Unauthorized: /carga-datos/api/admin/users
+[2025-09-18 20:28:55,826] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-09-18 20:28:55,828] INFO certificado_ldd.views - [_handle_post_generar] hdr X-Requested-With='XMLHttpRequest' Accept='application/json, */*' Content-Type='multipart/form-data; boundary=----WebKitFormBoundaryJLdo3clLam1R7v3o' Referer='http://localhost:3000/certificado' UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
+[2025-09-18 20:28:55,829] INFO certificado_ldd.views - [_handle_post_generar] POST dni='22' id_pago_unico='' prefer_html=False is_ajax=True
+[2025-09-18 20:28:56,417] INFO certificado_ldd.views - [_handle_post_generar] No hay registros para DNI=22
+[2025-09-18 20:28:56,437] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-18 20:29:18,077] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-09-18 20:29:18,079] INFO certificado_ldd.views - [_handle_post_generar] hdr X-Requested-With='XMLHttpRequest' Accept='application/json, */*' Content-Type='multipart/form-data; boundary=----WebKitFormBoundaryD52MFqCfdgXP3BSp' Referer='http://localhost:3000/certificado' UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
+[2025-09-18 20:29:18,080] INFO certificado_ldd.views - [_handle_post_generar] POST dni='12654987' id_pago_unico='' prefer_html=False is_ajax=True
+[2025-09-18 20:29:18,991] DEBUG certificado_ldd.views - [_is_cancelado] id=21 estado=agencia externa -> False
+[2025-09-18 20:29:18,991] DEBUG certificado_ldd.views - [_is_cancelado] id=22 estado=cancelado -> True
+[2025-09-18 20:29:18,992] DEBUG certificado_ldd.views - [_is_cancelado] id=21 estado=agencia externa -> False
+[2025-09-18 20:29:18,992] DEBUG certificado_ldd.views - [_is_cancelado] id=22 estado=cancelado -> True
+[2025-09-18 20:29:18,993] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=12654987 -> cancelados=1 pendientes=1
+[2025-09-18 20:29:18,993] INFO certificado_ldd.views - [_render_pdf_for_registro] Preparando PDF para id_pago_unico=22
+[2025-09-18 20:29:19,110] INFO certificado_ldd.views - [_render_pdf_for_registro] PDF existente reutilizado (120182 bytes)
+[2025-09-18 20:29:19,111] INFO certificado_ldd.views - [_handle_post_generar] PDF entregado id=22 (120182 bytes)
+[2025-09-18 20:29:19,130] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-18 20:29:20,584] WARNING django.request - Unauthorized: /carga-datos/api/mostrar-datos-bia/
+[2025-09-18 20:30:18,937] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-18 20:30:18,950] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-18 20:30:19,201] WARNING django.request - Unauthorized: /api/certificado/entidades/
+[2025-09-18 20:38:30,256] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-18 20:38:30,269] WARNING django.request - Unauthorized: /carga-datos/api/admin/me

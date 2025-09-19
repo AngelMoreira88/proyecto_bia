@@ -49,10 +49,6 @@ def allocate_id_pago_unico() -> str:
 
 class BaseDeDatosBia(models.Model):
     id = models.BigAutoField(primary_key=True)
-
-    # ⚠️ Si ya tenés registros con id_pago_unico = NULL/vacío, primero corrélos con
-    # un backfill y recién después cambiá null=False/blank=False en una migración.
-    # Aun así, con la lógica de asignación ya nunca se crearán nulos.
     id_pago_unico   = models.CharField(
         max_length=50,
         db_index=True,
@@ -60,7 +56,6 @@ class BaseDeDatosBia(models.Model):
         null=False,
         blank=False   
     )
-
     creditos        = models.CharField(max_length=255, blank=True, null=True)
     propietario     = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     entidadoriginal = models.CharField(max_length=255, blank=True, null=True)
@@ -73,14 +68,18 @@ class BaseDeDatosBia(models.Model):
         null=True,
         blank=True,
     )
-
     grupo                = models.CharField(max_length=50, blank=True, null=True)
     tramo                = models.CharField(max_length=50, blank=True, null=True)
     comision             = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     dni                  = models.CharField(max_length=20, db_index=True, null=True, blank=True)
     cuit                 = models.CharField(max_length=20, blank=True, null=True)
     nombre_apellido      = models.CharField(max_length=255, blank=True, null=True)
-    fecha_apertura       = models.DateField(blank=True, null=True)
+    fecha_apertura = models.DateField(
+        default=timezone.localdate,  # hoy() en la tz del proyecto
+        null=False,                  # obligatorio a nivel DB
+        blank=False,                 # obligatorio a nivel formulario/serializer
+        db_index=True,               # (opcional) si lo consultás seguido
+    )
     fecha_deuda          = models.DateField(blank=True, null=True)
     saldo_capital        = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)
     saldo_exigible       = models.DecimalField(max_digits=15, decimal_places=2, blank=True, null=True)

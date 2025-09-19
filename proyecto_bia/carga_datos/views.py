@@ -283,7 +283,13 @@ def cargar_excel(request):
                         entidad_cache,
                         CREATE_MISSING_ENTIDADES
                     )
-                    obj = BaseDeDatosBia(**{k: fila.get(k) for k in columnas if k != 'entidad'})
+
+                    # 🔧 NUEVO: garantizar fecha_apertura si falta/está vacía
+                    payload = {k: fila.get(k) for k in columnas if k != 'entidad'}
+                    if not payload.get('fecha_apertura'):
+                        payload['fecha_apertura'] = timezone.localdate()
+
+                    obj = BaseDeDatosBia(**payload)
                     if ent:
                         obj.entidad = ent
                     registros.append(obj)
@@ -398,13 +404,6 @@ def api_confirmar_carga(request):
     if not records:
         return Response({'success': False, 'error': 'Todas las filas están vacías o sin claves requeridas.'}, status=400)
 
-    # (Opcional) Guard anti-doble confirmación por hash de payload
-    # payload_hash = hashlib.sha256(json.dumps(records, sort_keys=True, ensure_ascii=False).encode('utf-8')).hexdigest()
-    # last_hash = request.session.get('last_confirm_hash')
-    # if last_hash == payload_hash:
-    #     return Response({'success': False, 'error': 'El mismo payload ya fue confirmado recientemente.'}, status=409)
-    # request.session['last_confirm_hash'] = payload_hash
-
     columnas = [f.name for f in BaseDeDatosBia._meta.fields if f.name != 'id']
 
     # 1) Normalizar + detectar faltantes de id_pago_unico
@@ -458,6 +457,10 @@ def api_confirmar_carga(request):
         # Ignorar defensivamente filas que quedaron "vacías" luego de limpiar
         if _row_is_blank_dict(payload):
             continue
+
+        # 🔧 NUEVO: garantizar fecha_apertura si falta/está vacía
+        if not payload.get('fecha_apertura'):
+            payload['fecha_apertura'] = timezone.localdate()
 
         ent = _resolver_entidad(payload.get('propietario'), payload.get('entidadinterna'),
                                 entidad_cache, CREATE_MISSING_ENTIDADES)
@@ -601,7 +604,7 @@ def exportar_datos_bia_csv(request):
         writer = csv.writer(pseudo_buffer)
         yield writer.writerow(fields)
         for row in qs.values_list(*fields).iterator(chunk_size=2000):
-            yield writer.writerow(['' if v is None else str (v) for v in row])
+            yield writer.writerow(['' if v is None else str(v) for v in row])
 
     ts = timezone.localtime().strftime('%Y%m%d_%H%M%S')
     response = StreamingHttpResponse(row_iter(), content_type='text/csv; charset=utf-8')
