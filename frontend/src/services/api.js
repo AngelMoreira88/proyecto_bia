@@ -1,6 +1,5 @@
 // frontend/src/services/api.js
 import axios from 'axios';
-// ❌ QUITADO para evitar ciclo: import { logout } from './auth';
 import { createBrowserHistory } from 'history';
 
 const history = createBrowserHistory();
@@ -13,11 +12,8 @@ const API_BASE = process.env.REACT_APP_API_BASE || '/';
 const api = axios.create({
   baseURL: API_BASE,
   timeout: 30000,
-  // Si tu frontend y backend están en orígenes distintos y usás sesión/CSRF,
-  // necesitás enviar cookies:
-  withCredentials: true,
-  // Nombres por defecto de Django/DRF para CSRF
-  xsrfCookieName: 'csrftoken',
+  withCredentials: true,           // si usás sesión/CSRF en el mismo dominio
+  xsrfCookieName: 'csrftoken',     // nombres por defecto Django/DRF
   xsrfHeaderName: 'X-CSRFToken',
 });
 
@@ -40,7 +36,6 @@ function getRefreshToken() {
   }
 }
 
-// Fallback por si querés leer el CSRF manualmente (Axios ya usa xsrfCookieName/xsrfHeaderName)
 function getCookie(name) {
   const m = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
   return m ? decodeURIComponent(m.pop()) : null;
@@ -51,18 +46,15 @@ function getCookie(name) {
 // ===============================
 async function safeLogout() {
   try {
-    const mod = await import('./auth'); // ← import dinámico, rompe el ciclo
+    const mod = await import('./auth'); // ← import dinámico para evitar ciclos
     if (typeof mod.logout === 'function') {
       mod.logout();
       return;
     }
-  } catch (e) {
-    // Si por alguna razón falla, limpiamos storage a mano
-  }
+  } catch {}
   try { localStorage.removeItem('access_token'); } catch {}
   try { localStorage.removeItem('refresh_token'); } catch {}
   delete api.defaults.headers.Authorization;
-  // Aviso global a la app
   try { window.dispatchEvent(new Event('auth-changed')); } catch {}
 }
 
@@ -93,14 +85,13 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
-  // Si usás SessionAuthentication, ayuda adjuntar CSRF manualmente (además de xsrfHeaderName)
   const csrftoken = getCookie('csrftoken');
   if (csrftoken) {
     config.headers = config.headers || {};
     config.headers['X-CSRFToken'] = csrftoken;
   }
 
-  // Importantísimo: si es FormData, dejamos que Axios ponga el boundary
+  // Si es FormData, dejar que Axios setee el boundary automáticamente
   if (config.data instanceof FormData) {
     if (config.headers && config.headers['Content-Type']) {
       delete config.headers['Content-Type'];
@@ -111,9 +102,11 @@ api.interceptors.request.use((config) => {
 });
 
 // ===================================
-// Interceptor de RESPONSE
-// - Si 401 y hay refresh, intenta renovar y reintenta
-// - *** CAMBIO: 403 ya no hace logout; devuelve el error a la UI
+// Interceptor de RESPONSE (inteligente)
+// - 401 sin Authorization → reintenta 1 vez con access actual (sin refresh)
+// - 401 con Authorization → intenta refresh (con cola de espera)
+// - 401 final → logout suave
+// - 403 → NO desloguea; devuelve error a la UI
 // ===================================
 api.interceptors.response.use(
   (response) => response,
@@ -121,17 +114,27 @@ api.interceptors.response.use(
     const status = error?.response?.status;
     const originalRequest = error?.config;
 
-    // Si no hay response (network/CORS), rechazar
+    // Sin response (network/CORS): rechazar
     if (!error.response) {
       return Promise.reject(error);
     }
 
-    // Intentar refresh de access token UNA sola vez por request
-    if (status === 401 && originalRequest && !originalRequest._retry) {
+    if (status === 401 && originalRequest) {
+      const access = getAccessToken();
       const refresh = getRefreshToken();
-      if (refresh) {
+      const hadAuthHeader = !!(originalRequest.headers && originalRequest.headers.Authorization);
+
+      // Caso A: la request original salió SIN Authorization → reintentar 1 vez con el access actual
+      if (!hadAuthHeader && access) {
+        originalRequest.headers = originalRequest.headers || {};
+        originalRequest.headers.Authorization = `Bearer ${access}`;
+        return api(originalRequest);
+      }
+
+      // Caso B: venía con Authorization y falló → intentar refresh (una sola vez por request)
+      if (!originalRequest._retry && refresh) {
         if (isRefreshing) {
-          // Poner en cola hasta que termine otro refresh en curso
+          // Esperar a que otro refresh termine
           return new Promise((resolve, reject) => {
             pendingRequests.push({
               resolve: (newAccess) => {
@@ -150,12 +153,11 @@ api.interceptors.response.use(
         isRefreshing = true;
 
         try {
-          // Usar axios "plano" para evitar loops con el mismo interceptor
+          // usar axios plano para evitar loop con el mismo interceptor
           const { data } = await axios.post(
             `${API_BASE}api/token/refresh/`,
             { refresh },
             {
-              // Si tu refresh requiere cookie/CSRF:
               withCredentials: true,
               xsrfCookieName: 'csrftoken',
               xsrfHeaderName: 'X-CSRFToken',
@@ -166,7 +168,7 @@ api.interceptors.response.use(
           if (!newAccess) throw new Error('No se recibió access token en refresh');
 
           // Guardar y aplicar nuevo access
-          localStorage.setItem('access_token', newAccess);
+          try { localStorage.setItem('access_token', newAccess); } catch {}
           api.defaults.headers.common.Authorization = `Bearer ${newAccess}`;
           processQueue(null, newAccess);
 
@@ -177,28 +179,25 @@ api.interceptors.response.use(
         } catch (refreshErr) {
           processQueue(refreshErr, null);
 
-          // Logout sin ciclo de import
+          // Logout y redirección
           await safeLogout();
           try { history.push('/login'); } catch {}
-          // Forzar un reload para limpiar estado cliente
           window.location.reload();
           return Promise.reject(refreshErr);
         } finally {
           isRefreshing = false;
         }
       }
-    }
 
-    // *** CAMBIO: 401 (sin refresh posible) => logout + redirección
-    if (status === 401) {
+      // 401 sin posibilidad de refresh → logout
       await safeLogout();
       try { history.push('/login'); } catch {}
       window.location.reload();
       return Promise.reject(error);
     }
 
-    // *** CAMBIO: 403: NO cerrar sesión; devolver error para que la UI lo maneje
     if (status === 403) {
+      // No cerrar sesión; dejar que la UI muestre “No autorizado”
       console.warn('403 Forbidden:', error?.response?.data || '(sin detalle)');
       return Promise.reject(error);
     }
@@ -221,13 +220,12 @@ export default api;
  */
 export function subirExcel(formData) {
   return api.post('/carga-datos/api/cargar/', formData);
-  // Nota: al ser FormData, NO seteamos 'Content-Type'
 }
 
 /**
  * Confirma la carga después de la vista previa.
  * records: payload validado del backend
- * (⚠️ Si no pasás `records`, envía `{}` para que el backend use lo guardado en sesión.)
+ * (⚠️ Si no pasás `records`, el backend usa lo guardado en sesión.)
  */
 export function confirmarCarga(records) {
   const payload = Array.isArray(records) && records.length > 0 ? { records } : {};
@@ -255,9 +253,7 @@ export function actualizarDatoBia(pk, payload) {
 
 /** Exporta CSV de datos BIA */
 export function exportarDatosBiaCSV() {
-  return api.get('/carga-datos/api/exportar-datos-bia.csv', {
-    responseType: 'blob',
-  });
+  return api.get('/carga-datos/api/exportar-datos-bia.csv', { responseType: 'blob' });
 }
 
 /** Ping de salud (smoke test) */
@@ -266,12 +262,12 @@ export function pingCargaDatos() {
 }
 
 // =============================================
-// Endpoints: CERTIFICADOS LDD (manteniendo base)
+// Endpoints: CERTIFICADOS LDD
 // =============================================
 
 /** Genera el certificado (POST) */
 export function generarCertificado(payload) {
-  // Alias válido: /api/certificado/generar/ (ajusta si usás otro)
+  // El view acepta GET/POST; usamos POST JSON por simplicidad
   return api.post('/api/certificado/generar/', payload, {
     headers: { 'Content-Type': 'application/json' },
   });
@@ -287,7 +283,7 @@ export function obtenerEntidad(id) {
   return api.get(`/api/certificado/entidades/${id}/`);
 }
 
-/** Crear entidad (FormData con imágenes) */
+/** Crear entidad (FormData con imágenes/archivos) */
 export function crearEntidad(formData) {
   return api.post('/api/certificado/entidades/', formData);
 }
@@ -332,6 +328,27 @@ export function adminSetUserRoles(userId, body) {
   return api.post(`/carga-datos/api/admin/users/${userId}/roles`, body, {
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+// =======================================================
+// NUEVO: Endpoints Admin de usuarios (para Perfil.jsx)
+// (mantenemos el mismo estilo de paths sin barra final)
+// =======================================================
+export function adminCreateUser(payload) {
+  // payload: {username, email, first_name, last_name, password, is_active}
+  return api.post('/carga-datos/api/admin/users', payload, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+export function adminUpdateUser(userId, payload) {
+  // payload: mismos campos que create; password es opcional en edición
+  return api.patch(`/carga-datos/api/admin/users/${userId}`, payload, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+// (opcional) desactivar usuario
+export function adminDeactivateUser(userId) {
+  return api.post(`/carga-datos/api/admin/users/${userId}/deactivate`, {});
 }
 
 // =======================================================

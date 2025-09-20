@@ -35,23 +35,23 @@ from django.shortcuts import render
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required  # ⬅️ agregado
+from django.core.exceptions import PermissionDenied        # ⬅️ agregado
 
 from rest_framework.permissions import IsAuthenticated
+from rest_framework import viewsets, filters
 
 from xhtml2pdf import pisa
 
 from carga_datos.models import BaseDeDatosBia
+from carga_datos.permissions import (  # ⬅️ usar permisos del portal
+    CanManageEntities,
+    CanViewClients,
+)
 from .models import Certificate, Entidad
 from .serializers import EntidadSerializer
 
-from rest_framework.viewsets import ModelViewSet
-from rest_framework.filters import SearchFilter
-from rest_framework import viewsets, filters
-from .models import Entidad
-from .serializers import EntidadSerializer
-
 logger = logging.getLogger(__name__)
-
 
 # ---------------------------------------------------------------------------
 # Utilidades
@@ -64,6 +64,11 @@ def _is_ajax(request: HttpRequest) -> bool:
     return (request.headers.get("X-Requested-With") == "XMLHttpRequest") or (
         request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest"
     )
+
+# ⬇️ Decorador no-op para marcar vistas públicas sin borrar líneas
+def allow_public(view_func):
+    """Decorador marcador: no hace nada, deja la vista pública."""
+    return view_func
 
 # ====== Helpers seguros para FieldFile ======
 def _fieldfile_exists(ff) -> bool:
@@ -83,7 +88,6 @@ def _open_fieldfile(ff, mode="rb"):
     Abre un FieldFile a través del storage subyacente (FS, S3, etc.), sin tocar .path.
     """
     return ff.storage.open(ff.name, mode)
-
 
 # ---------------------------------------------------------------------------
 # Utilidades PDF / Rutas de STATIC & MEDIA para xhtml2pdf
@@ -144,7 +148,6 @@ def generate_pdf(html: str) -> Optional[bytes]:
     pdf_bytes = buf.getvalue()
     logger.debug("[generate_pdf] PDF generado OK (%d bytes)", len(pdf_bytes))
     return pdf_bytes
-
 
 # ---------------------------------------------------------------------------
 # Helpers de negocio
@@ -283,12 +286,17 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
 # Vistas HTML
 # ---------------------------------------------------------------------------
 
+@login_required  # ⬅️ requiere login
 def seleccionar_certificado(request: HttpRequest) -> HttpResponse:
     """
     GET /api/certificado/seleccionar/?dni=<dni>
     Lista las obligaciones del DNI, separando CANCELADO vs otras.
     Ofrece radios y botón por fila (GET) + botón de envío (POST).
     """
+    # ⬇️ permiso de lectura de clientes
+    if not (request.user.is_superuser or request.user.has_perm("carga_datos.can_view_clients")):
+        raise PermissionDenied("No autorizado")
+
     dni = (request.GET.get("dni") or "").strip()
     logger.info("[seleccionar_certificado] GET dni=%r", dni)
 
@@ -350,6 +358,7 @@ def seleccionar_certificado(request: HttpRequest) -> HttpResponse:
 # ---------------------------------------------------------------------------
 
 @csrf_exempt
+@allow_public  # ⬅️ ahora es público (antes: @login_required)
 def api_generar_certificado(request: HttpRequest) -> HttpResponse:
     """
     Generador de certificados.
@@ -366,6 +375,11 @@ def api_generar_certificado(request: HttpRequest) -> HttpResponse:
     Estados de negocio devueltos como 200:
         - sin_resultados, pendiente, varios_cancelados
     """
+    # ⬇️ permiso de lectura de clientes (solo si está autenticado; anónimo pasa)
+    if request.user.is_authenticated:
+        if not (request.user.is_superuser or request.user.has_perm("carga_datos.can_view_clients")):
+            raise PermissionDenied("No autorizado")
+
     method = request.method.upper()
     logger.info("[api_generar_certificado] method=%s", method)
 
@@ -550,17 +564,15 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
             for r in cancelados
         ]
 
-        # <<< ahora SIEMPRE 200; incluimos ambas claves para compat con el front >>>
         payload = {
             "estado": "varios_cancelados",
             "mensaje": "Seleccioná un id_pago_unico.",
             "dni": dni,
-            "opciones": certificados_meta,      # usado por lógica AJAX anterior
-            "certificados": certificados_meta,  # compat con tu try{...} actual
+            "opciones": certificados_meta,
+            "certificados": certificados_meta,
             "seleccionar_url": seleccionar_url,
         }
 
-        # Si el cliente pide HTML, puede usar seleccionar_url (igual devolvemos JSON 200)
         if (prefer_html or ("text/html" in (request.headers.get("Accept") or ""))) and not is_ajax:
             return JsonResponse(payload, status=200)
 
@@ -582,11 +594,13 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
 # ---------------------------------------------------------------------------
 # API Entidades (CRUD)
 # ---------------------------------------------------------------------------
-class EntidadViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = Entidad.objects.all().order_by('id')  # 👈 orden estable
+class EntidadViewSet(viewsets.ModelViewSet):  # ⬅️ habilitamos CRUD
+    queryset = Entidad.objects.all().order_by('id')
     serializer_class = EntidadSerializer
+    # Solo Admin/Supervisor (tienen CanManageEntities) deben acceder
+    permission_classes = [IsAuthenticated, CanManageEntities]
 
-    # (opcional) permitir ordenar por querystring: ?ordering=nombre o ?ordering=-nombre
+    # filtros opcionales para orden
     filter_backends = [filters.OrderingFilter]
-    ordering_fields = ['id', 'nombre', 'responsable']  # campos permitidos
-    ordering = ['id']  # orden por defecto si el cliente no envía ?ordering=
+    ordering_fields = ['id', 'nombre', 'responsable']
+    ordering = ['id']

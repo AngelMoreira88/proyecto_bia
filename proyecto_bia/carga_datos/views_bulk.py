@@ -26,6 +26,8 @@ from carga_datos.models import (
 )
 from carga_datos.utils_preview import render_preview_table
 
+# 🚦 permisos de negocio (nuevos)
+from carga_datos.permissions import CanBulkModify, IsAdminOrSuperuser
 
 # =========================
 # Configuración del módulo
@@ -34,10 +36,6 @@ BUSINESS_KEY_FIELD = "id_pago_unico"                  # Clave de negocio
 ALLOW_INSERTS = True                                  # Habilitar INSERT masivo
 ALLOW_DELETES = False                                 # Habilitar DELETE masivo
 ACCEPTED_OPS = {"UPDATE", "INSERT", "DELETE", "NOCHANGE"}
-
-# Roles / Grupos (si usás Groups)
-VALIDATE_ROLES = {"admin", "editor", "approver"}
-COMMIT_ROLES   = {"admin", "approver"}
 
 # Campo FK a resolver por nombre o id
 ENTIDAD_FIELD = "entidad"
@@ -48,23 +46,9 @@ ENTIDAD_MODEL_NAME = "Entidad"
 NON_EDITABLE_FIELDS = {BUSINESS_KEY_FIELD, "dni", "cuit", "fecha_apertura"}
 
 
-# ==============
-# Helper permisos
-# ==============
-def user_in_roles(user, roles: set) -> bool:
-    if not user.is_authenticated:
-        return False
-    if user.is_superuser:
-        return True
-    return bool(set(user.groups.values_list("name", flat=True)) & roles)
-
-
-# ============
-# Helper tipos
-# ============
+# ============ Tipos / normalizadores ============
 def _sha256_bytes(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
-
 
 def _is_nan(x: Any) -> bool:
     try:
@@ -72,38 +56,27 @@ def _is_nan(x: Any) -> bool:
     except Exception:
         return False
 
-
 def _normalize_val(v: Any) -> Any:
     """
-    Normaliza valores que vienen de pandas / Excel:
+    Normaliza valores Excel/Pandas:
     - NaN -> None
-    - str -> trimmed, '' -> None
-    - pandas.Timestamp / datetime -> ISO (YYYY-MM-DD)
-    - otros tipos: se devuelven tal cual
+    - str -> trimmed / '' -> None
+    - fechas -> 'YYYY-MM-DD'
     """
     if _is_nan(v):
         return None
     if isinstance(v, str):
         s = v.strip()
         return s if s != "" else None
-    # Fechas / Timestamps
     if isinstance(v, (pd.Timestamp, datetime.datetime, datetime.date)):
         try:
             d = v.date() if isinstance(v, (pd.Timestamp, datetime.datetime)) else v
             return d.isoformat()
         except Exception:
-            # fallback a str si algo raro
             return str(v)
     return v
 
-
 def _normalize_business_key(v: Any) -> str | None:
-    """
-    Normaliza la clave de negocio a string:
-    - NaN/blank -> None
-    - 12345.0 -> '12345'
-    - 12345   -> '12345'
-    """
     v = _normalize_val(v)
     if v is None:
         return None
@@ -111,27 +84,24 @@ def _normalize_business_key(v: Any) -> str | None:
         v = int(v)
     return str(v)
 
-
 def _model_concrete_fields(model_cls) -> Dict[str, models.Field]:
-    """{nombre_campo: Field} solo para campos concretos (sin M2M ni reverse)."""
+    """{campo: Field} concretos (sin M2M/reverse)."""
     res = {}
     for f in model_cls._meta.get_fields():
         if isinstance(f, models.Field) and not (f.many_to_many or f.one_to_many):
             res[f.name] = f
     return res
 
-
 def _get_entidad_model():
     return apps.get_model(ENTIDAD_APP_LABEL, ENTIDAD_MODEL_NAME)
 
-
 def _coerce_entidad_value(raw: Any) -> Tuple[Any, str]:
     """
-    Acepta:
-      - None / '' -> None (borra FK)
-      - ID numérico -> valida existencia (devuelve pk)
-      - Nombre (str) -> resuelve por nombre case-insensitive (devuelve pk)
-    Devuelve (pk_o_none, error_str)
+    'entidad':
+      - None/'' -> None
+      - id numérico -> pk si existe
+      - nombre -> pk por nombre (iexact)
+    Devuelve (pk_o_none, error)
     """
     v = _normalize_val(raw)
     if v is None:
@@ -149,11 +119,8 @@ def _coerce_entidad_value(raw: Any) -> Tuple[Any, str]:
         return obj.pk, ""
     return None, "entidad: no encontrada por nombre"
 
-
 def _coerce_to_field(field: models.Field, value: Any) -> Tuple[Any, str]:
-    """
-    Convierte el valor al tipo del field. Para FK 'entidad' delega en _coerce_entidad_value.
-    """
+    """Tipado según Field; FK 'entidad' usa _coerce_entidad_value."""
     if field.name == ENTIDAD_FIELD and isinstance(field, models.ForeignKey):
         return _coerce_entidad_value(value)
     try:
@@ -162,26 +129,22 @@ def _coerce_to_field(field: models.Field, value: Any) -> Tuple[Any, str]:
         return None, f"{field.name}: {e}"
 
 
-# ===========
-# EXPORT .XLSX (base real)
-# ===========
+# =========== EXPORT .XLSX (base productiva) ===========
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, CanBulkModify])  # Admin / Supervisor
 def bulk_export_xlsx(request):
     """
-    Descarga la base productiva (tabla db_bia) en formato .xlsx:
-      - Todas las columnas del modelo EXCEPTO 'id'
-      - Agrega columna '__op' vacía (segunda), lista para edición UPDATE/INSERT/DELETE
+    Descarga la base real (db_bia) en .xlsx:
+      - Todas las columnas (sin 'id')
+      - Agrega '__op' vacía
     """
-    # Columnas del modelo (sin 'id')
     model_fields = [f.name for f in BaseDeDatosBia._meta.fields if f.name != "id"]
 
-    # Orden: id_pago_unico primero, luego __op, luego el resto
     base_cols = [BUSINESS_KEY_FIELD] + [c for c in model_fields if c != BUSINESS_KEY_FIELD]
     export_cols = [BUSINESS_KEY_FIELD, "__op"] + [c for c in base_cols if c != BUSINESS_KEY_FIELD]
 
-    # Filtros opcionales (ej: ?dni=...&id_pago_unico__in=1,2,3&limit=5000)
     qs = BaseDeDatosBia.objects.all().order_by("id")
+
     dni = (request.GET.get("dni") or "").strip()
     if dni:
         qs = qs.filter(dni=dni)
@@ -198,10 +161,8 @@ def bulk_export_xlsx(request):
     if limit > 0:
         qs = qs[:limit]
 
-    # Traer datos en el mismo orden (sin __op; la agregamos nosotros)
     rows = list(qs.values(*base_cols))
 
-    # Normalizar valores (fechas -> iso, etc.) y agregar __op vacía
     norm_rows = []
     for r in rows:
         norm = {k: _normalize_val(v) for k, v in r.items()}
@@ -212,29 +173,22 @@ def bulk_export_xlsx(request):
 
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-        # Datos
         df.to_excel(writer, index=False, sheet_name="Datos")
         ws = writer.sheets["Datos"]
         ws.freeze_panes = "A2"
-
-        # Ancho de columnas razonable
         for i, col in enumerate(export_cols, start=1):
             width = max(10, min(40, len(str(col)) + 2))
             ws.column_dimensions[get_column_letter(i)].width = width
 
-        # Guía
         guia_lines = [
             ["Instrucciones"],
-            [f"- NO modificar '{BUSINESS_KEY_FIELD}', 'dni', 'cuit' ni 'fecha_apertura' (campos no editables)."],
-            ["- Editá el resto de columnas que necesites."],
-            ["- __op: 'UPDATE' (o vacío), 'INSERT' (si está habilitado), 'DELETE' (si está habilitado)."],
-            ["- Fechas en formato ISO: YYYY-MM-DD."],
-            ["- Para 'entidad': podés usar ID numérico o nombre exacto (no sensible a mayúsculas)."],
+            [f"- NO modificar '{BUSINESS_KEY_FIELD}', 'dni', 'cuit' ni 'fecha_apertura'."],
+            ["- '__op': UPDATE (o vacío), INSERT (si está habilitado), DELETE (si está habilitado)."],
+            ["- Fechas: YYYY-MM-DD."],
+            ["- 'entidad': ID numérico o nombre (case-insensitive)."],
         ]
-        df_guia = pd.DataFrame([{"Guía": x[0]} for x in guia_lines])
-        df_guia.to_excel(writer, index=False, sheet_name="Guía")
-        ws2 = writer.sheets["Guía"]
-        ws2.column_dimensions["A"].width = 110
+        pd.DataFrame([{"Guía": x[0]} for x in guia_lines]).to_excel(writer, index=False, sheet_name="Guía")
+        writer.sheets["Guía"].column_dimensions["A"].width = 110
 
     buffer.seek(0)
     ts = timezone.localtime().strftime("%Y%m%d_%H%M%S")
@@ -248,21 +202,13 @@ def bulk_export_xlsx(request):
     return resp
 
 
-# ===========
-# VALIDATE
-# ===========
+# =========== VALIDATE ===========
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, CanBulkModify])  # Admin / Supervisor
 def bulk_validate(request):
     """
-    Recibe un archivo (CSV/XLS/XLSX) con columnas:
-      - id_pago_unico (o business_key)
-      - __op (opcional): UPDATE/INSERT/DELETE/NOCHANGE
-      - y todas las columnas del modelo (las NO editables se rechazan si intentan cambiarlas)
+    Sube un archivo (CSV/XLS/XLSX) y prepara la vista previa de cambios.
     """
-    if not user_in_roles(request.user, VALIDATE_ROLES):
-        return Response({"errors": ["No tenés permisos para validar cambios."]}, status=403)
-
     f = request.FILES.get("archivo")
     if not f:
         return Response({"errors": ["Archivo requerido."]}, status=400)
@@ -280,19 +226,16 @@ def bulk_validate(request):
     if df.empty:
         return Response({"errors": ["El archivo está vacío."]}, status=400)
 
-    # Normalizamos headers
+    # Normalizar headers
     df.rename(columns={c: str(c).strip() for c in df.columns}, inplace=True)
     cols = [str(c).strip() for c in df.columns]
 
-    # Clave obligatoria
     if BUSINESS_KEY_FIELD not in cols and "business_key" not in cols:
         return Response({"errors": [f"Falta la columna clave '{BUSINESS_KEY_FIELD}'"]}, status=400)
 
-    # Campos del modelo y editables
     fields_map = _model_concrete_fields(BaseDeDatosBia)
     editable_cols = set(fields_map.keys()) - ({"id"} | NON_EDITABLE_FIELDS)
 
-    # Crear Job
     job = BulkJob.objects.create(
         id=uuid.uuid4(),
         filename=f.name,
@@ -324,7 +267,7 @@ def bulk_validate(request):
                     job=job,
                     business_key="(sin_clave)",
                     op=StagingBulkChange.Operation.NOCHANGE,
-                    payload=raw_row,  # json seguro (fechas ya normalizadas)
+                    payload=raw_row,
                     validation_errors=errs,
                     can_apply=False,
                 )
@@ -337,12 +280,10 @@ def bulk_validate(request):
                 })
                 continue
 
-            # __op (opcional)
             op_in = str(raw_row.get("__op") or "").upper().strip()
             if op_in and op_in not in ACCEPTED_OPS:
-                op_in = ""  # ignoramos valor inválido → se infiere
+                op_in = ""
 
-            # Filtrar payload a columnas del modelo
             payload_clean = {}
             errors: List[str] = []
             for k, v in raw_row.items():
@@ -352,7 +293,6 @@ def bulk_validate(request):
                     errors.append(f"Columna desconocida: {k}")
                     continue
                 if k not in editable_cols:
-                    # id, id_pago_unico, dni, cuit, fecha_apertura no son editables
                     errors.append(f"Columna no editable: {k}")
                     continue
 
@@ -362,10 +302,8 @@ def bulk_validate(request):
                 else:
                     payload_clean[k] = coerced
 
-            # Registro actual en DB
-            current = BaseDeDatosBia.objects.filter(**{BUSINESS_KEY_FIELD: bkey}).first()
+            current = BaseDeDatosBia.objects.filter(**{f"{BUSINESS_KEY_FIELD}": bkey}).first()
 
-            # Determinar operación + cambios para preview
             changes = {}
             if current:
                 if op_in == "DELETE":
@@ -411,25 +349,22 @@ def bulk_validate(request):
                     op = "NOCHANGE"
                     errors.append("Registro no existe y los INSERTs no están habilitados.")
 
-            # Permisos para delete
             can_apply = (op in {"UPDATE", "INSERT", "DELETE"}) and len(errors) == 0
             if op == "DELETE" and not ALLOW_DELETES:
                 errors.append("Borrado masivo deshabilitado por configuración.")
                 can_apply = False
 
-            # Staging
             StagingBulkChange.objects.update_or_create(
                 job=job,
                 business_key=str(bkey),
                 defaults=dict(
                     op=op,
-                    payload=raw_row,      # json-safe
+                    payload=raw_row,
                     validation_errors=errors,
                     can_apply=can_apply,
                 ),
             )
 
-            # Summary
             if op == "UPDATE":
                 summary["updates"] += 1
             elif op == "INSERT":
@@ -463,21 +398,16 @@ def bulk_validate(request):
     })
 
 
-# ===========
-# COMMIT
-# ===========
+# =========== COMMIT ===========
 @api_view(["POST"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdminOrSuperuser])  # Solo Admin / superuser
 def bulk_commit(request):
     """
-    Recibe { job_id } y aplica en transacción:
-      - UPDATE/INSERT/DELETE (según configuración)
+    Aplica el job:
+      - UPDATE/INSERT/DELETE (según flags)
       - AuditLog por campo
       - Marca BulkJob como committed
     """
-    if not user_in_roles(request.user, COMMIT_ROLES):
-        return Response({"errors": ["No tenés permisos para confirmar cambios."]}, status=403)
-
     job_id = request.data.get("job_id")
     if not job_id:
         return Response({"errors": ["'job_id' requerido."]}, status=400)
@@ -512,7 +442,6 @@ def bulk_commit(request):
             op = (r["op"] or "").upper()
             raw = r["payload"] or {}
 
-            # Payload limpio SOLO con campos editables + tipado correcto
             payload_clean = {}
             for k, v in raw.items():
                 if k in {BUSINESS_KEY_FIELD, "business_key", "__op"}:
@@ -589,7 +518,6 @@ def bulk_commit(request):
                         actor=request.user,
                     )
 
-        # Aplicar cambios
         if inserts_instances:
             BaseDeDatosBia.objects.bulk_create(inserts_instances, ignore_conflicts=True)
         if updates_instances and changed_fields_union:

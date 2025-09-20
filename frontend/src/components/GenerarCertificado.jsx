@@ -4,19 +4,15 @@ import api, { listarDatosBia } from "../services/api";
 import { isLoggedIn } from "../services/auth";
 import BackHomeLink from "./BackHomeLink";
 
-/* ========= WhatsApp config =========
-   Definí en .env:
-   REACT_APP_WA_PHONE=9541125667547
-   REACT_APP_WA_MSG=Hola, tengo un pago no cancelado y necesito asistencia.
-*/
+/* ========= WhatsApp config ========= */
 const WA_PHONE = (process.env.REACT_APP_WA_PHONE || "5491100000000")
   .toString()
   .replace(/[^\d]/g, "");
 const WA_MSG_DEFAULT =
   process.env.REACT_APP_WA_MSG ||
-  "Hola, tengo un pago no cancelado y necesito asistencia.";
+  "Hola, tengo una deuda para cancelar y necesito asesoramiento";
 
-/* ========= Endpoints ========= */
+/* ========= Endpoints (públicos para certificado) ========= */
 const POST_ENDPOINTS = [
   "/api/certificado/generar/",
   "/api/certificado/generar-certificado/",
@@ -24,7 +20,9 @@ const POST_ENDPOINTS = [
 ];
 const GET_ENDPOINT = "/api/certificado/generar/"; // descarga directa por id
 
-/* ========= Helpers ========= */
+/* ========= Preferencias de respuesta ========= */
+const ACCEPT_PREF = "application/pdf, application/json, */*";
+
 const toBlobText = async (maybeBlob) => {
   if (!maybeBlob) return "";
   try {
@@ -32,6 +30,12 @@ const toBlobText = async (maybeBlob) => {
   } catch {
     return "";
   }
+};
+
+// Detecta si la respuesta parece una página HTML (login/error)
+const isLikelyHtml = (text = "") => {
+  const t = String(text).trim().toLowerCase();
+  return t.startsWith("<!doctype html") || t.startsWith("<html");
 };
 
 const buildWAUrl = (phone, text) =>
@@ -156,9 +160,7 @@ const pickSoloCancelados = (payload) => {
   return dedupeRows(only);
 };
 
-/** Merge para la tabla: une sin borrar filas “sin ID”.
- *  Si se repite el mismo ID, se queda una sola fila priorizando “cancelado”.
- */
+/** Merge para la tabla */
 const mergeRowsForTable = (noCancelados, cancelados) => {
   const out = [];
   const byIdIndex = new Map();
@@ -173,7 +175,6 @@ const mergeRowsForTable = (noCancelados, cancelados) => {
     if (id) {
       if (byIdIndex.has(id)) {
         const idx = byIdIndex.get(id);
-        // si llega “cancelado” y el existente no lo es, reemplazamos
         if (row._cat === "cancelado" && out[idx]._cat !== "cancelado") out[idx] = row;
         return;
       }
@@ -187,7 +188,7 @@ const mergeRowsForTable = (noCancelados, cancelados) => {
   return out;
 };
 
-// Extrae un id posible del Content-Disposition (cuando el POST devuelve PDF)
+// Extrae un id posible del Content-Disposition
 const idFromContentDisposition = (cd = "") => {
   const m = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(cd);
   const fn = m && m[1] ? decodeURIComponent(m[1]) : "";
@@ -205,8 +206,9 @@ const normalizeResults = (payload) => {
   return [];
 };
 
-// Busca propietario/entidad por DNI + ID (para el caso PDF directo)
+// Busca meta por DNI + ID (solo si hay sesión)
 const fetchMetaById = async (dniTrim, idp) => {
+  if (!isLoggedIn()) return { propietario: "—", entidadinterna: "—" };
   try {
     const res = await listarDatosBia({ dni: dniTrim, id_pago_unico: idp, page: 1 });
     const arr = normalizeResults(res?.data || {});
@@ -220,17 +222,16 @@ const fetchMetaById = async (dniTrim, idp) => {
   }
 };
 
-/** Fallback: trae TODO por DNI y lo divide en cancelados / no cancelados */
+/** Fallback por DNI (solo si hay sesión) */
 const fetchAllByDni = async (dniTrim) => {
+  if (!isLoggedIn()) return { nc: [], ok: [] };
   try {
     const res = await listarDatosBia({ dni: dniTrim, page: 1 });
     const all = normalizeResults(res?.data || {});
     const nc = dedupeRows(all.filter((x) => !isCanceladoValue(readEstado(x))));
     const ok = dedupeRows(all.filter((x) => isCanceladoValue(readEstado(x))));
-    console.debug("[CERT] Fallback listarDatosBia -> total:", all.length, " nc:", nc.length, " ok:", ok.length);
     return { nc, ok };
-  } catch (e) {
-    console.debug("[CERT] Fallback listarDatosBia error:", e?.message);
+  } catch {
     return { nc: [], ok: [] };
   }
 };
@@ -250,8 +251,6 @@ function CertificadoForm({
   onDescargarPorId,
 }) {
   const dniTrim = (dni || "").replace(/\D/g, "").trim();
-
-  // Tabla única con estado siempre visible
   const filas = mergeRowsForTable(deudas, varios);
   const hasResultados = filas.length > 0;
 
@@ -285,8 +284,6 @@ function CertificadoForm({
           />
         </div>
 
-
-
         {msg && (
           <div className={`alert alert-${msg.type} mt-2 mb-0`} role="alert">
             {msg.text}
@@ -301,7 +298,6 @@ function CertificadoForm({
         </div>
       </form>
 
-      {/* Tabla única: Estado SIEMPRE + Acción */}
       {hasResultados && (
         <div className="table-responsive mt-3">
           <table className="table table-sm align-middle mb-0">
@@ -347,7 +343,7 @@ function CertificadoForm({
                           disabled={!idp}
                           title={idp ? "Descargar certificado" : "Falta ID para descargar"}
                         >
-                          Descarga tu libre de deuda en PDF 
+                          Descarga tu libre de deuda en PDF
                         </button>
                       )}
                     </td>
@@ -372,7 +368,7 @@ export default function GenerarCertificado() {
   const [deudas, setDeudas] = useState([]); // NO cancelados
   const [varios, setVarios] = useState([]); // SOLO cancelados
 
-  // POST con fallback
+  // POST con fallback entre endpoints públicos
   const postConFallback = async (payload) => {
     let lastErr = null;
     for (const url of POST_ENDPOINTS) {
@@ -381,7 +377,7 @@ export default function GenerarCertificado() {
           responseType: "blob",
           headers: {
             "X-Requested-With": "XMLHttpRequest",
-            Accept: "application/json, */*",
+            Accept: ACCEPT_PREF,
           },
         });
         return res;
@@ -397,18 +393,22 @@ export default function GenerarCertificado() {
     try {
       const res = await api.get(GET_ENDPOINT, {
         responseType: "blob",
-        headers: { "X-Requested-With": "XMLHttpRequest" },
+        headers: { "X-Requested-With": "XMLHttpRequest", Accept: ACCEPT_PREF },
         params: { id_pago_unico: idp, dni: dniTrim || undefined },
       });
 
       const ct = (res.headers?.["content-type"] || "").toLowerCase();
       if (!ct.includes("application/pdf")) {
         const text = await toBlobText(res.data);
+        if (isLikelyHtml(text)) {
+          alert("No se pudo generar el certificado en este momento.");
+          return;
+        }
         try {
           const j = JSON.parse(text);
           alert(j.mensaje || j.error || "No se pudo generar el certificado.");
         } catch {
-          alert(text || "No se pudo generar el certificado.");
+          alert("No se pudo generar el certificado.");
         }
         return;
       }
@@ -429,11 +429,15 @@ export default function GenerarCertificado() {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       const text = await toBlobText(err?.response?.data);
+      if (isLikelyHtml(text)) {
+        alert("No se pudo descargar el certificado (respuesta no válida).");
+        return;
+      }
       try {
         const j = JSON.parse(text || "{}");
         alert(j.error || j.mensaje || "No se pudo descargar el certificado.");
       } catch {
-        alert(text || "No se pudo descargar el certificado.");
+        alert("No se pudo descargar el certificado.");
       }
     }
   };
@@ -462,7 +466,7 @@ export default function GenerarCertificado() {
       if (ct.includes("application/pdf")) {
         const cd = res.headers?.["content-disposition"] || "";
         const idp = idFromContentDisposition(cd);
-        const meta = await fetchMetaById(dniTrim, idp);
+        const meta = await fetchMetaById(dniTrim, idp); // solo consulta DB si hay sesión
         setVarios([
           {
             id_pago_unico: idp || "",
@@ -471,27 +475,27 @@ export default function GenerarCertificado() {
             estado: "Cancelado",
           },
         ]);
-        setMsg({
-          type: "success",
-          text: "Podés emitir el/los certificado.",
-        });
+        setMsg({ type: "success", text: "Podés emitir el/los certificado(s)." });
 
-        // Además traigo todo por DNI por si hay otras coincidencias
+        // Si hay sesión, enriquecemos con la DB
         const fb = await fetchAllByDni(dniTrim);
         setVarios((prev) => dedupeRows([...prev, ...fb.ok]));
         setDeudas((prev) => dedupeRows([...prev, ...fb.nc]));
         return;
       }
 
-      // Si viene JSON, procedemos normal
+      // Si viene JSON
       const text = await toBlobText(res.data);
+      if (isLikelyHtml(text)) {
+        setMsg({ type: "danger", text: "No se pudo procesar la solicitud en este momento." });
+        return;
+      }
       const payload = JSON.parse(text || "{}");
 
       let detOK = pickSoloCancelados(payload);
       let detNC = pickNoCancelados(payload);
-      console.debug("[CERT] POST -> cancelados (OK):", detOK.length, " no-cancelados:", detNC.length);
 
-      // Fallback: sumo lo que venga de la DB por DNI
+      // Enriquecer con DB solo si hay sesión
       const fb = await fetchAllByDni(dniTrim);
       detOK = dedupeRows([...detOK, ...fb.ok]);
       detNC = dedupeRows([...detNC, ...fb.nc]);
@@ -525,9 +529,16 @@ export default function GenerarCertificado() {
       const status = err?.response?.status;
       const text = await toBlobText(err?.response?.data);
 
+      if (isLikelyHtml(text)) {
+        setMsg({ type: "danger", text: "No se pudo generar el certificado. Intentá más tarde." });
+        setLoading(false);
+        return;
+      }
+
       try {
         const payload = JSON.parse(text || "{}");
 
+        // Compat: algún backend viejo manda 400 con varios_cancelados
         if (
           status === 400 &&
           /varios_cancelados/i.test(String(payload?.estado || "")) &&
@@ -567,14 +578,14 @@ export default function GenerarCertificado() {
           return;
         }
       } catch {
-        // no-json
+        // respuesta no JSON
       }
 
       if (status === 404) {
         setMsg({
           type: "danger",
           text:
-            "Endpoint no encontrado. Verificá que exista /api/certificado/generar/ (o activá los aliases de compat).",
+            "Endpoint no encontrado. Verificá que exista /api/certificado/generar/ (o los aliases de compat).",
         });
       } else {
         setMsg({
@@ -587,8 +598,9 @@ export default function GenerarCertificado() {
     }
   };
 
-  // ---------- Layout ----------
+  // === Layout ===
   if (!logged) {
+    // 🔙 RESTAURADO: fondo/hero original para público
     return (
       <div className="page-fill position-relative overflow-hidden d-flex align-items-center">
         <div className="pm-hero-bg" aria-hidden></div>
@@ -608,7 +620,7 @@ export default function GenerarCertificado() {
                   varios={varios}
                   setVarios={setVarios}
                   onSubmit={handleSubmit}
-                  onDescargarPorId={descargarPorId /* <- evita refactor accidentales */}
+                  onDescargarPorId={descargarPorId}
                 />
               </div>
             </div>
@@ -618,7 +630,7 @@ export default function GenerarCertificado() {
     );
   }
 
-  // Versión para usuarios logueados
+  // Con sesión (podés dejar sin hero si querés)
   return (
     <div className="container page-fill d-flex align-items-center">
       <div className="w-100">
@@ -635,7 +647,7 @@ export default function GenerarCertificado() {
               varios={varios}
               setVarios={setVarios}
               onSubmit={handleSubmit}
-              onDescargarPorId={descargarPorId /* <- evita refactor accidentales */}
+              onDescargarPorId={descargarPorId}
             />
           </div>
         </div>

@@ -135,6 +135,12 @@ class BaseDeDatosBia(models.Model):
                 check=Q(id_pago_unico__regex=r'^\d+$') | Q(id_pago_unico__isnull=True),
             ),
         ]
+        permissions = [
+            ("can_manage_entities", "Puede gestionar Entidades"),
+            ("can_upload_excel",   "Puede cargar Excel"),
+            ("can_bulk_modify",    "Puede Modificar Masivo"),
+            ("can_view_clients",   "Puede ver/consultar clientes y descargas"),
+        ]
 
     def __str__(self):
         return f'{self.id_pago_unico or "—"} / {self.dni or ""}'

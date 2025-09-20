@@ -10,6 +10,7 @@ import pandas as pd
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
+from django.core.exceptions import PermissionDenied  # ⬅️ agregado
 
 from django.db import IntegrityError, transaction
 from django.db.models import Q
@@ -26,6 +27,14 @@ from .forms import ExcelUploadForm
 from .models import BaseDeDatosBia, allocate_id_pago_unico_block
 from .serializers import BaseDeDatosBiaSerializer
 from .views_helpers import limpiar_valor  # si ya lo tenés
+
+# ⬇️ permisos backend
+from .permissions import (
+    CanManageEntities,
+    CanUploadExcel,
+    CanBulkModify,
+    CanViewClients,
+)
 
 logger = logging.getLogger('django.request')
 digits_only = RegexValidator(r"^\d+$", "Solo dígitos.")
@@ -201,6 +210,10 @@ def confirmar_carga(request):
     """
     Versión web: toma lo de sesión y aplica misma lógica que la API.
     """
+    # ⬇️ permiso: cargar excel
+    if not (request.user.is_superuser or request.user.has_perm("carga_datos.can_upload_excel")):
+        raise PermissionDenied("No autorizado")
+
     datos = request.session.get('datos_cargados', [])
     if not datos:
         return redirect('cargar_excel')
@@ -226,6 +239,10 @@ def cargar_excel(request):
     """
     Sube y guarda DIRECTO (flujo web). Resuelve FK 'entidad' por propietario -> entidadinterna.
     """
+    # ⬇️ permiso: cargar excel
+    if not (request.user.is_superuser or request.user.has_perm("carga_datos.can_upload_excel")):
+        raise PermissionDenied("No autorizado")
+
     mensaje = ""
     if request.method == 'POST':
         form = ExcelUploadForm(request.POST, request.FILES)
@@ -311,7 +328,7 @@ def cargar_excel(request):
 
 # ========= API REST =========
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, CanUploadExcel])  # ⬅️ permiso
 def api_cargar_excel(request):
     """
     Sube y previsualiza (NO guarda). Deja los datos en sesión.
@@ -386,7 +403,7 @@ def api_cargar_excel(request):
         return Response({'success': False, 'errors': [f"Error al procesar archivo: {str(e)}"]}, status=500)
 
 @api_view(['POST'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, CanUploadExcel])  # ⬅️ permiso
 def api_confirmar_carga(request):
     """
     Guarda registros enviados por el front (o desde la sesión),
@@ -521,7 +538,7 @@ def api_errores_validacion(request):
 # CONSULTA / EDICIÓN BIA
 # =========================
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, CanViewClients])  # ⬅️ permiso (consulta)
 def mostrar_datos_bia(request):
     """
     GET /api/mostrar-datos-bia/?dni=...&id_pago_unico=...
@@ -548,7 +565,7 @@ def mostrar_datos_bia(request):
 NO_EDITABLES = {'id'}  # podés sumar 'dni', 'id_pago_unico'
 
 @api_view(['PUT', 'PATCH'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, CanBulkModify])  # ⬅️ permiso (edición)
 def actualizar_datos_bia(request, pk: int):
     """
     PUT/PATCH /api/mostrar-datos-bia/<id>/
@@ -578,7 +595,7 @@ def actualizar_datos_bia(request, pk: int):
     return Response(ser.data, status=200)
 
 @api_view(['GET'])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, CanViewClients])  # ⬅️ permiso (consulta/export)
 def exportar_datos_bia_csv(request):
     """
     GET /api/exportar-datos-bia.csv
@@ -610,3 +627,35 @@ def exportar_datos_bia_csv(request):
     response = StreamingHttpResponse(row_iter(), content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = f'attachment; filename="db_bia_{ts}.csv"'
     return response
+
+# =========================
+# DELETE DB_BIA (por PK)
+# =========================
+@api_view(["DELETE"])
+@permission_classes([IsAuthenticated, CanBulkModify])  # Admin / Supervisor
+def delete_db_bia(request, pk: int):
+    """
+    DELETE /api/db_bia/<pk>/
+    Borra un registro de db_bia por PK.
+
+    - Requiere permiso de negocio CanBulkModify (Admin o Supervisor).
+    - Deja traza en AuditLog con action=DELETE y field="*".
+    """
+    obj = get_object_or_404(BaseDeDatosBia, pk=pk)
+    business_key = str(obj.id_pago_unico or "")
+
+    with transaction.atomic():
+        # Audit del borrado (similar al bulk_commit)
+        AuditLog.objects.create(
+            table_name=BaseDeDatosBia._meta.db_table,
+            business_key=business_key if business_key else str(pk),
+            field="*",
+            old_value="(row)",
+            new_value=None,
+            job=None,
+            action=AuditLog.Action.DELETE,
+            actor=request.user,
+        )
+        obj.delete()
+
+    return Response({"success": True, "deleted_id": pk, "business_key": business_key})

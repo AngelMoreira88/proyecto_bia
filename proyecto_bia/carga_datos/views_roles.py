@@ -1,28 +1,31 @@
 # carga_datos/views_roles.py
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-from django.db.models import Q
+from django.db.models import Q, Count
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-ALLOWED_ROLES = ["admin", "editor", "approver"]
+# Permiso centralizado (solo Admin group o superuser)
+from .permissions import IsAdminOrSuperuser
+
+# === Roles oficiales del PortalBIA ===
+ALLOWED_ROLES = ["Admin", "Supervisor", "Operador"]
+
 
 def ensure_roles_exist():
+    """Crea los grupos si faltan (idempotente)."""
     for name in ALLOWED_ROLES:
         Group.objects.get_or_create(name=name)
 
-def user_is_super_or_admin(user) -> bool:
-    if not user.is_authenticated:
-        return False
-    if user.is_superuser:
-        return True
-    return user.groups.filter(name="admin").exists()
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def me(request):
-    """Devuelve info mínima del usuario actual (incluye is_superuser y grupos)."""
+    """
+    Devuelve info del usuario actual: incluye grupos (roles) ya con la nueva convención.
+    No requiere ser Admin; lo usa el front para mostrar/ocultar UI.
+    """
     user = request.user
     groups = list(user.groups.values_list("name", flat=True))
     return Response({
@@ -30,24 +33,27 @@ def me(request):
         "username": user.get_username(),
         "email": getattr(user, "email", ""),
         "is_superuser": bool(user.is_superuser),
-        "groups": groups,
+        "roles": groups,  # <- agregado
     })
 
+
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdminOrSuperuser])
 def roles_list(request):
-    """Lista de roles permitidos (crea si faltan)."""
-    if not user_is_super_or_admin(request.user):
-        return Response({"errors": ["No autorizado"]}, status=403)
+    """
+    Lista los roles válidos del sistema. Solo Admin/superuser.
+    """
     ensure_roles_exist()
     return Response({"roles": ALLOWED_ROLES})
 
+
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsAdminOrSuperuser])
 def users_search(request):
-    """Búsqueda simple por username/email/nombre/apellido. Limita a 20."""
-    if not user_is_super_or_admin(request.user):
-        return Response({"errors": ["No autorizado"]}, status=403)
+    """
+    Búsqueda simple por username/email/nombre/apellido. Limita a 20.
+    Solo Admin/superuser.
+    """
     q = (request.GET.get("q") or "").strip()
     if not q:
         return Response({"results": []})
@@ -67,14 +73,18 @@ def users_search(request):
     } for u in qs]
     return Response({"results": results})
 
-@api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated])
-def user_roles(request, user_id: int):
-    """GET: devuelve roles del usuario.
-       POST: asigna (reemplaza) roles del usuario. Solo superuser/admin."""
-    if not user_is_super_or_admin(request.user):
-        return Response({"errors": ["No autorizado"]}, status=403)
 
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated, IsAdminOrSuperuser])
+def user_roles(request, user_id: int):
+    """
+    GET: devuelve roles (grupos) del usuario.
+    POST: reemplaza roles del usuario (solo Admin/superuser y solo usando ALLOWED_ROLES).
+
+    Reglas de seguridad:
+      - No permite quitar el rol "Admin" al ÚNICO admin existente (para evitar lockout).
+      - No permite que un admin se auto-degrada (quitarse "Admin" a sí mismo).
+    """
     ensure_roles_exist()
     User = get_user_model()
     try:
@@ -90,15 +100,30 @@ def user_roles(request, user_id: int):
     roles = request.data.get("roles", [])
     if not isinstance(roles, list):
         return Response({"errors": ["'roles' debe ser una lista"]}, status=400)
+
+    # Validación de catálogo
     invalid = [r for r in roles if r not in ALLOWED_ROLES]
     if invalid:
         return Response({"errors": [f"Roles inválidos: {invalid}"]}, status=400)
 
-    # Limpia roles permitidos y asigna los nuevos
-    # (no toca otros grupos ajenos a ALLOWED_ROLES)
+    # --- Salvaguardas de Admin ---
+    want_admin = "Admin" in roles
+    target_is_admin_now = target.groups.filter(name="Admin").exists()
+
+    # 1) Evitar auto-degradación: si estoy editando mi propio usuario y me quiero sacar "Admin"
+    if target.pk == request.user.pk and target_is_admin_now and not want_admin:
+        return Response({"errors": ["No podés quitarte el rol 'Admin' a vos mismo."]}, status=400)
+
+    # 2) Evitar quedarse sin Admin en todo el sistema
+    if target_is_admin_now and not want_admin:
+        # ¿cuántos usuarios tienen Admin?
+        n_admins = User.objects.filter(groups__name="Admin").distinct().count()
+        if n_admins <= 1:
+            return Response({"errors": ["No se puede quitar 'Admin': es el único admin del sistema."]}, status=400)
+
+    # Reemplazar solo roles de nuestro catálogo (no tocamos otros grupos ajenos)
     current_allowed = target.groups.filter(name__in=ALLOWED_ROLES)
     target.groups.remove(*current_allowed)
-
     for r in roles:
         g = Group.objects.get(name=r)
         target.groups.add(g)

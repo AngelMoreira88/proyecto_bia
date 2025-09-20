@@ -9,6 +9,11 @@ import {
   adminSearchUsers,
   adminGetUserRoles,
   adminSetUserRoles,
+
+  // NUEVO: asegurate que existan en services/api.js
+  adminCreateUser,
+  adminUpdateUser,
+  // adminDeactivateUser, // opcional
 } from "../services/api";
 
 export default function Perfil() {
@@ -30,8 +35,9 @@ export default function Perfil() {
   const roleLocal = getUserRole?.() || "";
   const [isSuperUser, setIsSuperUser] = useState(false);
   const [canManageRoles, setCanManageRoles] = useState(false);
+  const isAdmin = roleLocal === "admin"; // <— Solo Admin crea/edita usuarios
 
-  // Gestión de roles (UI admin)
+  // Gestión de roles (UI admin/superuser)
   const [rolesDisponibles, setRolesDisponibles] = useState([]); // ["admin","editor","approver"]
   const [busqueda, setBusqueda] = useState("");
   const [usuarios, setUsuarios] = useState([]); // resultados búsqueda
@@ -41,7 +47,17 @@ export default function Perfil() {
   const [guardando, setGuardando] = useState(false);
   const [msg, setMsg] = useState("");
 
-  const isAdmin = roleLocal === "admin";
+  // Gestión de usuarios (solo Admin)
+  const [modoEdicion, setModoEdicion] = useState("crear"); // "crear" | "editar"
+  const [formUsuario, setFormUsuario] = useState({
+    username: "",
+    email: "",
+    first_name: "",
+    last_name: "",
+    password: "",
+    is_active: true,
+  });
+  const [errorsUsuario, setErrorsUsuario] = useState({});
 
   // --- Carga inicial: info del usuario logueado y catálogos de roles ---
   useEffect(() => {
@@ -116,6 +132,20 @@ export default function Perfil() {
     setMsg("");
     try {
       setCargando(true);
+      // completar formulario de edición con datos del usuario seleccionado
+      if (isAdmin) {
+        setModoEdicion("editar");
+        setFormUsuario({
+          username: u.username || "",
+          email: u.email || "",
+          first_name: u.first_name || "",
+          last_name: u.last_name || "",
+          password: "", // en edición no mostramos password actual
+          is_active: u.is_active ?? true,
+        });
+        setErrorsUsuario({});
+      }
+      // cargar roles
       const { data } = await adminGetUserRoles(u.id);
       setRolesUsuario(new Set(Array.isArray(data?.roles) ? data.roles : []));
     } catch (err) {
@@ -151,6 +181,107 @@ export default function Perfil() {
     } finally {
       setGuardando(false);
     }
+  };
+
+  // --- Gestión de usuarios (solo Admin) ---
+  const limpiarFormularioUsuario = () => {
+    setFormUsuario({
+      username: "",
+      email: "",
+      first_name: "",
+      last_name: "",
+      password: "",
+      is_active: true,
+    });
+    setErrorsUsuario({});
+  };
+
+  const validarUsuario = () => {
+    const e = {};
+    if (!formUsuario.username?.trim()) e.username = "Usuario requerido";
+    if (!formUsuario.email?.trim()) e.email = "Email requerido";
+    if (modoEdicion === "crear" && !formUsuario.password?.trim()) {
+      e.password = "Contraseña requerida";
+    }
+    setErrorsUsuario(e);
+    return Object.keys(e).length === 0;
+    };
+
+  const onChangeUsuario = (field, value) => {
+    setFormUsuario((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const guardarUsuario = async () => {
+    if (!isAdmin) return;
+    if (!validarUsuario()) return;
+
+    try {
+      setGuardando(true);
+      setMsg("");
+      if (modoEdicion === "crear") {
+        const payload = {
+          username: formUsuario.username.trim(),
+          email: formUsuario.email.trim(),
+          first_name: formUsuario.first_name.trim(),
+          last_name: formUsuario.last_name.trim(),
+          password: formUsuario.password, // backend debe hashear
+          is_active: !!formUsuario.is_active,
+        };
+        const { data } = await adminCreateUser(payload);
+        if (data?.id) {
+          setMsg("Usuario creado correctamente.");
+          limpiarFormularioUsuario();
+          // refrescar resultados de búsqueda si coincide
+          if (busqueda && data.username?.includes(busqueda)) {
+            await buscarUsuarios();
+          }
+        } else {
+          setMsg("No se pudo crear el usuario.");
+        }
+      } else if (modoEdicion === "editar" && selUser?.id) {
+        const payload = {
+          username: formUsuario.username.trim(),
+          email: formUsuario.email.trim(),
+          first_name: formUsuario.first_name.trim(),
+          last_name: formUsuario.last_name.trim(),
+          // password se omite si viene vacío
+          ...(formUsuario.password ? { password: formUsuario.password } : {}),
+          is_active: !!formUsuario.is_active,
+        };
+        const { data } = await adminUpdateUser(selUser.id, payload);
+        if (data?.id || data?.success) {
+          setMsg("Usuario actualizado correctamente.");
+          // actualizar en la lista local
+          setUsuarios((prev) =>
+            prev.map((u) => (u.id === selUser.id ? { ...u, ...payload } : u))
+          );
+        } else {
+          setMsg("No se pudo actualizar el usuario.");
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      const apiErr =
+        err?.response?.data?.errors ||
+        err?.response?.data?.detail ||
+        err?.response?.data;
+      setMsg(
+        Array.isArray(apiErr)
+          ? apiErr.join(" — ")
+          : typeof apiErr === "string"
+          ? apiErr
+          : "Error al guardar usuario."
+      );
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const iniciarCreacion = () => {
+    if (!isAdmin) return;
+    setModoEdicion("crear");
+    limpiarFormularioUsuario();
+    setSelUser(null); // no editar roles de un usuario no seleccionado
   };
 
   return (
@@ -325,6 +456,126 @@ export default function Perfil() {
               </div>
             </div>
           </div>
+
+          {/* Gestión de Usuarios (solo Admin) */}
+          {isAdmin && (
+            <div className="card border-0 shadow-sm rounded-4 mb-5">
+              <div className="card-body p-4">
+                <div className="d-flex align-items-center justify-content-between mb-3">
+                  <h5 className="fw-semibold mb-0">Gestión de Usuarios</h5>
+                  <span className="badge text-bg-light border">Solo Admin</span>
+                </div>
+
+                <div className="d-flex flex-wrap gap-2 mb-3">
+                  <button className="btn btn-bia" onClick={iniciarCreacion}>
+                    + Nuevo usuario
+                  </button>
+                  {modoEdicion === "editar" && selUser && (
+                    <div className="align-self-center small text-secondary">
+                      Editando: <code>{selUser.username}</code>
+                    </div>
+                  )}
+                </div>
+
+                <div className="row g-3">
+                  <div className="col-md-4">
+                    <label className="form-label" htmlFor="usr-username">Usuario</label>
+                    <input
+                      id="usr-username"
+                      className={`form-control ${errorsUsuario.username ? "is-invalid" : ""}`}
+                      value={formUsuario.username}
+                      onChange={(e) => onChangeUsuario("username", e.target.value)}
+                    />
+                    {errorsUsuario.username && (
+                      <div className="invalid-feedback">{errorsUsuario.username}</div>
+                    )}
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label" htmlFor="usr-email">Email</label>
+                    <input
+                      id="usr-email"
+                      type="email"
+                      className={`form-control ${errorsUsuario.email ? "is-invalid" : ""}`}
+                      value={formUsuario.email}
+                      onChange={(e) => onChangeUsuario("email", e.target.value)}
+                    />
+                    {errorsUsuario.email && (
+                      <div className="invalid-feedback">{errorsUsuario.email}</div>
+                    )}
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label" htmlFor="usr-password">
+                      {modoEdicion === "crear" ? "Contraseña" : "Nueva contraseña (opcional)"}
+                    </label>
+                    <input
+                      id="usr-password"
+                      type="password"
+                      className={`form-control ${errorsUsuario.password ? "is-invalid" : ""}`}
+                      value={formUsuario.password}
+                      onChange={(e) => onChangeUsuario("password", e.target.value)}
+                      autoComplete="new-password"
+                    />
+                    {errorsUsuario.password && (
+                      <div className="invalid-feedback">{errorsUsuario.password}</div>
+                    )}
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label" htmlFor="usr-first">Nombre</label>
+                    <input
+                      id="usr-first"
+                      className="form-control"
+                      value={formUsuario.first_name}
+                      onChange={(e) => onChangeUsuario("first_name", e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label" htmlFor="usr-last">Apellido</label>
+                    <input
+                      id="usr-last"
+                      className="form-control"
+                      value={formUsuario.last_name}
+                      onChange={(e) => onChangeUsuario("last_name", e.target.value)}
+                    />
+                  </div>
+                  <div className="col-md-4">
+                    <label className="form-label d-block">Estado</label>
+                    <div className="form-check form-switch">
+                      <input
+                        id="usr-active"
+                        className="form-check-input"
+                        type="checkbox"
+                        checked={!!formUsuario.is_active}
+                        onChange={(e) => onChangeUsuario("is_active", e.target.checked)}
+                      />
+                      <label className="form-check-label" htmlFor="usr-active">
+                        Activo
+                      </label>
+                    </div>
+                  </div>
+                  <div className="col-12 d-flex gap-2 justify-content-end">
+                    <button
+                      className="btn btn-bia"
+                      onClick={guardarUsuario}
+                      disabled={guardando}
+                    >
+                      {guardando
+                        ? "Guardando..."
+                        : modoEdicion === "crear"
+                        ? "Crear usuario"
+                        : "Guardar cambios"}
+                    </button>
+                    <button
+                      className="btn btn-outline-secondary"
+                      onClick={limpiarFormularioUsuario}
+                      type="button"
+                    >
+                      Limpiar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Gestión de Roles (solo superuser o admin) */}
           {canManageRoles && (

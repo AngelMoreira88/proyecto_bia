@@ -8,7 +8,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 # Aliases “compat” (rutas antiguas del front que queremos seguir soportando)
 from certificado_ldd.views import api_generar_certificado
-from carga_datos.views import mostrar_datos_bia, actualizar_datos_bia
+from carga_datos.views import mostrar_datos_bia, actualizar_datos_bia, delete_db_bia # <- agregado
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -29,11 +29,12 @@ urlpatterns = [
     # Carga de datos (antes llamaban a /api/mostrar-datos-bia/)
     path('api/mostrar-datos-bia/',          mostrar_datos_bia,    name='api_mostrar_datos_bia_flat'),
     path('api/mostrar-datos-bia/<int:pk>/', actualizar_datos_bia, name='api_actualizar_datos_bia_flat'),
+    path('api/db_bia/<int:pk>/', delete_db_bia, name='api_db_bia_delete'),
+
 
     # Auth
     path('accounts/login/',  auth_views.LoginView.as_view(),  name='login'),
     path('accounts/logout/', auth_views.LogoutView.as_view(), name='logout'),
-
 ]
 
 if settings.DEBUG:
