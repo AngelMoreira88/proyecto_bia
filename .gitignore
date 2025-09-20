@@ -19,7 +19,6 @@ __pycache__/
 proyecto_bia/proyecto_bia/logs/actividad.log
 proyecto_bia/logs/actividad.log
 
-
 # Ignorar logs
 logs/
 *.log

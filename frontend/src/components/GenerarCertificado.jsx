@@ -256,7 +256,7 @@ function CertificadoForm({
 
   return (
     <>
-      <h2 className="text-bia fw-bold mb-3 text-center">Generar Certificado Libre de Deuda</h2>
+      <h2 className="text-bia fw-bold mb-3 text-center">Portal de Consultas y Descargas</h2>
       <p className="text-muted text-center mb-4">Ingresá tu DNI a continuación</p>
 
       <form onSubmit={onSubmit} className="mx-auto" style={{ maxWidth: 420 }}>

@@ -16,21 +16,15 @@ export default function Home() {
           <div className="col-12 col-md-10 col-lg-8 col-xl-6">
             {/* Versión más transparente + blur más fuerte */}
             <div className="glass-card glass-card--lite rounded-4 shadow-lg p-4 p-md-5 text-center mx-auto">
-              <img
-                src="/images/LogoBIA.png"
-                alt="Grupo BIA"
-                height="40"
-                className="mb-3"
-                loading="lazy"
-              />
+              {/* (Logo removido) */}
               <h2 className="fw-bold mb-2">Bienvenido al sistema de Grupo BIA</h2>
               <p className="text-secondary mb-4">
-                Generá tu certificado libre de deuda de manera rápida y segura.
+                Consultá el estado actual de tu deuda manera rápida y segura.
               </p>
 
               <div className="d-flex justify-content-center gap-2 flex-wrap">
                 <Link to="/certificado" className="btn btn-bia">
-                  Generar certificado
+                  Portal de Consultas y Descargas
                 </Link>
                 <Link to="/login" className="btn btn-outline-bia">
                   Iniciar sesión

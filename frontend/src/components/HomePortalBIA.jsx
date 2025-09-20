@@ -275,8 +275,8 @@ export default function HomePortalBia() {
                           </svg>
                         </span>
                         <div>
-                          <div className="fw-semibold text-body">Generar Certificado</div>
-                          <small className="text-secondary">Libre de Deuda</small>
+                          <div className="fw-semibold text-body">Portal de Consultas y Descargas</div>
+                          <small className="text-secondary">Consultá el estado de una deuda</small>
                         </div>
                       </div>
                     </Link>
