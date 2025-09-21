@@ -1,5 +1,5 @@
 // src/components/MostrarDatos.jsx
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   listarDatosBia,
   actualizarDatoBia,
@@ -10,41 +10,63 @@ import { getUserRole } from '../services/auth';
 import BackToHomeButton from './BackToHomeButton';
 
 /* ============================
-   Constantes estables
+   Etiquetas (incluye alias comunes)
    ============================ */
-const VISIBLE_COLUMNS = [
-  'id_pago_unico', 'dni', 'nombre_apellido', 'estado',
-  'entidadinterna', 'creditos', 'fecl', 'total_plan',
-];
-
-const MASTER_COLUMNS = [
-  ...VISIBLE_COLUMNS,
-  'propietario', 'entidadoriginal', 'grupo', 'tramo',
-  'comision', 'interes_total', 'fecha_apertura', 'cuit',
-];
-
 const LABELS = {
   id: 'ID',
   id_pago_unico: 'ID pago único',
+  idpago_unico: 'ID pago único',
   dni: 'DNI',
   nombre_apellido: 'Nombre y apellido',
+  nombre_y_apellido: 'Nombre y apellido',
   estado: 'Estado',
   entidadinterna: 'Entidad interna',
+  entidad_interna: 'Entidad interna',
   propietario: 'Propietario',
   entidadoriginal: 'Entidad original',
+  entidad_original: 'Entidad original',
   grupo: 'Grupo',
   tramo: 'Tramo',
   creditos: 'Créditos',
   comision: 'Comisión',
   total_plan: 'Total plan',
+  totalplan: 'Total plan',
   saldo_capital: 'Saldo capital',
   interes_total: 'Interés total',
   fecl: 'FECL',
   fecha_apertura: 'Fecha apertura',
+  fecha_de_apertura: 'Fecha apertura',
   cuit: 'CUIT',
 };
 
 const pretty = (k) => LABELS[k] || k;
+
+/* ============================
+   Orden preferido de columnas
+   ============================ */
+const PREFERRED_ORDER = [
+  'id_pago_unico',
+  'dni',
+  'nombre_apellido',
+  'estado',
+  'propietario',
+  'entidadoriginal',
+  'entidadinterna',
+  'grupo',
+  'tramo',
+  'creditos',
+  'comision',
+  'saldo_capital',
+  'interes_total',
+  'fecl',
+  'fecha_apertura',
+  'total_plan',
+  'cuit',
+];
+
+/* ============================
+   Helpers de estado
+   ============================ */
 const isCancelado = (v) => String(v || '').trim().toLowerCase() === 'cancelado';
 const estadoBucket = (v) => (isCancelado(v) ? 'cancelado' : 'no_cancelado');
 
@@ -63,11 +85,21 @@ export default function MostrarDatos() {
   const [estadoTab, setEstadoTab] = useState('todos'); // 'todos' | 'cancelado' | 'no_cancelado'
   const [device, setDevice] = useState('desktop'); // 'mobile' | 'tablet' | 'desktop'
 
+  // 🔑 NUEVO: foco en campo específico
+  const [focusKey, setFocusKey] = useState(null);
+  const fieldRefs = useRef({});
+
   // Roles/permisos
   const roleRaw = getUserRole?.() ?? '';
   const role = String(roleRaw).toLowerCase();
-  const isAdmin = role === 'admin';
-  const canWrite = isAdmin || role === 'write';
+
+  const isAdmin      = role === 'admin';
+  const isSupervisor = role === 'supervisor' || role === 'sup' || role === 'super';
+
+  // Permisos finales
+  const canEdit   = isAdmin || isSupervisor || role === 'write'; // admin y supervisor (y "write") editan
+  const canDelete = isAdmin;                                     // solo admin elimina
+  const canWrite  = canEdit;                                     // se usa en el drawer
 
   /* ====== Detección simple de dispositivo (bloquea móviles) ====== */
   useEffect(() => {
@@ -86,13 +118,21 @@ export default function MostrarDatos() {
     return () => window.removeEventListener('resize', detect);
   }, []);
 
-  /* ====== Columnas reales + extras detectadas en resultados ====== */
+  /* ====== Columnas reales detectadas en resultados ====== */
   const columnas = useMemo(() => {
     const seen = new Set();
     for (const row of datos) Object.keys(row || {}).forEach(k => seen.add(k));
-    const extras = Array.from(seen).filter(k => !MASTER_COLUMNS.includes(k));
-    return MASTER_COLUMNS.concat(extras);
+    return Array.from(seen);
   }, [datos]);
+
+  /* ====== Columnas visibles (orden preferido + extras) ====== */
+  const visibleCols = useMemo(() => {
+    if (!columnas.length) return [];
+    const setCols = new Set(columnas);
+    const ordered = PREFERRED_ORDER.filter(k => setCols.has(k));
+    const extras = Array.from(setCols).filter(k => !PREFERRED_ORDER.includes(k));
+    return [...ordered, ...extras];
+  }, [columnas]);
 
   /* ====== Celdas y badges ====== */
   const EstadoPill = ({ value }) => {
@@ -132,8 +172,15 @@ export default function MostrarDatos() {
       const res = await listarDatosBia({ dni: q, id_pago_unico: q, page: 1 });
       const payload = res.data || {};
       const results = normalizeResults(payload);
-      const data = results.map(r => ({ id: r.id ?? r.id_pago_unico, ...r }));
+
+      // Aseguramos un id estable
+      const data = results.map(r => ({
+        id: r.id ?? r.id_pago_unico ?? r.idpago_unico ?? `${r.dni || ''}-${r.id_pago_unico || ''}`,
+        ...r,
+      }));
+
       setDatos(data);
+
       if ((payload.count ?? data.length) === 0) setError('No se encontraron registros');
     } catch (e) {
       console.error(e);
@@ -146,20 +193,25 @@ export default function MostrarDatos() {
   const handleSubmit = (e) => { e.preventDefault(); doSearch(); };
 
   /* ====== Drawer ====== */
-  const openRow  = (row) => {
-    // Guardamos el valor EXACTO de DB para Estado
+  const openRow  = (row, keyToFocus = null) => {
     const estadoRaw = (row?.estado ?? '').toString();
     setActiveRow(row);
     setFormData({ ...row, estado: estadoRaw });
+    setFocusKey(keyToFocus);       // <- cuál campo resaltar/enfocar
     setDrawerOpen(true);
   };
 
-  const closeDrawer = () => { setDrawerOpen(false); setActiveRow(null); setFormData({}); };
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setActiveRow(null);
+    setFormData({});
+    setFocusKey(null);
+  };
 
   const onChangeForm = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
 
   // Campos no editables (siempre bloqueados)
-  const LOCKED_FIELDS = new Set(['id', 'id_pago_unico']);
+  const LOCKED_FIELDS = new Set(['id', 'id_pago_unico', 'idpago_unico']);
 
   const isFieldEditable = (k) => {
     if (!canWrite) return false;
@@ -182,9 +234,7 @@ export default function MostrarDatos() {
     Object.keys(formData).forEach((k) => {
       const curr = (formData[k] ?? '').toString();
       const orig = (activeRow[k] ?? '').toString();
-      if (curr !== orig && !LOCKED_FIELDS.has(k)) {
-        changes[k] = curr;
-      }
+      if (curr !== orig && !LOCKED_FIELDS.has(k)) changes[k] = curr;
     });
     if (!Object.keys(changes).length) { closeDrawer(); return; }
     setSaving(true);
@@ -200,9 +250,24 @@ export default function MostrarDatos() {
     }
   };
 
-  /* ====== Eliminar (write y admin) ====== */
+  /* ====== Enfocar y resaltar el campo al abrir ====== */
+  useEffect(() => {
+    if (drawerOpen && focusKey) {
+      const t = setTimeout(() => {
+        const el = fieldRefs.current[focusKey];
+        if (el && el.focus) {
+          el.focus();
+          try { el.select?.(); } catch {}
+          try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch {}
+        }
+      }, 60); // pequeño delay para montar el DOM
+      return () => clearTimeout(t);
+    }
+  }, [drawerOpen, focusKey]);
+
+  /* ====== Eliminar (solo admin) ====== */
   const handleDelete = async (id) => {
-    if (!canWrite) return;
+    if (!canDelete) return;
     const row = datos.find(d => d.id === id);
     const refText = row?.id_pago_unico || id;
     if (!window.confirm(`¿Eliminar el registro ${refText}? Esta acción no se puede deshacer.`)) return;
@@ -232,8 +297,8 @@ export default function MostrarDatos() {
     arr.sort((a, b) => {
       const w = weight(a) - weight(b);
       if (w !== 0) return w;
-      const na = String(a.r.nombre_apellido ?? '')
-        .localeCompare(String(b.r.nombre_apellido ?? ''), 'es', { sensitivity: 'base' });
+      const na = String(a.r.nombre_apellido ?? a.r.nombre_y_apellido ?? '')
+        .localeCompare(String(b.r.nombre_apellido ?? b.r.nombre_y_apellido ?? ''), 'es', { sensitivity: 'base' });
       return na !== 0 ? na : (a.idx - b.idx);
     });
     return arr.map(x => x.r);
@@ -266,7 +331,7 @@ export default function MostrarDatos() {
 
   const handleExportTodoDNI = () => {
     if (!datos.length) { alert('Realizá una búsqueda primero.'); return; }
-    const cols = columnas;
+    const cols = visibleCols.length ? visibleCols : columnas;
     const headers = cols.map(pretty).join(',');
     const lines = datos.map(r => cols.map(c => toCsvValue(r[c])).join(','));
     const csv = '\uFEFF' + [headers, ...lines].join('\r\n');
@@ -325,7 +390,6 @@ export default function MostrarDatos() {
     </div>
   );
 
-  // Mostrar chips cuando HAY resultados totales (aunque la pestaña activa quede vacía)
   const showEstadoTabs = hasSearched && datos.length > 0;
 
   /* ====== UI ====== */
@@ -366,7 +430,7 @@ export default function MostrarDatos() {
                 className="btn btn-sm btn-outline-secondary"
                 onClick={handleExportTodoDNI}
                 disabled={!datos.length}
-                title="Exportar todo del DNI/ID actual (todas las columnas)"
+                title="Exportar lo visible del DNI/ID actual"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" className="me-1" aria-hidden="true">
                   <path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
@@ -380,7 +444,7 @@ export default function MostrarDatos() {
 
           {/* Búsqueda + vista */}
           <form onSubmit={handleSubmit} className="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            {/* Slab con halo azul (match GenerarCertificado) */}
+            {/* Slab con halo azul */}
             <div
               className="w-100 rounded-4"
               style={{
@@ -407,7 +471,7 @@ export default function MostrarDatos() {
               </div>
             </div>
 
-            {/* Botones de vista más pequeños */}
+            {/* Botones de vista */}
             <div className="btn-group btn-group-sm" role="group" aria-label="Vista">
               <button
                 type="button"
@@ -428,7 +492,7 @@ export default function MostrarDatos() {
             </div>
           </form>
 
-          {/* Pestañas por estado: SOLO cuando hay resultados totales */}
+          {/* Pestañas por estado */}
           {showEstadoTabs && <EstadoTabs />}
         </div>
       </div>
@@ -448,38 +512,79 @@ export default function MostrarDatos() {
             const ok = isCancelado(row.estado);
             return (
               <div key={row.id} className="col-12 col-md-6 col-xl-4">
-                <div className={`card shadow-sm border-0 rounded-4 h-100 card-hover ${ok ? 'card-accent-ok' : 'card-accent-bad'}`}>
+                <div
+                  className={`card shadow-sm border-0 rounded-4 h-100 card-hover ${ok ? 'card-accent-ok' : 'card-accent-bad'}`}
+                  onClick={() => openRow(row)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRow(row); }
+                  }}
+                  style={{ cursor: 'pointer' }}
+                >
                   <div className="card-body d-flex flex-column gap-2">
                     <div className="d-flex align-items-start justify-content-between gap-2">
                       <div>
-                        <div className="fw-semibold">{row.nombre_apellido ?? '—'}</div>
+                        <div className="fw-semibold">{row.nombre_apellido ?? row.nombre_y_apellido ?? '—'}</div>
                         <div className="text-secondary small">DNI: {row.dni ?? '—'}</div>
                       </div>
                       <EstadoPill value={row.estado} />
                     </div>
 
                     <div className="row g-2 small mt-1">
-                      <div className="col-6">
+                      <div
+                        className="col-6"
+                        onClick={(e) => { e.stopPropagation(); openRow(row, 'id_pago_unico'); }}
+                        role="button" tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openRow(row, 'id_pago_unico'); } }}
+                        style={{ cursor: 'pointer' }}
+                      >
                         <div className="text-secondary">ID pago único</div>
-                        <div className="fw-medium">{row.id_pago_unico ?? '—'}</div>
+                        <div className="fw-medium">{row.id_pago_unico ?? row.idpago_unico ?? '—'}</div>
                       </div>
-                      <div className="col-6">
+                      <div
+                        className="col-6"
+                        onClick={(e) => { e.stopPropagation(); openRow(row, 'entidadinterna'); }}
+                        role="button" tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openRow(row, 'entidadinterna'); } }}
+                        style={{ cursor: 'pointer' }}
+                      >
                         <div className="text-secondary">Entidad</div>
-                        <div className="fw-medium">{row.entidadinterna ?? '—'}</div>
+                        <div className="fw-medium">{row.entidadinterna ?? row.entidad_interna ?? '—'}</div>
                       </div>
-                      <div className="col-6">
+                      <div
+                        className="col-6"
+                        onClick={(e) => { e.stopPropagation(); openRow(row, 'creditos'); }}
+                        role="button" tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openRow(row, 'creditos'); } }}
+                        style={{ cursor: 'pointer' }}
+                      >
                         <div className="text-secondary">Créditos</div>
                         <div className="fw-medium">{row.creditos ?? '—'}</div>
                       </div>
-                      <div className="col-6">
+                      <div
+                        className="col-6"
+                        onClick={(e) => { e.stopPropagation(); openRow(row, 'fecl'); }}
+                        role="button" tabIndex={0}
+                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openRow(row, 'fecl'); } }}
+                        style={{ cursor: 'pointer' }}
+                      >
                         <div className="text-secondary">FECL</div>
                         <div className="fw-medium">{row.fecl ?? '—'}</div>
                       </div>
                     </div>
 
-                    <div className="mt-2 d-flex justify-content-between gap-2">
-                      <button className="btn btn-sm btn-outline-bia" onClick={() => openRow(row)}>Editar</button>
-                      {canWrite && (
+                    <div
+                      className="mt-2 d-flex justify-content-between gap-2"
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
+                      {canEdit ? (
+                        <button className="btn btn-sm btn-outline-bia" onClick={() => openRow(row)}>Editar</button>
+                      ) : (
+                        <button className="btn btn-sm btn-outline-secondary" onClick={() => openRow(row)}>Ver</button>
+                      )}
+                      {canDelete && (
                         <button
                           className="btn btn-sm btn-outline-danger"
                           onClick={() => handleDelete(row.id)}
@@ -505,26 +610,58 @@ export default function MostrarDatos() {
               <table className="table table-hover align-middle mb-0 bia-grid table-colored">
                 <thead className="thead-sticky">
                   <tr>
-                    {VISIBLE_COLUMNS.map((k, idx) => (
-                      <th key={k} className={idx === 0 ? 'sticky-first' : ''}>{pretty(k)}</th>
+                    {visibleCols.map((k, idx) => (
+                      <th key={k} className={idx === 0 ? 'sticky-first bg-white' : ''}>{pretty(k)}</th>
                     ))}
-                    <th className="text-end sticky-actions">Acciones</th>
+                    <th className="text-end sticky-actions bg-white">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map(row => {
                     const ok = isCancelado(row.estado);
                     return (
-                      <tr key={row.id} className={`row-hover-actions ${ok ? 'row-ok' : 'row-bad'}`}>
-                        {VISIBLE_COLUMNS.map((k, idx) => (
-                          <td key={k} className={idx === 0 ? 'sticky-first bg-white' : ''}>
+                      <tr
+                        key={row.id}
+                        className={`row-hover-actions row-clickable ${ok ? 'row-ok' : 'row-bad'}`}
+                        onClick={() => openRow(row)}
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRow(row); }
+                        }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {visibleCols.map((k, idx) => (
+                          <td
+                            key={k}
+                            className={idx === 0 ? 'sticky-first bg-white' : ''}
+                            onClick={(e) => { e.stopPropagation(); openRow(row, k); }}
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openRow(row, k); }
+                            }}
+                            style={{ cursor: 'pointer' }}
+                          >
                             <Cell k={k} v={row[k]} />
                           </td>
                         ))}
-                        <td className="text-end sticky-actions bg-white">
+                        <td
+                          className="text-end sticky-actions bg-white"
+                          onClick={(e) => e.stopPropagation()}
+                          onKeyDown={(e) => e.stopPropagation()}
+                        >
                           <div className="d-flex gap-2 justify-content-end">
-                            <button className="btn btn-sm btn-outline-bia" onClick={() => openRow(row)}>Editar</button>
-                            {canWrite && (
+                            {canEdit ? (
+                              <button className="btn btn-sm btn-outline-bia" onClick={() => openRow(row)}>
+                                Editar
+                              </button>
+                            ) : (
+                              <button className="btn btn-sm btn-outline-secondary" onClick={() => openRow(row)}>
+                                Ver
+                              </button>
+                            )}
+                            {canDelete && (
                               <button
                                 className="btn btn-sm btn-outline-danger"
                                 onClick={() => handleDelete(row.id)}
@@ -547,31 +684,30 @@ export default function MostrarDatos() {
 
       {/* Drawer lateral (Detalles) */}
       <div className={`side-drawer ${drawerOpen ? 'open' : ''}`}>
-        {/* Header elegante con badge de estado */}
+        {/* Header */}
         <div className="side-drawer-header" style={{ background: 'linear-gradient(90deg, rgba(29,72,166,.06), rgba(29,72,166,0))' }}>
           <div className="d-flex align-items-center justify-content-between">
             <div className="d-flex flex-column">
-              <strong className="fs-6">{activeRow?.nombre_apellido ?? 'Detalle'}</strong>
+              <strong className="fs-6">{activeRow?.nombre_apellido ?? activeRow?.nombre_y_apellido ?? 'Detalle'}</strong>
               <small className="text-secondary">
-                DNI: {activeRow?.dni ?? '—'} • ID: {activeRow?.id_pago_unico ?? '—'}
+                DNI: {activeRow?.dni ?? '—'} • ID: {activeRow?.id_pago_unico ?? activeRow?.idpago_unico ?? '—'}
               </small>
             </div>
             {activeRow && <EstadoPill value={activeRow?.estado} />}
           </div>
         </div>
 
-        {/* Body form-floating (moderno y limpio) */}
+        {/* Body */}
         <div className="side-drawer-body">
           {activeRow && (
             <div className="row g-3">
               {columnas.map((k) => {
                 const editable = isFieldEditable(k);
-                const isEstado = k === 'estado';
                 const value = (formData[k] ?? '').toString();
 
                 return (
-                  <div key={k} className="col-12 col-md-6">
-                    <div className="form-floating">
+                  <div key={k} className={`col-12 col-md-6`}>
+                    <div className={`form-floating ${focusKey === k ? 'flash-highlight' : ''}`}>
                       <input
                         type="text"
                         className="form-control"
@@ -579,9 +715,10 @@ export default function MostrarDatos() {
                         onChange={e => onChangeForm(k, e.target.value)}
                         readOnly={!editable}
                         placeholder=" "
+                        ref={(el) => { if (el) fieldRefs.current[k] = el; }}
                       />
                       <label className="text-secondary">
-                        {pretty(k)}{(!editable && (k === 'id' || k === 'id_pago_unico')) ? ' (no editable)' : ''}
+                        {pretty(k)}{(!editable && (k === 'id' || k === 'id_pago_unico' || k === 'idpago_unico')) ? ' (no editable)' : ''}
                       </label>
                     </div>
                   </div>
@@ -602,7 +739,7 @@ export default function MostrarDatos() {
                 </button>
               </>
             ) : (
-              <div className="text-secondary small">No tenés permisos para editar.</div>
+              <div className="text-secondary small">Solo lectura (tu rol no puede editar).</div>
             )}
           </div>
         </div>
