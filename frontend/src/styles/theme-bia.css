@@ -551,3 +551,37 @@
   0%   { background-color: #fff6cc; }
   100% { background-color: transparent; }
 }
+
+/* ===== GenerarCertificado – mejoras de layout ===== */
+.gc-card{
+  /* ancho cómodo en desktop, pero responsivo */
+  max-width: min(1100px, 96vw);
+  margin: 0 auto;
+}
+
+/* Tabla más legible y estable en anchos */
+.gc-table th,
+.gc-table td{
+  vertical-align: middle;
+}
+
+/* Anchos mínimos por columna */
+.gc-table .col-entity{ min-width: 180px; }
+.gc-table .col-status{ min-width: 140px; }
+.gc-table .col-money{
+  min-width: 160px;
+  white-space: nowrap;           /* evita salto de $ 130.000,00 */
+  font-variant-numeric: tabular-nums; /* dígitos alineados */
+}
+.gc-table .col-action{ min-width: 230px; }
+
+/* Botones que no rompen la fila */
+.btn-nowrap{ white-space: nowrap; }
+
+/* Ajuste en móviles: botones más compactos */
+@media (max-width: 576px){
+  .gc-table .btn{ padding: .375rem .5rem; font-size: .875rem; }
+}
+
+/* Tabla GenerarCertificado */
+.table .fit-col { white-space: nowrap; width: 1%; }

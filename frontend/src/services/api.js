@@ -101,6 +101,9 @@ api.interceptors.request.use((config) => {
 
 // ===================================
 // Interceptor de RESPONSE
+//  - 401: refresh / logout
+//  - 403: devolver a la UI
+//  - 429: backoff y reintento hasta 3 veces
 // ===================================
 api.interceptors.response.use(
   (response) => response,
@@ -177,6 +180,20 @@ api.interceptors.response.use(
     if (status === 403) {
       console.warn('403 Forbidden:', error?.response?.data || '(sin detalle)');
       return Promise.reject(error);
+    }
+
+    // 429: backoff y reintento hasta 3 veces
+    if (status === 429 && originalRequest) {
+      const prev = originalRequest._retry429 || 0;
+      if (prev >= 3) {
+        return Promise.reject(error);
+      }
+      const hdr = error.response.headers?.['retry-after'];
+      const retryMs = hdr ? Number(hdr) * 1000 : 2000 * (prev + 1); // 2s,4s,6s
+      originalRequest._retry429 = prev + 1;
+      return new Promise((resolve) => {
+        setTimeout(() => resolve(api(originalRequest)), retryMs);
+      });
     }
 
     return Promise.reject(error);
@@ -265,13 +282,53 @@ export const eliminarDatoBia = (id) =>
 
 // =======================================================
 // Endpoints Admin de roles (app carga_datos)
+//  - adminGetMe y adminListRoles con CACHE + DEDUPE
 // =======================================================
-export function adminGetMe() {
-  return api.get('/carga-datos/api/admin/me');
+
+// --- Cache y dedupe para /admin/me ---
+let _meCache = { data: null, at: 0, promise: null };
+const ME_TTL_MS = 5 * 60 * 1000; // 5 min
+
+export function adminGetMe({ force = false } = {}) {
+  const now = Date.now();
+  if (!force && _meCache.data && (now - _meCache.at) < ME_TTL_MS) {
+    return Promise.resolve({ data: _meCache.data });
+  }
+  if (_meCache.promise && !force) return _meCache.promise;
+
+  _meCache.promise = api.get('/carga-datos/api/admin/me')
+    .then((res) => {
+      _meCache.data = res.data;
+      _meCache.at = Date.now();
+      return res;
+    })
+    .finally(() => { _meCache.promise = null; });
+
+  return _meCache.promise;
 }
-export function adminListRoles() {
-  return api.get('/carga-datos/api/admin/roles');
+
+// --- Cache y dedupe para /admin/roles ---
+let _rolesCache = { data: null, at: 0, promise: null };
+const ROLES_TTL_MS = 30 * 60 * 1000; // 30 min
+
+export function adminListRoles({ force = false } = {}) {
+  const now = Date.now();
+  if (!force && _rolesCache.data && (now - _rolesCache.at) < ROLES_TTL_MS) {
+    return Promise.resolve({ data: _rolesCache.data });
+  }
+  if (_rolesCache.promise && !force) return _rolesCache.promise;
+
+  _rolesCache.promise = api.get('/carga-datos/api/admin/roles')
+    .then((res) => {
+      _rolesCache.data = res.data;
+      _rolesCache.at = Date.now();
+      return res;
+    })
+    .finally(() => { _rolesCache.promise = null; });
+
+  return _rolesCache.promise;
 }
+
 export function adminSearchUsers(q) {
   return api.get('/carga-datos/api/admin/users', { params: { q } });
 }
@@ -285,7 +342,6 @@ export function adminSetUserRoles(userId, body) {
 }
 
 // (Opcional) Endpoint para “calentar” CSRF cookie desde el front.
-// Requiere que el backend exponga /carga-datos/api/admin/csrf con @ensure_csrf_cookie
 export function ensureCsrf() {
   return api.get('/carga-datos/api/admin/csrf');
 }
@@ -306,7 +362,6 @@ export function bulkCommit(jobId) {
 // Crear usuario (Admin / Supervisor)
 // =======================================================
 export function adminCreateUser({ email, password, role, nombre }) {
-  // Ahora con el prefijo correcto y JSON
   return api.post(
     '/carga-datos/api/admin/users',
     { email, password, role, nombre },
