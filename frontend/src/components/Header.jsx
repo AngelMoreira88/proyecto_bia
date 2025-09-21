@@ -1,5 +1,5 @@
 // src/components/Header.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { isLoggedIn, logout } from "../services/auth";
 import { adminGetMe } from "../services/api";
@@ -12,11 +12,30 @@ export default function Header() {
 
   const navigate = useNavigate();
 
+  // ==== Anti-bucle /me ====
+  const inFlightRef = useRef(false);
+  const lastFetchTsRef = useRef(0);
+  const scheduledRef = useRef(null);
+  const MIN_INTERVAL_MS = 8000;
+
+  const safeFetchGuard = () => {
+    const now = Date.now();
+    if (inFlightRef.current) return false;
+    if (now - lastFetchTsRef.current < MIN_INTERVAL_MS) return false;
+    inFlightRef.current = true;
+    lastFetchTsRef.current = now;
+    return true;
+  };
+
+  const releaseFetchGuard = () => {
+    inFlightRef.current = false;
+  };
+
   // Helpers
   const hasRole = (name) => roles.includes(name);
 
   // Cargar permisos REALES desde backend
-  const loadMe = async () => {
+  const doLoadMe = useCallback(async () => {
     if (!isLoggedIn()) {
       setLogged(false);
       setIsSuperUser(false);
@@ -24,10 +43,10 @@ export default function Header() {
       setLoadingMe(false);
       return;
     }
+    setLoadingMe(true);
     try {
-      setLoadingMe(true);
-      const { data } = await adminGetMe();
-      const r = Array.isArray(data?.roles) ? data.roles : [];
+      const { data } = await adminGetMe({ force: true });
+      const r = Array.isArray(data?.roles) ? data.roles : (Array.isArray(data?.groups) ? data.groups : []);
       setLogged(true);
       setIsSuperUser(!!data?.is_superuser);
       setRoles(r);
@@ -38,21 +57,48 @@ export default function Header() {
     } finally {
       setLoadingMe(false);
     }
-  };
+  }, []);
+
+  const scheduleMe = useCallback((immediate = false) => {
+    if (scheduledRef.current) {
+      clearTimeout(scheduledRef.current);
+      scheduledRef.current = null;
+    }
+    const run = async () => {
+      if (!safeFetchGuard()) return;
+      try {
+        await doLoadMe();
+      } finally {
+        releaseFetchGuard();
+      }
+    };
+    if (immediate) run();
+    else scheduledRef.current = setTimeout(run, 150);
+  }, [doLoadMe]);
 
   useEffect(() => {
-    loadMe();
+    // carga inicial
+    scheduleMe(true);
 
     const syncAuth = () => {
       setLogged(isLoggedIn());
-      loadMe();
+      scheduleMe(false);
     };
 
-    window.addEventListener("storage", syncAuth);
+    const onStorage = (e) => {
+      const k = e?.key || '';
+      if (k.includes('access_token') || k.includes('user_role') || k.includes('user_groups')) {
+        syncAuth();
+      }
+    };
+
+    window.addEventListener("storage", onStorage);
     window.addEventListener("auth-changed", syncAuth);
+
     return () => {
-      window.removeEventListener("storage", syncAuth);
+      window.removeEventListener("storage", onStorage);
       window.removeEventListener("auth-changed", syncAuth);
+      if (scheduledRef.current) clearTimeout(scheduledRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -60,7 +106,7 @@ export default function Header() {
   const guardTo = (path) => {
     if (isLoggedIn()) navigate(path);
     else {
-      localStorage.setItem("redirectAfterLogin", path);
+      try { localStorage.setItem("redirectAfterLogin", path); } catch {}
       navigate("/login");
     }
   };
@@ -161,7 +207,7 @@ export default function Header() {
                     </NavLink>
                   </li>
 
-                  {/* Generar Certificado (siempre para logueados; ajustá si tu back lo restringe) */}
+                  {/* Generar Certificado (ajustá si tu back lo restringe) */}
                   <li className="nav-item">
                     <NavLink to="/certificado" className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}>
                       Consultas y Descargas
@@ -300,7 +346,7 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Opcional: indicador de carga de /me para evitar “parpadeos” de menú */}
+      {/* Indicador de carga de /me sin parpadeo infinito */}
       {logged && loadingMe && (
         <div className="position-fixed top-0 end-0 p-2">
           <span className="badge text-bg-light border">Verificando permisos…</span>

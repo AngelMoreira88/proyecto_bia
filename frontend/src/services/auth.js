@@ -5,15 +5,18 @@ import api from './api';
 const AUTH_HEADER = 'Authorization';
 
 /** Claves de cache local */
-const ROLE_KEY   = 'user_role';    // guarda "Admin" | "Supervisor" | "Operador" | "readonly"
-const GROUPS_KEY = 'user_groups';  // array de grupos reales del backend
+const ROLE_KEY   = 'user_role';    // "Admin" | "Supervisor" | "Operador" | "readonly"
+const GROUPS_KEY = 'user_groups';  // array de grupos del backend
 
-/** Notificar a la app que cambió auth/rol (mismo tab) */
+/** Eventos globales */
 export function notifyAuthChanged() {
   try { window.dispatchEvent(new Event('auth-changed')); } catch {}
 }
+export function notifyRoleUpdated() {
+  try { window.dispatchEvent(new Event('role-updated')); } catch {}
+}
 
-/** Levantar Authorization desde storage en primeros milisegundos */
+/** Levantar Authorization desde storage en los primeros ms */
 (function setAuthHeaderFromStorage() {
   try {
     const access = localStorage.getItem('access_token');
@@ -54,6 +57,8 @@ export function getUserClaims() {
 /** --- Cache helpers --- */
 function setCachedRole(role) {
   try { localStorage.setItem(ROLE_KEY, role || 'readonly'); } catch {}
+  // avisar a toda la app inmediatamente
+  notifyRoleUpdated();
   notifyAuthChanged();
 }
 function clearCachedRole() {
@@ -78,12 +83,7 @@ function getCachedGroups() {
 function norm(s) { return String(s || '').trim(); }
 function lowerSet(arr) { return new Set((arr || []).map(x => norm(x).toLowerCase())); }
 
-/** 
- * Mapea grupos Django a un rol principal del front.
- * Prioridad: is_superuser -> "Admin"
- * Luego: "Admin" | "Supervisor" | "Operador"
- * Fallback: "readonly"
- */
+/** Mapea grupos Django a un rol principal del front. */
 function groupsToPrimaryRole(groups = [], { is_superuser = false } = {}) {
   const g = lowerSet(groups);
   if (is_superuser || g.has('admin'))      return 'Admin';
@@ -92,14 +92,7 @@ function groupsToPrimaryRole(groups = [], { is_superuser = false } = {}) {
   return 'readonly';
 }
 
-/**
- * Compatibilidad: algunos componentes viejos podrían chequear 'admin'/'editor'/'approver'.
- * Devolvemos el alias legacy para ese código si lo necesitaras.
- * - Admin      -> 'admin'
- * - Supervisor -> 'editor'    (puede validar y gestionar entidades)
- * - Operador   -> 'approver'  (lectura/Cargar Excel)
- * - readonly   -> 'readonly'
- */
+/** Alias legacy opcional (compat) */
 function primaryToLegacyAlias(primaryRole) {
   switch (primaryRole) {
     case 'Admin':      return 'admin';
@@ -109,19 +102,45 @@ function primaryToLegacyAlias(primaryRole) {
   }
 }
 
+/** Setea header + rol/grupos *al instante* desde el JWT */
+function setAuthFromAccess(access) {
+  api.defaults.headers[AUTH_HEADER] = `Bearer ${access}`;
+  try { localStorage.setItem('access_token', access); } catch {}
+
+  // Claims → rol / grupos inmediatos (UI sin lag)
+  const claims = parseJwt(access) || {};
+  const jwtGroups = Array.isArray(claims.groups) ? claims.groups : [];
+  const is_superuser = !!claims.is_superuser;
+
+  // Si el token trae rol legacy explícito y no hay grupos, respetarlo
+  const legacy = (claims.role || claims.user_role || '').toString().toLowerCase();
+  let primary = groupsToPrimaryRole(jwtGroups, { is_superuser });
+  if (!jwtGroups.length && legacy) {
+    if (legacy === 'admin') primary = 'Admin';
+    else if (legacy === 'editor') primary = 'Supervisor';
+    else if (legacy === 'approver') primary = 'Operador';
+  }
+
+  setCachedGroups(jwtGroups);
+  setCachedRole(primary); // dispara role-updated + auth-changed
+}
+
 /** --- Auth core --- */
 export async function login(username, password) {
   const { data } = await api.post('/api/token/', { username, password });
   const { access, refresh } = data || {};
 
-  localStorage.setItem('access_token', access);
-  localStorage.setItem('refresh_token', refresh);
-  api.defaults.headers[AUTH_HEADER] = `Bearer ${access}`;
+  // Guardar refresh
+  try { localStorage.setItem('refresh_token', refresh); } catch {}
 
-  // limpiamos caches; el rol real se setea con refreshUserRole()
-  clearCachedRole();
-  setCachedGroups([]);
-  notifyAuthChanged();
+  // 👉 Aplicar access y rol/grupos *ya mismo* desde el JWT (sin esperar /me)
+  setAuthFromAccess(access);
+
+  // Limpio caches del módulo API (por si había otra sesión)
+  try {
+    const mod = await import('./api');
+    if (typeof mod.clearAdminCaches === 'function') mod.clearAdminCaches();
+  } catch {}
 }
 
 export function logout() {
@@ -131,7 +150,13 @@ export function logout() {
 
   clearCachedRole();
   setCachedGroups([]);
+  notifyRoleUpdated();
   notifyAuthChanged();
+
+  // limpiar caches del módulo API
+  import('./api').then((mod) => {
+    if (typeof mod.clearAdminCaches === 'function') mod.clearAdminCaches();
+  }).catch(() => {});
 }
 
 export function isLoggedIn() {
@@ -151,17 +176,15 @@ export async function refreshToken() {
   const access = data?.access;
   if (!access) throw new Error('Refresh sin access token');
 
-  localStorage.setItem('access_token', access);
-  api.defaults.headers[AUTH_HEADER] = `Bearer ${access}`;
-  notifyAuthChanged();
+  // 👉 También al refrescar: actualizar header + rol/grupos al instante
+  setAuthFromAccess(access);
   return access;
 }
 
 /**
  * Rol principal del usuario (EFECTIVO).
- * 1) Usa cache refrescada desde /carga-datos/api/admin/me
+ * 1) Usa cache (set por JWT en login/refresh)
  * 2) Si no hay cache, infiere desde claims JWT
- * Retorna: "Admin" | "Supervisor" | "Operador" | "readonly"
  */
 export function getUserRole() {
   const cached = getCachedRole();
@@ -170,28 +193,24 @@ export function getUserRole() {
   const claims = getUserClaims();
   if (!claims) return 'readonly';
 
-  // Si el token trae grupos/perms, inferimos
   const groups = Array.isArray(claims.groups) ? claims.groups : [];
   const is_superuser = !!claims.is_superuser;
-  const primary = groupsToPrimaryRole(groups, { is_superuser });
+  let primary = groupsToPrimaryRole(groups, { is_superuser });
 
-  // Compatibilidad: si algún claim custom trae role=minúsculas, lo consideramos
   const legacy = (claims.role || claims.user_role || '').toString().toLowerCase();
   if (!groups.length && legacy) {
-    if (legacy === 'admin') return 'Admin';
-    if (legacy === 'editor') return 'Supervisor';
-    if (legacy === 'approver') return 'Operador';
+    if (legacy === 'admin') primary = 'Admin';
+    if (legacy === 'editor') primary = 'Supervisor';
+    if (legacy === 'approver') primary = 'Operador';
   }
-
   return primary;
 }
 
-/** Atajos de rol (no removemos isStaff por compat) */
-export function isAdmin()     { return getUserRole() === 'Admin'; }
-export function isSupervisor(){ return getUserRole() === 'Supervisor'; }
-export function isOperador()  { return getUserRole() === 'Operador'; }
-export function isStaff()     { 
-  // compat: si algún código antiguo usa 'staff', lo equiparamos a Supervisor/Admin
+/** Atajos de rol */
+export function isAdmin()      { return getUserRole() === 'Admin'; }
+export function isSupervisor() { return getUserRole() === 'Supervisor'; }
+export function isOperador()   { return getUserRole() === 'Operador'; }
+export function isStaff() {
   const r = getUserRole();
   return r === 'Admin' || r === 'Supervisor';
 }
@@ -220,7 +239,7 @@ export function getUserRoles() {
 
 /**
  * Refresca grupos reales desde backend y fija el rol principal.
- * Endpoint: /carga-datos/api/admin/me → { is_superuser, groups: [...] }
+ * Acepta tanto `groups` como `roles` desde el backend.
  */
 export async function refreshUserRole() {
   if (!isLoggedIn()) {
@@ -230,52 +249,41 @@ export async function refreshUserRole() {
   }
   try {
     const { data } = await api.get('/carga-datos/api/admin/me');
-    const groups = Array.isArray(data?.groups) ? data.groups : [];
+    const groups = Array.isArray(data?.groups) ? data.groups : (Array.isArray(data?.roles) ? data.roles : []);
     const role = groupsToPrimaryRole(groups, { is_superuser: !!data?.is_superuser });
 
     setCachedGroups(groups);
-    setCachedRole(role);
+    setCachedRole(role); // dispara role-updated + auth-changed
     return role;
   } catch {
-    // si falla, devolvemos el rol inferido (no crashea la UI)
+    // fallback: no crashea la UI; mantiene rol inferido
     return getUserRole();
   }
 }
 
 /** ============================
  *  Helpers de capacidades (UI)
- *  ============================ 
- *  Centralizá en un lugar qué puede hacer cada rol.
- *  El backend IGUAL hace cumplir permisos reales.
- */
+ *  ============================ */
 export function canManageEntidades() {
-  // Admin / Supervisor
   const r = getUserRole();
   return r === 'Admin' || r === 'Supervisor';
 }
 export function canUploadExcel() {
-  // Admin / Supervisor / Operador
   const r = getUserRole();
   return r === 'Admin' || r === 'Supervisor' || r === 'Operador';
 }
 export function canBulkValidate() {
-  // Admin / Supervisor (la validación de Modificar Masivo)
   const r = getUserRole();
   return r === 'Admin' || r === 'Supervisor';
 }
 export function canBulkCommit() {
-  // Solo Admin (el backend también lo restringe)
   return getUserRole() === 'Admin';
 }
 export function canViewClients() {
-  // Todos los roles autenticados; Operador es solo lectura (lo impone backend)
   return isLoggedIn();
 }
 
-/** ===== Compat opcional =====
- * Si algún código viejo espera strings minúsculas ('admin'/'editor'/'approver'),
- * podés usar este alias.
- */
+/** Alias legacy opcional */
 export function getLegacyRole() {
   return primaryToLegacyAlias(getUserRole());
 }

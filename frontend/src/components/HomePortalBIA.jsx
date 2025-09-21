@@ -1,5 +1,5 @@
 // frontend/src/components/HomePortalBia.jsx
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   isLoggedIn,
@@ -12,10 +12,11 @@ import {
 import { adminGetMe } from '../services/api';
 
 export default function HomePortalBia() {
+  // Estado inmediato desde JWT/cache (instantáneo)
   const [role, setRole] = useState(getUserRole());
   const [logged, setLogged] = useState(isLoggedIn());
 
-  // Estado de /me
+  // Datos de /me (asíncronos)
   const [me, setMe] = useState({
     first_name: '',
     last_name: '',
@@ -26,23 +27,35 @@ export default function HomePortalBia() {
   });
   const [loadingMe, setLoadingMe] = useState(false);
 
-  // Reglas de UI (derivadas del rol local — helpers sincrónicos)
-  const [perm, setPerm] = useState({
+  // ==== Protección anti-bucle de /me ====
+  const inFlightRef = useRef(false);
+  const lastFetchTsRef = useRef(0);
+  const scheduledRef = useRef(null);
+  const MIN_INTERVAL_MS = 8000; // evita martillar el backend (8s); ajustá si querés
+
+  const safeFetchGuard = () => {
+    const now = Date.now();
+    if (inFlightRef.current) return false;
+    if (now - lastFetchTsRef.current < MIN_INTERVAL_MS) return false;
+    inFlightRef.current = true;
+    lastFetchTsRef.current = now;
+    return true;
+  };
+
+  const releaseFetchGuard = () => {
+    inFlightRef.current = false;
+  };
+
+  // Reglas de UI derivadas del rol local (sincrónico)
+  const buildPerms = () => ({
     canManageEntidadesUI: canManageEntidades(),
     canModifyMasivo: canBulkValidate(),
     canUploadExcelUI: canUploadExcel(),
   });
+  const [perm, setPerm] = useState(buildPerms());
+  const updatePerms = useCallback(() => setPerm(buildPerms()), []);
 
-  const updatePerms = useCallback(() => {
-    setPerm({
-      canManageEntidadesUI: canManageEntidades(),
-      canModifyMasivo: canBulkValidate(),
-      canUploadExcelUI: canUploadExcel(),
-    });
-  }, []);
-
-  const reFetchMe = useCallback(async () => {
-    // Si no hay sesión, limpiar y salir sin “verificar permisos” eternos
+  const doFetchMe = useCallback(async () => {
     if (!isLoggedIn()) {
       setLogged(false);
       setRole('readonly');
@@ -61,62 +74,104 @@ export default function HomePortalBia() {
     setLogged(true);
     setLoadingMe(true);
     try {
-      // Refrescar rol local (sin bloquear la UI)
-      const r = await refreshUserRole().catch(() => getUserRole());
-      setRole(r || getUserRole());
-      updatePerms();
+      // Actualizamos rol en segundo plano (si /me cambia grupos)
+      refreshUserRole()
+        .then((r) => {
+          if (r) {
+            setRole(r);
+            updatePerms();
+          }
+        })
+        .catch(() => { /* ignore */ });
 
-      // Traer /me (solo para datos visibles: nombre, email, grupos)
-      const { data } = await adminGetMe();
+      const { data } = await adminGetMe({ force: true });
       setMe({
         first_name: data?.first_name ?? '',
         last_name: data?.last_name ?? '',
         email: data?.email ?? '',
-        roles: Array.isArray(data?.roles) ? data.roles : [],
+        roles: Array.isArray(data?.roles)
+          ? data.roles
+          : (Array.isArray(data?.groups) ? data.groups : []),
         username: data?.username ?? '',
         is_superuser: !!data?.is_superuser,
       });
     } catch {
-      // Si falla /me, no dejamos la UI “verificando”
+      // Si falla /me, no rompas la UI
       setMe((prev) => ({ ...prev, roles: [] }));
     } finally {
       setLoadingMe(false);
     }
   }, [updatePerms]);
 
+  // Planificador que coalescea eventos múltiples y respeta el guard
+  const scheduleMeFetch = useCallback((immediate = false) => {
+    // limpá cualquier schedule previo
+    if (scheduledRef.current) {
+      clearTimeout(scheduledRef.current);
+      scheduledRef.current = null;
+    }
+    const run = async () => {
+      if (!safeFetchGuard()) return;
+      try {
+        await doFetchMe();
+      } finally {
+        releaseFetchGuard();
+      }
+    };
+    if (immediate) {
+      run();
+    } else {
+      // pequeño debounce para agrupar ráfagas de eventos
+      scheduledRef.current = setTimeout(run, 150);
+    }
+  }, [doFetchMe]);
+
   // Carga inicial
   useEffect(() => {
-    reFetchMe();
-  }, [reFetchMe]);
+    setLogged(isLoggedIn());
+    setRole(getUserRole());
+    updatePerms();
+    scheduleMeFetch(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Reaccionar a cambios de auth/almacenamiento/perfil
+  // Reaccionar a eventos globales sin spammear /me
   useEffect(() => {
     const syncAll = () => {
       setLogged(isLoggedIn());
       setRole(getUserRole());
       updatePerms();
-      reFetchMe(); // refresca /me si hay sesión
+      scheduleMeFetch(false);
     };
-
     const syncRoleOnly = () => {
       setRole(getUserRole());
       updatePerms();
+      // No llamamos /me si solo cambió el rol local
     };
 
     window.addEventListener('auth-changed', syncAll);
-    window.addEventListener('storage', syncAll);
-    window.addEventListener('profile-updated', syncAll);
-
-    // (por si alguna otra vista solo cambiara el rol local)
     window.addEventListener('role-updated', syncRoleOnly);
+    window.addEventListener('profile-updated', syncAll);
+    // Nota: el evento 'storage' no se dispara en la misma pestaña;
+    // si igualmente lo usás entre pestañas, podemos escucharlo:
+    const onStorage = (e) => {
+      // Sólo reaccionar a claves relevantes para evitar ruido
+      const k = e?.key || '';
+      if (k.includes('access_token') || k.includes('user_role') || k.includes('user_groups')) {
+        syncAll();
+      }
+    };
+    window.addEventListener('storage', onStorage);
 
     return () => {
       window.removeEventListener('auth-changed', syncAll);
-      window.removeEventListener('storage', syncAll);
-      window.removeEventListener('profile-updated', syncAll);
       window.removeEventListener('role-updated', syncRoleOnly);
+      window.removeEventListener('profile-updated', syncAll);
+      window.removeEventListener('storage', onStorage);
+
+      if (scheduledRef.current) clearTimeout(scheduledRef.current);
     };
-  }, [reFetchMe, updatePerms]);
+  }, [scheduleMeFetch, updatePerms]);
 
   const grupos = me.roles && me.roles.length ? me.roles.join(', ') : '—';
   const nombreCompleto =
@@ -138,9 +193,7 @@ export default function HomePortalBia() {
               </small>
             </div>
 
-            {/* ──────────────────────────────
-                Bloque compacto: Sesión + datos
-               ────────────────────────────── */}
+            {/* Sesión + datos (compacto) */}
             {logged && (
               <div className="border rounded-3 bg-light-subtle py-2 px-3 mb-4 small">
                 <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-2">
@@ -187,7 +240,6 @@ export default function HomePortalBia() {
             {logged ? (
               <>
                 <div className="row g-3 g-md-4">
-                  {/* Gestionar Entidades */}
                   {perm.canManageEntidadesUI && (
                     <div className="col-12 col-md-6">
                       <Link to="/entidades" className="text-decoration-none">
@@ -206,7 +258,6 @@ export default function HomePortalBia() {
                     </div>
                   )}
 
-                  {/* Cargar Excel */}
                   {perm.canUploadExcelUI && (
                     <div className="col-12 col-md-6">
                       <Link to="/carga-datos/upload" className="text-decoration-none">
@@ -225,7 +276,6 @@ export default function HomePortalBia() {
                     </div>
                   )}
 
-                  {/* Modificar Masivo */}
                   {perm.canModifyMasivo && (
                     <div className="col-12 col-md-6">
                       <Link to="/modificar-masivo" className="text-decoration-none">
@@ -247,7 +297,6 @@ export default function HomePortalBia() {
                     </div>
                   )}
 
-                  {/* Mostrar Datos */}
                   <div className="col-12 col-md-6">
                     <Link to="/datos/mostrar" className="text-decoration-none">
                       <div className="border rounded-3 p-3 p-md-4 h-100 d-flex align-items-center gap-3 shadow-sm hover-shadow-sm bg-white">
@@ -264,7 +313,6 @@ export default function HomePortalBia() {
                     </Link>
                   </div>
 
-                  {/* Generar Certificado */}
                   <div className="col-12 col-md-6">
                     <Link to="/certificado" className="text-decoration-none">
                       <div className="border rounded-3 p-3 p-md-4 h-100 d-flex align-items-center gap-3 shadow-sm hover-shadow-sm bg-white">

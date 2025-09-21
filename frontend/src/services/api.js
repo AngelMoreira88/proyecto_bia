@@ -101,9 +101,6 @@ api.interceptors.request.use((config) => {
 
 // ===================================
 // Interceptor de RESPONSE
-//  - 401: refresh / logout
-//  - 403: devolver a la UI
-//  - 429: backoff y reintento hasta 3 veces
 // ===================================
 api.interceptors.response.use(
   (response) => response,
@@ -113,7 +110,7 @@ api.interceptors.response.use(
 
     if (!error.response) return Promise.reject(error);
 
-    // 401 con refresh disponible: intenta renovar y reintenta
+    // 401 con refresh disponible
     if (status === 401 && originalRequest && !originalRequest._retry) {
       const refresh = getRefreshToken();
       if (refresh) {
@@ -281,8 +278,7 @@ export const eliminarDatoBia = (id) =>
   api.delete(`/api/db_bia/${encodeURIComponent(id)}/`);
 
 // =======================================================
-// Endpoints Admin de roles (app carga_datos)
-//  - adminGetMe y adminListRoles con CACHE + DEDUPE
+// Endpoints Admin de roles (app carga_datos) con CACHE
 // =======================================================
 
 // --- Cache y dedupe para /admin/me ---
@@ -329,8 +325,12 @@ export function adminListRoles({ force = false } = {}) {
   return _rolesCache.promise;
 }
 
-export function adminSearchUsers(q) {
-  return api.get('/carga-datos/api/admin/users', { params: { q } });
+/** Buscar usuarios (se puede extender con filtros si el backend los soporta) */
+export function adminSearchUsers(q, group = '', rolesCsv = '') {
+  const params = { q };
+  if (group) params.group = group;
+  if (rolesCsv) params.roles = rolesCsv;
+  return api.get('/carga-datos/api/admin/users', { params });
 }
 export function adminGetUserRoles(userId) {
   return api.get(`/carga-datos/api/admin/users/${userId}/roles`);
@@ -341,7 +341,7 @@ export function adminSetUserRoles(userId, body) {
   });
 }
 
-// (Opcional) Endpoint para “calentar” CSRF cookie desde el front.
+/** (Opcional) “calentar” CSRF cookie desde el front */
 export function ensureCsrf() {
   return api.get('/carga-datos/api/admin/csrf');
 }
@@ -359,12 +359,36 @@ export function bulkCommit(jobId) {
 }
 
 // =======================================================
-// Crear usuario (Admin / Supervisor)
+// Admin Users (crear/actualizar)
 // =======================================================
-export function adminCreateUser({ email, password, role, nombre }) {
-  return api.post(
-    '/carga-datos/api/admin/users',
-    { email, password, role, nombre },
-    { headers: { 'Content-Type': 'application/json' } }
-  );
+export function adminCreateUser({ email, password, role, nombre, first_name, last_name, username, is_active }) {
+  // soporte flexible de campos
+  const payload = { email, password, role };
+  if (nombre) payload.nombre = nombre;
+  if (first_name) payload.first_name = first_name;
+  if (last_name) payload.last_name = last_name;
+  if (username) payload.username = username;
+  if (typeof is_active === 'boolean') payload.is_active = is_active;
+  return api.post('/carga-datos/api/admin/users', payload, {
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
+export function adminUpdateUser(userId, payload) {
+  return api.patch(`/carga-datos/api/admin/users/${userId}`, payload, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+// =======================================================
+// Invalidación de caches locales de admin (/me y roles)
+// =======================================================
+export function clearAdminCaches() {
+  _meCache = { data: null, at: 0, promise: null };
+  _rolesCache = { data: null, at: 0, promise: null };
+}
+
+// Limpiar caches cuando cambian auth/rol
+try {
+  window.addEventListener('auth-changed', clearAdminCaches);
+  window.addEventListener('role-updated', clearAdminCaches);
+} catch {}
