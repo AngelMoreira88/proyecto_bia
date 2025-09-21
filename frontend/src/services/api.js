@@ -18,6 +18,7 @@ const api = axios.create({
 });
 
 // ===============================
+//
 // Helpers de Auth y CSRF
 // ===============================
 function getAccessToken() {
@@ -325,16 +326,27 @@ export function adminListRoles({ force = false } = {}) {
   return _rolesCache.promise;
 }
 
-/** Buscar usuarios (se puede extender con filtros si el backend los soporta) */
-export function adminSearchUsers(q, group = '', rolesCsv = '') {
-  const params = { q };
-  if (group) params.group = group;
+/**
+ * Buscar usuarios con soporte de:
+ *  - q: texto ("" | "__all__")
+ *  - rolesCsv: "Admin,Supervisor"
+ *  - page: número de página (1..N)
+ *  - pageSize: tamaño de página (10/20/50)
+ */
+export function adminSearchUsers(q = "", page = 1, rolesCsv, pageSize = 10) {
+  const params = {};
+  // __all__ o texto normal
+  if (q !== undefined && q !== null) params.q = q;
   if (rolesCsv) params.roles = rolesCsv;
+  if (page) params.page = page;
+  if (pageSize) params.page_size = pageSize;
   return api.get('/carga-datos/api/admin/users', { params });
 }
+
 export function adminGetUserRoles(userId) {
   return api.get(`/carga-datos/api/admin/users/${userId}/roles`);
 }
+
 export function adminSetUserRoles(userId, body) {
   return api.post(`/carga-datos/api/admin/users/${userId}/roles`, body, {
     headers: { 'Content-Type': 'application/json' },
@@ -361,9 +373,15 @@ export function bulkCommit(jobId) {
 // =======================================================
 // Admin Users (crear/actualizar)
 // =======================================================
-export function adminCreateUser({ email, password, role, nombre, first_name, last_name, username, is_active }) {
-  // soporte flexible de campos
-  const payload = { email, password, role };
+/**
+ * Crear usuario.
+ * Acepta tanto { role } (string) como { roles } (array) pero lo habitual
+ * es crear y luego llamar a adminSetUserRoles con el set completo.
+ */
+export function adminCreateUser({ email, password, role, roles, nombre, first_name, last_name, username, is_active }) {
+  const payload = { email, password };
+  if (role) payload.role = role;
+  if (Array.isArray(roles)) payload.roles = roles;
   if (nombre) payload.nombre = nombre;
   if (first_name) payload.first_name = first_name;
   if (last_name) payload.last_name = last_name;
@@ -373,6 +391,7 @@ export function adminCreateUser({ email, password, role, nombre, first_name, las
     headers: { 'Content-Type': 'application/json' },
   });
 }
+
 export function adminUpdateUser(userId, payload) {
   return api.patch(`/carga-datos/api/admin/users/${userId}`, payload, {
     headers: { 'Content-Type': 'application/json' },

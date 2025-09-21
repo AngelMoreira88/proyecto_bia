@@ -1,220 +1,317 @@
 # carga_datos/views_roles.py
+from typing import List
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
-from django.db.models import Q, Count
+from django.core.paginator import Paginator
+from django.db.models import Q
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
 
-# Permiso centralizado (solo Admin group o superuser) y el flexible
-from .permissions import IsAdminOrSuperuser, IsAdminRole
+from .permissions import IsAdminRole  # si querés restringir más
 
-# Serializers de admin de usuarios (punto 2)
-from .serializers import (
-    AdminUserListSerializer,
-    AdminUserCreateUpdateSerializer,
-)
+User = get_user_model()
 
-# === Roles oficiales del PortalBIA ===
-ALLOWED_ROLES = ["Admin", "Supervisor", "Operador"]
+# Roles válidos (únicos)
+VALID_ROLES = ("Admin", "Supervisor", "Operador")
 
 
-def ensure_roles_exist():
-    """Crea los grupos si faltan (idempotente)."""
-    for name in ALLOWED_ROLES:
-        Group.objects.get_or_create(name=name)
+def _normalize_role(name: str):
+    if not name:
+        return None
+    s = str(name).strip().lower()
+    if s in ("admin", "administrador"):
+        return "Admin"
+    if s == "supervisor":
+        return "Supervisor"
+    if s in ("operador", "editor", "approver"):
+        return "Operador"
+    return None
+
+
+def _ensure_groups_exist():
+    for r in VALID_ROLES:
+        Group.objects.get_or_create(name=r)
 
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def me(request):
-    """
-    Devuelve info del usuario actual: incluye grupos (roles).
-    No requiere ser Admin; lo usa el front para mostrar/ocultar UI.
-    """
-    user = request.user
-    groups = list(user.groups.values_list("name", flat=True))
-    # si existe el flag 'must_change_password' en tu modelo de usuario, lo exponemos
-    must_change_password = bool(getattr(user, "must_change_password", False))
-    return Response({
-        "id": user.pk,
-        "username": user.get_username(),
-        "email": getattr(user, "email", ""),
-        "is_superuser": bool(user.is_superuser),
-        "roles": groups,  # <- ya estaba
-        "must_change_password": must_change_password,  # <- mejora opcional
-    })
+    u: User = request.user
+    roles = list(u.groups.values_list("name", flat=True))
+    data = {
+        "id": u.id,
+        "username": u.username,
+        "email": u.email,
+        "first_name": u.first_name,
+        "last_name": u.last_name,
+        "phone": getattr(u, "phone", ""),
+        "is_superuser": u.is_superuser,
+        "roles": roles,
+        "preferences": getattr(u, "preferences", None) or {},
+    }
+    return Response(data)
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated, IsAdminOrSuperuser])
+@permission_classes([IsAuthenticated])  # o [IsAdminRole]
 def roles_list(request):
-    """
-    Lista los roles válidos del sistema. Solo Admin/superuser.
-    """
-    ensure_roles_exist()
-    return Response({"roles": ALLOWED_ROLES})
+    _ensure_groups_exist()
+    return Response({"roles": list(VALID_ROLES)})
 
 
-@api_view(["GET"])
-@permission_classes([IsAuthenticated, IsAdminOrSuperuser])
-def users_search(request):
-    """
-    Búsqueda simple por username/email/nombre/apellido. Limita a 20.
-    Solo Admin/superuser.
-    """
-    q = (request.GET.get("q") or "").strip()
-    if not q:
-        return Response({"results": []})
-    User = get_user_model()
-    qs = User.objects.filter(
-        Q(username__icontains=q) |
-        Q(email__icontains=q) |
-        Q(first_name__icontains=q) |
-        Q(last_name__icontains=q)
-    ).order_by("username")[:20]
-    results = [{
-        "id": u.pk,
-        "username": u.get_username(),
-        "email": getattr(u, "email", ""),
-        "first_name": getattr(u, "first_name", ""),
-        "last_name": getattr(u, "last_name", ""),
-        "is_active": getattr(u, "is_active", True),
-    } for u in qs]
-    return Response({"results": results})
-
+# ======== USERS: GET (search + paginación) / POST (create) ========
 
 @api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated, IsAdminRole])
+@permission_classes([IsAuthenticated, IsAdminRole])  # restringir a Admin
 def users_create_or_search(request):
-    """
-    **GET**: igual que users_search (pero requiere IsAdminRole).
-    **POST**: crea un usuario real. Payload esperado:
-      {
-        "username": "...", "email": "...",
-        "first_name": "...", "last_name": "...",
-        "password": "1234",         # numérica de 4 dígitos (validación en serializer)
-        "is_active": true
-      }
-    Respuesta (201): shape compacto para la UI.
-    """
-    User = get_user_model()
+    _ensure_groups_exist()
 
     if request.method == "GET":
-        q = (request.GET.get("q") or "").strip()
-        if not q:
-            return Response({"results": []})
-        qs = User.objects.filter(
-            Q(username__icontains=q) |
-            Q(email__icontains=q) |
-            Q(first_name__icontains=q) |
-            Q(last_name__icontains=q)
-        ).order_by("username")[:100]
-        data = AdminUserListSerializer(qs, many=True).data
-        return Response({"results": data})
+        q = (request.query_params.get("q") or "").strip()
+        roles_csv = (request.query_params.get("roles") or "").strip()
+        page = int(request.query_params.get("page") or 1)
+        page_size = int(request.query_params.get("page_size") or 10)
 
-    # POST → crear usuario
-    ser = AdminUserCreateUpdateSerializer(data=request.data)
-    if not ser.is_valid():
-        return Response({"errors": ser.errors}, status=status.HTTP_400_BAD_REQUEST)
-    user = ser.save()
-    out = AdminUserListSerializer(user).data
-    return Response(out, status=status.HTTP_201_CREATED)
+        qs = User.objects.all().order_by("id")
 
+        if q and q != "__all__":
+            qs = qs.filter(
+                Q(username__icontains=q)
+                | Q(email__icontains=q)
+                | Q(first_name__icontains=q)
+                | Q(last_name__icontains=q)
+            )
+
+        if roles_csv:
+            wanted = []
+            for raw in roles_csv.split(","):
+                n = _normalize_role(raw)
+                if n:
+                    wanted.append(n)
+            if wanted:
+                qs = qs.filter(groups__name__in=wanted).distinct()
+
+        paginator = Paginator(qs, page_size)
+        page_obj = paginator.get_page(page)
+
+        results = []
+        for u in page_obj.object_list:
+            results.append(
+                {
+                    "id": u.id,
+                    "username": u.username,
+                    "email": u.email,
+                    "first_name": u.first_name,
+                    "last_name": u.last_name,
+                    "is_active": u.is_active,
+                }
+            )
+
+        return Response(
+            {
+                "count": paginator.count,
+                "next": None,      # podés armar URLs si querés
+                "previous": None,
+                "results": results,
+            }
+        )
+
+    # POST (crear)
+    data = request.data or {}
+    email = (data.get("email") or "").strip()
+    password = data.get("password") or ""
+    username = (data.get("username") or "").strip() or email.split("@")[0]
+    first_name = (data.get("first_name") or data.get("nombre") or "").strip()
+    last_name = (data.get("last_name") or data.get("apellido") or "").strip()
+    is_active = bool(data.get("is_active", True))
+
+    if not email or not password:
+        return Response(
+            {"errors": ["Email y contraseña son requeridos"]},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if User.objects.filter(email__iexact=email).exists():
+        return Response(
+            {"errors": ["Ya existe un usuario con ese email"]},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    if User.objects.filter(username__iexact=username).exists():
+        return Response(
+            {"errors": ["Ya existe un usuario con ese username"]},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    u = User.objects.create(
+        email=email,
+        username=username,
+        first_name=first_name,
+        last_name=last_name,
+        is_active=is_active,
+    )
+    u.set_password(password)
+    u.save()
+
+    # Rol opcional en creación
+    roles_body = data.get("roles")
+    role_single = data.get("role")
+    assign: List[str] = []
+    if isinstance(roles_body, list):
+        for r in roles_body:
+            n = _normalize_role(r)
+            if n and n not in assign:
+                assign.append(n)
+    elif role_single:
+        n = _normalize_role(role_single)
+        if n:
+            assign.append(n)
+
+    if assign:
+        u.groups.clear()
+        for name in assign:
+            g, _ = Group.objects.get_or_create(name=name)
+            u.groups.add(g)
+
+    return Response(
+        {
+            "id": u.id,
+            "user": {
+                "id": u.id,
+                "username": u.username,
+                "email": u.email,
+                "first_name": u.first_name,
+                "last_name": u.last_name,
+                "is_active": u.is_active,
+            },
+        },
+        status=status.HTTP_201_CREATED,
+    )
+
+
+# ======== PATCH /users/<id> ========
 
 @api_view(["PATCH"])
 @permission_classes([IsAuthenticated, IsAdminRole])
 def user_update(request, user_id: int):
-    """
-    Edita un usuario existente (parcial).
-    - Si viene 'password', se actualiza encriptada (set_password).
-    - Campos soportados: username, email, first_name, last_name, password, is_active.
-    Respuesta: shape compacto para la UI.
-    """
-    User = get_user_model()
     try:
-        user = User.objects.get(pk=user_id)
+        u = User.objects.get(pk=user_id)
     except User.DoesNotExist:
-        return Response({"detail": "Usuario no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"detail": "Usuario no encontrado"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
-    ser = AdminUserCreateUpdateSerializer(user, data=request.data, partial=True)
-    if not ser.is_valid():
-        return Response({"errors": ser.errors}, status=status.HTTP_400_BAD_REQUEST)
-    user = ser.save()
-    out = AdminUserListSerializer(user).data
-    return Response(out, status=status.HTTP_200_OK)
+    data = request.data or {}
 
+    email = data.get("email")
+    username = data.get("username")
+    first_name = data.get("first_name")
+    last_name = data.get("last_name")
+    is_active = data.get("is_active")
+    password = data.get("password")
+    # cambio de password para self también podría venir aquí con current_password/new_password
+
+    if email is not None:
+        email = email.strip()
+        if email and User.objects.exclude(pk=u.pk).filter(email__iexact=email).exists():
+            return Response(
+                {"errors": ["Ya existe un usuario con ese email"]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        u.email = email
+
+    if username is not None:
+        username = username.strip()
+        if username and User.objects.exclude(pk=u.pk).filter(username__iexact=username).exists():
+            return Response(
+                {"errors": ["Ya existe un usuario con ese username"]},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        u.username = username
+
+    if first_name is not None:
+        u.first_name = first_name
+
+    if last_name is not None:
+        u.last_name = last_name
+
+    if isinstance(is_active, bool):
+        u.is_active = is_active
+
+    if password:
+        u.set_password(password)
+
+    u.save()
+    return Response(
+        {
+            "id": u.id,
+            "username": u.username,
+            "email": u.email,
+            "first_name": u.first_name,
+            "last_name": u.last_name,
+            "is_active": u.is_active,
+        }
+    )
+
+
+# ======== POST /users/<id>/deactivate ========
 
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, IsAdminRole])
 def user_deactivate(request, user_id: int):
-    """
-    (Opcional) Desactivar usuario: set is_active=False.
-    """
-    User = get_user_model()
     try:
-        user = User.objects.get(pk=user_id)
+        u = User.objects.get(pk=user_id)
     except User.DoesNotExist:
-        return Response({"detail": "Usuario no encontrado."}, status=status.HTTP_404_NOT_FOUND)
+        return Response(
+            {"detail": "Usuario no encontrado"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
+    u.is_active = False
+    u.save()
+    return Response({"success": True})
 
-    user.is_active = False
-    user.save(update_fields=["is_active"])
-    return Response({"success": True, "id": user.pk, "is_active": user.is_active})
-    
+
+# ======== GET/POST /users/<id>/roles ========
 
 @api_view(["GET", "POST"])
-@permission_classes([IsAuthenticated, IsAdminOrSuperuser])
+@permission_classes([IsAuthenticated, IsAdminRole])
 def user_roles(request, user_id: int):
-    """
-    GET: devuelve roles (grupos) del usuario.
-    POST: reemplaza roles del usuario (solo Admin/superuser y solo usando ALLOWED_ROLES).
-
-    Reglas de seguridad:
-      - No permite quitar el rol "Admin" al ÚNICO admin existente (para evitar lockout).
-      - No permite que un admin se auto-degrade (quitarse "Admin" a sí mismo).
-    """
-    ensure_roles_exist()
-    User = get_user_model()
+    _ensure_groups_exist()
     try:
-        target = User.objects.get(pk=user_id)
+        u = User.objects.get(pk=user_id)
     except User.DoesNotExist:
-        return Response({"errors": ["Usuario no encontrado"]}, status=404)
+        return Response(
+            {"detail": "Usuario no encontrado"},
+            status=status.HTTP_404_NOT_FOUND,
+        )
 
     if request.method == "GET":
-        roles = list(target.groups.values_list("name", flat=True))
+        roles = list(u.groups.values_list("name", flat=True))
         return Response({"roles": roles})
 
-    # POST → set de roles
-    roles = request.data.get("roles", [])
+    # POST → set roles
+    roles = request.data.get("roles") or []
     if not isinstance(roles, list):
-        return Response({"errors": ["'roles' debe ser una lista"]}, status=400)
+        return Response(
+            {"errors": ["'roles' debe ser una lista"]},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
 
-    # Validación de catálogo
-    invalid = [r for r in roles if r not in ALLOWED_ROLES]
-    if invalid:
-        return Response({"errors": [f"Roles inválidos: {invalid}"]}, status=400)
-
-    # --- Salvaguardas de Admin ---
-    want_admin = "Admin" in roles
-    target_is_admin_now = target.groups.filter(name="Admin").exists()
-
-    # 1) Evitar auto-degradación
-    if target.pk == request.user.pk and target_is_admin_now and not want_admin:
-        return Response({"errors": ["No podés quitarte el rol 'Admin' a vos mismo."]}, status=400)
-
-    # 2) Evitar quedarse sin Admin en todo el sistema
-    if target_is_admin_now and not want_admin:
-        n_admins = get_user_model().objects.filter(groups__name="Admin").distinct().count()
-        if n_admins <= 1:
-            return Response({"errors": ["No se puede quitar 'Admin': es el único admin del sistema."]}, status=400)
-
-    # Reemplazar solo roles de nuestro catálogo (no tocamos otros grupos ajenos)
-    current_allowed = target.groups.filter(name__in=ALLOWED_ROLES)
-    target.groups.remove(*current_allowed)
+    wanted = []
     for r in roles:
-        g = Group.objects.get(name=r)
-        target.groups.add(g)
+        n = _normalize_role(r)
+        if n and n not in wanted:
+            wanted.append(n)
 
-    target.save()
-    return Response({"success": True, "roles": roles})
+    u.groups.clear()
+    for name in wanted:
+        g, _ = Group.objects.get_or_create(name=name)
+        u.groups.add(g)
+
+    return Response(
+        {"success": True, "roles": list(u.groups.values_list("name", flat=True))}
+    )

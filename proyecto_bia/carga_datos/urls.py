@@ -16,22 +16,18 @@ from .views import (
     exportar_datos_bia_csv,
 )
 
-# ⚠️ Importás los endpoints de Modificar Masivo (bulk) desde este módulo:
-# Asegurate que en views_bulk.py estén decorados con CanBulkModify/CanUploadExcel como te propuse.
+# Endpoints de Modificar Masivo (bulk)
 from carga_datos.views_bulk import bulk_validate, bulk_commit, bulk_export_xlsx
 
-# Endpoints de administración de roles (solo Admin/superuser)
+# Endpoints de administración (roles/usuarios)
 from carga_datos.views_roles import (
     me,
     roles_list,
-    users_search,              # (se mantiene importado)
-    user_roles,
-    # NUEVO: vistas de usuario real (GET/POST / PATCH / POST deactivate)
-    users_create_or_search,    # GET (search) + POST (create) en /api/admin/users
-    user_update,               # PATCH en /api/admin/users/<id>
-    user_deactivate,           # POST en /api/admin/users/<id>/deactivate
+    users_create_or_search,   # ✅ GET (search) + POST (create)
+    user_update,              # ✅ PATCH /users/<id>
+    user_deactivate,          # ✅ POST  /users/<id>/deactivate
+    user_roles,               # ✅ GET/POST /users/<id>/roles
 )
-
 
 def ping(_request):
     return JsonResponse({"ok": True, "app": "carga_datos"})
@@ -60,19 +56,17 @@ urlpatterns = [
     path("api/bulk-update/commit",       bulk_commit,       name="bulk_update_commit"),
     path("api/bulk-update/export.xlsx",  bulk_export_xlsx,  name="bulk_export_xlsx"),
 
-    # Admin roles (solo Admin/superuser desde views_roles)
+    # Admin (me/roles/users)
     path("api/admin/me",                         me,                      name="admin_me"),
     path("api/admin/roles",                      roles_list,              name="admin_roles"),
 
-    # 🔁 ACTUALIZADO: ahora /api/admin/users acepta GET (buscar) y POST (crear)
-    #   - GET  -> users_create_or_search (mismo comportamiento que users_search)
-    #   - POST -> crea usuario real (lo que necesita Perfil.jsx)
+    # 🔁 GET (buscar) y POST (crear) en la misma ruta
     path("api/admin/users",                      users_create_or_search,  name="admin_users_search"),
 
-    # ✅ NUEVOS endpoints para update y desactivar
+    # ✅ Update/Deactivate
     path("api/admin/users/<int:user_id>",               user_update,      name="admin_user_update"),
     path("api/admin/users/<int:user_id>/deactivate",    user_deactivate,  name="admin_user_deactivate"),
 
-    # (Se mantiene igual)
-    path("api/admin/users/<int:user_id>/roles",  user_roles,              name="admin_user_roles"),
+    # ✅ Roles por usuario
+    path("api/admin/users/<int:user_id>/roles",         user_roles,       name="admin_user_roles"),
 ]
