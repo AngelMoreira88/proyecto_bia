@@ -1,43 +1,126 @@
 // frontend/src/components/HomePortalBia.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   isLoggedIn,
   getUserRole,
   refreshUserRole,
-  // ✅ helpers de capacidades centralizados en auth.js
   canManageEntidades,
   canBulkValidate,
   canUploadExcel,
 } from '../services/auth';
+import { adminGetMe } from '../services/api';
 
 export default function HomePortalBia() {
   const [role, setRole] = useState(getUserRole());
-  const logged = isLoggedIn();
+  const [logged, setLogged] = useState(isLoggedIn());
 
-  useEffect(() => {
-    (async () => {
-      if (isLoggedIn()) {
-        const r = await refreshUserRole();
-        setRole(r);
-      } else {
-        setRole('readonly');
-      }
-    })();
+  // Estado de /me
+  const [me, setMe] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    roles: [],
+    username: '',
+    is_superuser: false,
+  });
+  const [loadingMe, setLoadingMe] = useState(false);
 
-    const sync = () => setRole(getUserRole());
-    window.addEventListener('auth-changed', sync);
-    window.addEventListener('storage', sync);
-    return () => {
-      window.removeEventListener('auth-changed', sync);
-      window.removeEventListener('storage', sync);
-    };
+  // Reglas de UI (derivadas del rol local — helpers sincrónicos)
+  const [perm, setPerm] = useState({
+    canManageEntidadesUI: canManageEntidades(),
+    canModifyMasivo: canBulkValidate(),
+    canUploadExcelUI: canUploadExcel(),
+  });
+
+  const updatePerms = useCallback(() => {
+    setPerm({
+      canManageEntidadesUI: canManageEntidades(),
+      canModifyMasivo: canBulkValidate(),
+      canUploadExcelUI: canUploadExcel(),
+    });
   }, []);
 
-  // 🔐 Reglas usando helpers
-  const canManageEntidadesUI = canManageEntidades(); // Admin / Supervisor
-  const canModifyMasivo     = canBulkValidate();     // Admin / Supervisor (commit lo corta el backend a Admin)
-  const canUploadExcelUI    = canUploadExcel();      // Admin / Supervisor / Operador
+  const reFetchMe = useCallback(async () => {
+    // Si no hay sesión, limpiar y salir sin “verificar permisos” eternos
+    if (!isLoggedIn()) {
+      setLogged(false);
+      setRole('readonly');
+      setMe({
+        first_name: '',
+        last_name: '',
+        email: '',
+        roles: [],
+        username: '',
+        is_superuser: false,
+      });
+      updatePerms();
+      return;
+    }
+
+    setLogged(true);
+    setLoadingMe(true);
+    try {
+      // Refrescar rol local (sin bloquear la UI)
+      const r = await refreshUserRole().catch(() => getUserRole());
+      setRole(r || getUserRole());
+      updatePerms();
+
+      // Traer /me (solo para datos visibles: nombre, email, grupos)
+      const { data } = await adminGetMe();
+      setMe({
+        first_name: data?.first_name ?? '',
+        last_name: data?.last_name ?? '',
+        email: data?.email ?? '',
+        roles: Array.isArray(data?.roles) ? data.roles : [],
+        username: data?.username ?? '',
+        is_superuser: !!data?.is_superuser,
+      });
+    } catch {
+      // Si falla /me, no dejamos la UI “verificando”
+      setMe((prev) => ({ ...prev, roles: [] }));
+    } finally {
+      setLoadingMe(false);
+    }
+  }, [updatePerms]);
+
+  // Carga inicial
+  useEffect(() => {
+    reFetchMe();
+  }, [reFetchMe]);
+
+  // Reaccionar a cambios de auth/almacenamiento/perfil
+  useEffect(() => {
+    const syncAll = () => {
+      setLogged(isLoggedIn());
+      setRole(getUserRole());
+      updatePerms();
+      reFetchMe(); // refresca /me si hay sesión
+    };
+
+    const syncRoleOnly = () => {
+      setRole(getUserRole());
+      updatePerms();
+    };
+
+    window.addEventListener('auth-changed', syncAll);
+    window.addEventListener('storage', syncAll);
+    window.addEventListener('profile-updated', syncAll);
+
+    // (por si alguna otra vista solo cambiara el rol local)
+    window.addEventListener('role-updated', syncRoleOnly);
+
+    return () => {
+      window.removeEventListener('auth-changed', syncAll);
+      window.removeEventListener('storage', syncAll);
+      window.removeEventListener('profile-updated', syncAll);
+      window.removeEventListener('role-updated', syncRoleOnly);
+    };
+  }, [reFetchMe, updatePerms]);
+
+  const grupos = me.roles && me.roles.length ? me.roles.join(', ') : '—';
+  const nombreCompleto =
+    [me.first_name, me.last_name].filter(Boolean).join(' ') || '—';
 
   return (
     <div
@@ -53,23 +136,59 @@ export default function HomePortalBia() {
               <small className="text-secondary">
                 Accedé a las funcionalidades internas y herramientas de gestión
               </small>
-              {logged && (
-                <div className="mt-2">
-                  <span className="badge text-bg-light border">
-                    Sesión activa · Rol: <strong className="ms-1">{role}</strong>
-                  </span>
-                </div>
-              )}
             </div>
 
-            <hr className="mt-2 mb-4" />
+            {/* ──────────────────────────────
+                Bloque compacto: Sesión + datos
+               ────────────────────────────── */}
+            {logged && (
+              <div className="border rounded-3 bg-light-subtle py-2 px-3 mb-4 small">
+                <div className="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-2">
+                  <div className="d-flex flex-wrap gap-2">
+                    <span className="badge text-bg-light border">Sesión activa</span>
+                    <span className="badge text-bg-light border">
+                      Rol: <strong>{role}</strong>
+                    </span>
+                    {loadingMe && (
+                      <span className="badge text-bg-light border">Cargando…</span>
+                    )}
+                  </div>
+                  {me.username && (
+                    <span className="text-secondary">
+                      Usuario: <span className="fw-semibold">{me.username}</span>
+                    </span>
+                  )}
+                </div>
+                <div className="row g-2 mt-2">
+                  <div className="col-12 col-md-4">
+                    <div className="text-secondary">Nombre y Apellido</div>
+                    <div className="fw-semibold text-truncate" title={nombreCompleto}>
+                      {nombreCompleto}
+                    </div>
+                  </div>
+                  <div className="col-12 col-md-4">
+                    <div className="text-secondary">Email</div>
+                    <div className="fw-semibold text-truncate" title={me.email || '—'}>
+                      {me.email || '—'}
+                    </div>
+                  </div>
+                  <div className="col-12 col-md-4">
+                    <div className="text-secondary">Grupo(s)</div>
+                    <div className="fw-semibold text-truncate" title={grupos}>
+                      {grupos}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <p className="text-muted text-center mb-4">Elegí una acción para comenzar:</p>
 
             {logged ? (
               <>
                 <div className="row g-3 g-md-4">
-                  {/* Gestionar Entidades -> Admin/Supervisor */}
-                  {canManageEntidadesUI && (
+                  {/* Gestionar Entidades */}
+                  {perm.canManageEntidadesUI && (
                     <div className="col-12 col-md-6">
                       <Link to="/entidades" className="text-decoration-none">
                         <div className="border rounded-3 p-3 p-md-4 h-100 d-flex align-items-center gap-3 shadow-sm hover-shadow-sm bg-white">
@@ -87,8 +206,8 @@ export default function HomePortalBia() {
                     </div>
                   )}
 
-                  {/* Cargar Excel -> Admin/Supervisor/Operador */}
-                  {canUploadExcelUI && (
+                  {/* Cargar Excel */}
+                  {perm.canUploadExcelUI && (
                     <div className="col-12 col-md-6">
                       <Link to="/carga-datos/upload" className="text-decoration-none">
                         <div className="border rounded-3 p-3 p-md-4 h-100 d-flex align-items-center gap-3 shadow-sm hover-shadow-sm bg-white">
@@ -106,15 +225,11 @@ export default function HomePortalBia() {
                     </div>
                   )}
 
-                  {/* Modificar Masivo -> Admin/Supervisor (commit restringido en backend a Admin) */}
-                  {canModifyMasivo && (
+                  {/* Modificar Masivo */}
+                  {perm.canModifyMasivo && (
                     <div className="col-12 col-md-6">
                       <Link to="/modificar-masivo" className="text-decoration-none">
-                        <div
-                          className="border rounded-3 p-3 p-md-4 h-100 d-flex align-items-center gap-3 shadow-sm hover-shadow-sm bg-white"
-                          aria-label="Modificar Masivo"
-                          title="Ajuste de columnas desde Excel/CSV con vista previa y auditoría"
-                        >
+                        <div className="border rounded-3 p-3 p-md-4 h-100 d-flex align-items-center gap-3 shadow-sm hover-shadow-sm bg-white">
                           <span className="modern-icon" aria-hidden="true">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                               <path d="M4 5a2 2 0 0 1 2-2h8.5a2 2 0 0 1 1.4.58l3.52 3.52c.37.37.58.88.58 1.41V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5Z" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"/>
@@ -123,21 +238,16 @@ export default function HomePortalBia() {
                               <path d="M17.5 12.5l2 2-4 4-2.2.3.3-2.3 3.9-4Z" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round"/>
                             </svg>
                           </span>
-                          <div className="flex-grow-1">
-                            <div className="d-flex align-items-center gap-2">
-                              <div className="fw-semibold text-body">Modificar Masivo</div>
-                              <span className="badge text-bg-light border">Nuevo</span>
-                            </div>
-                            <small className="text-secondary">
-                              Ajuste de columnas desde Excel/CSV con vista previa y auditoría
-                            </small>
+                          <div>
+                            <div className="fw-semibold text-body">Modificar Masivo</div>
+                            <small className="text-secondary">Ajuste masivo de registros</small>
                           </div>
                         </div>
                       </Link>
                     </div>
                   )}
 
-                  {/* Mostrar Datos -> todos (Operador solo lectura; lo impone backend) */}
+                  {/* Mostrar Datos */}
                   <div className="col-12 col-md-6">
                     <Link to="/datos/mostrar" className="text-decoration-none">
                       <div className="border rounded-3 p-3 p-md-4 h-100 d-flex align-items-center gap-3 shadow-sm hover-shadow-sm bg-white">
@@ -148,12 +258,13 @@ export default function HomePortalBia() {
                         </span>
                         <div>
                           <div className="fw-semibold text-body">Mostrar Datos</div>
-                          <small className="text-secondary">Consultá y editá por DNI/ID</small>
+                          <small className="text-secondary">Consulta por DNI/ID</small>
                         </div>
                       </div>
                     </Link>
                   </div>
 
+                  {/* Generar Certificado */}
                   <div className="col-12 col-md-6">
                     <Link to="/certificado" className="text-decoration-none">
                       <div className="border rounded-3 p-3 p-md-4 h-100 d-flex align-items-center gap-3 shadow-sm hover-shadow-sm bg-white">

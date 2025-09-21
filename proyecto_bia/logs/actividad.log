@@ -3876,3 +3876,478 @@ django.db.utils.OperationalError: could not translate host name "bia.postgres.da
 [2025-09-20 15:54:56,325] INFO certificado_ldd.views - [_render_pdf_for_registro] Preparando PDF para id_pago_unico=231550
 [2025-09-20 15:54:56,427] INFO certificado_ldd.views - [_render_pdf_for_registro] PDF existente reutilizado (120192 bytes)
 [2025-09-20 15:54:56,428] INFO certificado_ldd.views - [_handle_get_generar] PDF entregado id=231550 (120192 bytes)
+[2025-09-20 16:57:40,973] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-20 17:01:44,138] INFO django.utils.autoreload - C:\Users\moreiracristian\Documents\moreira\GrupoBIA\proyecto_bia\proyecto_bia\carga_datos\views_roles.py changed, reloading.
+[2025-09-20 17:01:46,015] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-20 17:02:52,355] WARNING django.request - Unauthorized: /api/token/
+[2025-09-20 17:28:15,296] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-20 17:28:47,248] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-20 17:28:47,267] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-20 17:28:50,204] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-20 17:28:50,225] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-20 17:28:51,743] WARNING django.request - Unauthorized: /carga-datos/api/admin/roles
+[2025-09-20 17:28:53,217] WARNING django.request - Unauthorized: /carga-datos/api/admin/roles
+[2025-09-20 18:05:24,493] WARNING django.request - Unauthorized: /carga-datos/api/admin/users
+[2025-09-20 18:05:33,032] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-20 18:05:33,049] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-20 18:07:03,876] WARNING django.request - Unauthorized: /api/token/
+[2025-09-20 18:33:58,178] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-20 18:33:58,216] WARNING django.request - Unauthorized: /carga-datos/api/admin/roles
+[2025-09-20 18:35:38,307] WARNING django.request - Forbidden: /api/certificado/entidades/
+[2025-09-20 18:35:39,022] WARNING django.request - Forbidden: /api/certificado/entidades/
+[2025-09-20 18:35:39,896] WARNING django.request - Forbidden: /api/certificado/entidades/
+[2025-09-20 18:36:23,396] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-20 18:36:24,042] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-20 18:38:25,754] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-20 18:38:26,437] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-20 18:39:25,567] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-20 18:39:26,231] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-20 18:49:13,920] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-20 18:49:14,758] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-20 19:01:47,772] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-20 19:01:48,396] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 01:22:39,302] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 01:22:39,951] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 01:31:32,751] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 01:31:33,495] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 01:37:10,753] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 01:37:11,485] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 02:22:35,898] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 02:22:36,653] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 02:39:47,550] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 02:39:48,219] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 02:55:31,995] INFO django.utils.autoreload - Watching for file changes with StatReloader
+[2025-09-21 02:59:58,874] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 02:59:59,597] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 03:21:43,792] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 03:21:44,461] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 03:32:30,330] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 03:32:30,968] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 03:35:57,724] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 03:35:58,408] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 03:36:19,614] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 03:36:20,259] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 03:36:41,739] WARNING django.request - Forbidden: /carga-datos/api/admin/users/2
+[2025-09-21 03:41:17,714] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 03:41:18,338] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 03:46:18,094] WARNING django.request - Unauthorized: /api/token/
+[2025-09-21 03:46:32,437] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 03:46:33,073] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 03:46:52,691] WARNING django.request - Forbidden: /carga-datos/api/admin/users/2
+[2025-09-21 03:47:02,404] WARNING django.request - Unauthorized: /api/token/
+[2025-09-21 03:47:49,611] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 03:47:50,343] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 04:01:01,447] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 04:01:02,155] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 04:21:44,009] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 04:21:44,637] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 04:25:53,843] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 04:25:54,539] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 04:32:34,023] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 04:33:16,315] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 04:33:16,943] WARNING django.request - Forbidden: /carga-datos/api/admin/roles
+[2025-09-21 04:33:45,203] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-21 04:33:45,223] WARNING django.request - Unauthorized: /carga-datos/api/admin/me
+[2025-09-21 04:47:50,751] ERROR django.request - Internal Server Error: /carga-datos/api/admin/me
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\psycopg2\__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server at "bia.postgres.database.azure.com" (4.201.195.209), port 5432 failed: Connection timed out (0x0000274C/10060)
+	Is the server running on that host and accepting TCP/IP connections?
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 130, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 645, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 382, in __len__
+    self._fetch_all()
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 1928, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\sql\compiler.py", line 1572, in execute_sql
+    cursor = self.connection.cursor()
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\psycopg2\__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.OperationalError: connection to server at "bia.postgres.database.azure.com" (4.201.195.209), port 5432 failed: Connection timed out (0x0000274C/10060)
+	Is the server running on that host and accepting TCP/IP connections?
+
+[2025-09-21 04:54:43,631] ERROR django.request - Internal Server Error: /carga-datos/api/admin/me
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\psycopg2\__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server at "bia.postgres.database.azure.com" (4.201.195.209), port 5432 failed: Connection timed out (0x0000274C/10060)
+	Is the server running on that host and accepting TCP/IP connections?
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 130, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 645, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 382, in __len__
+    self._fetch_all()
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 1928, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\sql\compiler.py", line 1572, in execute_sql
+    cursor = self.connection.cursor()
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\psycopg2\__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.OperationalError: connection to server at "bia.postgres.database.azure.com" (4.201.195.209), port 5432 failed: Connection timed out (0x0000274C/10060)
+	Is the server running on that host and accepting TCP/IP connections?
+
+[2025-09-21 04:56:42,172] WARNING django.request - Unauthorized: /carga-datos/api/admin/roles
+[2025-09-21 05:02:44,091] ERROR django.request - Internal Server Error: /carga-datos/api/admin/me
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\psycopg2\__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+psycopg2.OperationalError: connection to server at "bia.postgres.database.azure.com" (4.201.195.209), port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\exception.py", line 55, in inner
+    response = get_response(request)
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\core\handlers\base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\views\decorators\csrf.py", line 65, in _view_wrapper
+    return view_func(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\views\generic\base.py", line 104, in view
+    return self.dispatch(request, *args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 515, in dispatch
+    response = self.handle_exception(exc)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 475, in handle_exception
+    self.raise_uncaught_exception(exc)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 486, in raise_uncaught_exception
+    raise exc
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 503, in dispatch
+    self.initial(request, *args, **kwargs)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 420, in initial
+    self.perform_authentication(request)
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\views.py", line 330, in perform_authentication
+    request.user
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\request.py", line 232, in user
+    self._authenticate()
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework\request.py", line 385, in _authenticate
+    user_auth_tuple = authenticator.authenticate(self)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 51, in authenticate
+    return self.get_user(validated_token), validated_token
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\rest_framework_simplejwt\authentication.py", line 130, in get_user
+    user = self.user_model.objects.get(**{api_settings.USER_ID_FIELD: user_id})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 645, in get
+    num = len(clone)
+          ^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 382, in __len__
+    self._fetch_all()
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 1928, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+              ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\models\sql\compiler.py", line 1572, in execute_sql
+    cursor = self.connection.cursor()
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 320, in cursor
+    return self._cursor()
+           ^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 296, in _cursor
+    self.ensure_connection()
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 278, in ensure_connection
+    with self.wrap_database_errors:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 279, in ensure_connection
+    self.connect()
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\base\base.py", line 256, in connect
+    self.connection = self.get_new_connection(conn_params)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\utils\asyncio.py", line 26, in inner
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\django\db\backends\postgresql\base.py", line 332, in get_new_connection
+    connection = self.Database.connect(**conn_params)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\moreiracristian\Documents\moreira\GrupoBIA\venvbia\Lib\site-packages\psycopg2\__init__.py", line 122, in connect
+    conn = _connect(dsn, connection_factory=connection_factory, **kwasync)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+django.db.utils.OperationalError: connection to server at "bia.postgres.database.azure.com" (4.201.195.209), port 5432 failed: server closed the connection unexpectedly
+	This probably means the server terminated abnormally
+	before or while processing the request.
+
+[2025-09-21 05:06:15,995] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-09-21 05:06:15,997] INFO certificado_ldd.views - [_handle_post_generar] hdr X-Requested-With='XMLHttpRequest' Accept='application/pdf, application/json, */*' Content-Type='multipart/form-data; boundary=----WebKitFormBoundaryS1KSBzoZDrVu6rSR' Referer='http://localhost:3000/certificado' UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
+[2025-09-21 05:06:15,998] INFO certificado_ldd.views - [_handle_post_generar] POST dni='17864985' id_pago_unico='' prefer_html=False is_ajax=True
+[2025-09-21 05:06:16,718] DEBUG certificado_ldd.views - [_is_cancelado] id=321544 estado=cancelado -> True
+[2025-09-21 05:06:16,719] DEBUG certificado_ldd.views - [_is_cancelado] id=231550 estado=cancelado -> True
+[2025-09-21 05:06:16,720] DEBUG certificado_ldd.views - [_is_cancelado] id=987568 estado=agencia externa -> False
+[2025-09-21 05:06:16,720] DEBUG certificado_ldd.views - [_is_cancelado] id=321544 estado=cancelado -> True
+[2025-09-21 05:06:16,721] DEBUG certificado_ldd.views - [_is_cancelado] id=231550 estado=cancelado -> True
+[2025-09-21 05:06:16,721] DEBUG certificado_ldd.views - [_is_cancelado] id=987568 estado=agencia externa -> False
+[2025-09-21 05:06:16,722] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=17864985 -> cancelados=2 pendientes=1
+[2025-09-21 05:06:16,735] INFO certificado_ldd.views - [_handle_post_generar] Múltiples cancelados. is_ajax=True seleccionar_url=http://localhost:8000/api/certificado/seleccionar/?dni=17864985
+[2025-09-21 05:06:19,706] INFO certificado_ldd.views - [api_generar_certificado] method=GET
+[2025-09-21 05:06:19,714] INFO certificado_ldd.views - [_handle_get_generar] GET dni='17864985' id_pago_unico='321544'
+[2025-09-21 05:06:20,846] DEBUG certificado_ldd.views - [_is_cancelado] id=321544 estado=cancelado -> True
+[2025-09-21 05:06:20,847] INFO certificado_ldd.views - [_render_pdf_for_registro] Preparando PDF para id_pago_unico=321544
+[2025-09-21 05:06:20,947] INFO certificado_ldd.views - [_render_pdf_for_registro] PDF existente reutilizado (108371 bytes)
+[2025-09-21 05:06:20,948] INFO certificado_ldd.views - [_handle_get_generar] PDF entregado id=321544 (108371 bytes)
+[2025-09-21 05:07:11,286] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-09-21 05:07:11,288] INFO certificado_ldd.views - [_handle_post_generar] hdr X-Requested-With='XMLHttpRequest' Accept='application/pdf, application/json, */*' Content-Type='multipart/form-data; boundary=----WebKitFormBoundaryseeOJA3VpX6M2dcn' Referer='http://localhost:3000/certificado' UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
+[2025-09-21 05:07:11,289] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False is_ajax=True
+[2025-09-21 05:07:12,199] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-09-21 05:07:12,200] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=agencia externa 2 -> False
+[2025-09-21 05:07:12,201] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-09-21 05:07:12,201] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-09-21 05:07:12,202] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=agencia externa 2 -> False
+[2025-09-21 05:07:12,202] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-09-21 05:07:12,203] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=1 pendientes=2
+[2025-09-21 05:07:12,204] INFO certificado_ldd.views - [_render_pdf_for_registro] Preparando PDF para id_pago_unico=9016348
+[2025-09-21 05:07:12,271] WARNING certificado_ldd.views - [_render_pdf_for_registro] pdf_file apunta a 'certificados_generados/certificado_9016348.pdf' pero no existe en storage; se limpia.
+[2025-09-21 05:07:12,347] DEBUG certificado_ldd.views - [get_entidad_emisora] id=9016348 propietario='BIA' interna='TARJETA SHOPPING' -> emisora=BIA
+[2025-09-21 05:07:12,413] DEBUG certificado_ldd.views - [_render_pdf_for_registro] Contexto plantilla: keys=['client', 'firma_url', 'responsable', 'cargo', 'entidad_firma', 'entidad_bia', 'entidad_otras']
+[2025-09-21 05:07:12,420] DEBUG certificado_ldd.views - [_render_pdf_for_registro] HTML renderizado (len=3705)
+[2025-09-21 05:07:12,421] DEBUG certificado_ldd.views - [generate_pdf] Iniciando render HTML->PDF (len(html)=3705)
+[2025-09-21 05:07:12,745] DEBUG certificado_ldd.views - [generate_pdf] PDF generado OK (136623 bytes)
+[2025-09-21 05:07:12,866] INFO certificado_ldd.views - [_render_pdf_for_registro] PDF guardado como certificado_9016348.pdf
+[2025-09-21 05:07:12,866] INFO certificado_ldd.views - [_handle_post_generar] PDF entregado id=9016348 (136623 bytes)
+[2025-09-21 05:07:20,834] INFO certificado_ldd.views - [api_generar_certificado] method=POST
+[2025-09-21 05:07:20,835] INFO certificado_ldd.views - [_handle_post_generar] hdr X-Requested-With='XMLHttpRequest' Accept='application/pdf, application/json, */*' Content-Type='multipart/form-data; boundary=----WebKitFormBoundaryhWRrw41FxbUxKaoc' Referer='http://localhost:3000/certificado' UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
+[2025-09-21 05:07:20,835] INFO certificado_ldd.views - [_handle_post_generar] POST dni='14752495' id_pago_unico='' prefer_html=False is_ajax=True
+[2025-09-21 05:07:21,498] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-09-21 05:07:21,498] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=agencia externa 2 -> False
+[2025-09-21 05:07:21,498] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-09-21 05:07:21,498] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-09-21 05:07:21,498] DEBUG certificado_ldd.views - [_is_cancelado] id=27810 estado=agencia externa 2 -> False
+[2025-09-21 05:07:21,498] DEBUG certificado_ldd.views - [_is_cancelado] id=245937 estado=agencia externa -> False
+[2025-09-21 05:07:21,498] DEBUG certificado_ldd.views - [_handle_post_generar] DNI=14752495 -> cancelados=1 pendientes=2
+[2025-09-21 05:07:21,498] INFO certificado_ldd.views - [_render_pdf_for_registro] Preparando PDF para id_pago_unico=9016348
+[2025-09-21 05:07:21,623] INFO certificado_ldd.views - [_render_pdf_for_registro] PDF existente reutilizado (136623 bytes)
+[2025-09-21 05:07:21,624] INFO certificado_ldd.views - [_handle_post_generar] PDF entregado id=9016348 (136623 bytes)
+[2025-09-21 05:07:26,370] INFO certificado_ldd.views - [api_generar_certificado] method=GET
+[2025-09-21 05:07:26,371] INFO certificado_ldd.views - [_handle_get_generar] GET dni='14752495' id_pago_unico='9016348'
+[2025-09-21 05:07:27,088] DEBUG certificado_ldd.views - [_is_cancelado] id=9016348 estado=cancelado -> True
+[2025-09-21 05:07:27,089] INFO certificado_ldd.views - [_render_pdf_for_registro] Preparando PDF para id_pago_unico=9016348
+[2025-09-21 05:07:27,152] INFO certificado_ldd.views - [_render_pdf_for_registro] PDF existente reutilizado (136623 bytes)
+[2025-09-21 05:07:27,152] INFO certificado_ldd.views - [_handle_get_generar] PDF entregado id=9016348 (136623 bytes)

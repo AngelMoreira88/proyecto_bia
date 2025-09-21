@@ -21,7 +21,16 @@ from .views import (
 from carga_datos.views_bulk import bulk_validate, bulk_commit, bulk_export_xlsx
 
 # Endpoints de administración de roles (solo Admin/superuser)
-from carga_datos.views_roles import me, roles_list, users_search, user_roles
+from carga_datos.views_roles import (
+    me,
+    roles_list,
+    users_search,              # (se mantiene importado)
+    user_roles,
+    # NUEVO: vistas de usuario real (GET/POST / PATCH / POST deactivate)
+    users_create_or_search,    # GET (search) + POST (create) en /api/admin/users
+    user_update,               # PATCH en /api/admin/users/<id>
+    user_deactivate,           # POST en /api/admin/users/<id>/deactivate
+)
 
 
 def ping(_request):
@@ -52,8 +61,18 @@ urlpatterns = [
     path("api/bulk-update/export.xlsx",  bulk_export_xlsx,  name="bulk_export_xlsx"),
 
     # Admin roles (solo Admin/superuser desde views_roles)
-    path("api/admin/me",                         me,           name="admin_me"),
-    path("api/admin/roles",                      roles_list,   name="admin_roles"),
-    path("api/admin/users",                      users_search, name="admin_users_search"),
-    path("api/admin/users/<int:user_id>/roles",  user_roles,   name="admin_user_roles"),
+    path("api/admin/me",                         me,                      name="admin_me"),
+    path("api/admin/roles",                      roles_list,              name="admin_roles"),
+
+    # 🔁 ACTUALIZADO: ahora /api/admin/users acepta GET (buscar) y POST (crear)
+    #   - GET  -> users_create_or_search (mismo comportamiento que users_search)
+    #   - POST -> crea usuario real (lo que necesita Perfil.jsx)
+    path("api/admin/users",                      users_create_or_search,  name="admin_users_search"),
+
+    # ✅ NUEVOS endpoints para update y desactivar
+    path("api/admin/users/<int:user_id>",               user_update,      name="admin_user_update"),
+    path("api/admin/users/<int:user_id>/deactivate",    user_deactivate,  name="admin_user_deactivate"),
+
+    # (Se mantiene igual)
+    path("api/admin/users/<int:user_id>/roles",  user_roles,              name="admin_user_roles"),
 ]

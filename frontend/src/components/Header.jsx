@@ -1,28 +1,52 @@
 // src/components/Header.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
-import { isLoggedIn, logout, getUserRole, refreshUserRole } from "../services/auth";
+import { isLoggedIn, logout } from "../services/auth";
+import { adminGetMe } from "../services/api";
 
 export default function Header() {
   const [logged, setLogged] = useState(isLoggedIn());
-  const [role, setRole] = useState(getUserRole());
+  const [isSuperUser, setIsSuperUser] = useState(false);
+  const [roles, setRoles] = useState([]); // ["Admin","Supervisor","Operador"]
+  const [loadingMe, setLoadingMe] = useState(true);
+
   const navigate = useNavigate();
 
+  // Helpers
+  const hasRole = (name) => roles.includes(name);
+
+  // Cargar permisos REALES desde backend
+  const loadMe = async () => {
+    if (!isLoggedIn()) {
+      setLogged(false);
+      setIsSuperUser(false);
+      setRoles([]);
+      setLoadingMe(false);
+      return;
+    }
+    try {
+      setLoadingMe(true);
+      const { data } = await adminGetMe();
+      const r = Array.isArray(data?.roles) ? data.roles : [];
+      setLogged(true);
+      setIsSuperUser(!!data?.is_superuser);
+      setRoles(r);
+    } catch {
+      // si falla /me, consideramos sin permisos
+      setIsSuperUser(false);
+      setRoles([]);
+    } finally {
+      setLoadingMe(false);
+    }
+  };
+
   useEffect(() => {
+    loadMe();
+
     const syncAuth = () => {
       setLogged(isLoggedIn());
-      setRole(getUserRole());
+      loadMe();
     };
-
-    // Refrescar rol real desde backend al montar
-    (async () => {
-      if (isLoggedIn()) {
-        await refreshUserRole().catch(() => {});
-        setRole(getUserRole());
-      } else {
-        setRole("readonly");
-      }
-    })();
 
     window.addEventListener("storage", syncAuth);
     window.addEventListener("auth-changed", syncAuth);
@@ -30,6 +54,7 @@ export default function Header() {
       window.removeEventListener("storage", syncAuth);
       window.removeEventListener("auth-changed", syncAuth);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const guardTo = (path) => {
@@ -43,16 +68,55 @@ export default function Header() {
   const handleLogout = () => {
     logout();
     setLogged(false);
+    setIsSuperUser(false);
+    setRoles([]);
     navigate("/");
   };
 
-  const canModifyMasivo = ["admin", "editor", "approver"].includes(role);
+  // --------- Capacidades (alineadas a carga_datos/permissions.py) ----------
+  const caps = useMemo(() => {
+    const isAdmin = isSuperUser || hasRole("Admin");
+    return {
+      isAdmin,
+      canManageEntities: isSuperUser || hasRole("Admin") || hasRole("Supervisor"),
+      canUploadExcel: isSuperUser || hasRole("Admin") || hasRole("Supervisor") || hasRole("Operador"),
+      canViewClients: isSuperUser || hasRole("Admin") || hasRole("Supervisor") || hasRole("Operador"),
+      canBulkModify: isSuperUser || hasRole("Admin") || hasRole("Supervisor"),
+    };
+  }, [isSuperUser, roles]);
+
+  // Bloqueo explícito (no navegar si no tiene permiso)
+  const noPerm = (e) => {
+    if (e?.preventDefault) e.preventDefault();
+    alert("No tenés permisos para esta sección.");
+  };
+
+  // Render helper: link habilitado / deshabilitado
+  const RenderLink = ({ to, allowed, children, className = "modern-item d-flex align-items-start gap-3 text-decoration-none" }) => {
+    if (allowed) {
+      return (
+        <NavLink to={to} className={className}>
+          {children}
+        </NavLink>
+      );
+    }
+    return (
+      <div
+        className={`${className} opacity-75`}
+        title="No tenés permisos para esta sección"
+        aria-disabled="true"
+        role="button"
+        onClick={noPerm}
+      >
+        {children}
+      </div>
+    );
+  };
 
   return (
     <nav className="navbar navbar-expand-lg fixed-top header-glass">
-      {/* container-fluid para “pegar” el logo a la izquierda con poco margen */}
       <div className="container-fluid px-3 px-lg-4">
-        {/* Brand: solo logo a la izquierda */}
+        {/* Brand */}
         <Link className="navbar-brand d-flex align-items-center" to={logged ? "/portal" : "/"}>
           <img
             src="/images/LogoBIA2.png"
@@ -74,7 +138,7 @@ export default function Header() {
           <span className="navbar-toggler-icon"></span>
         </button>
 
-        {/* Offcanvas (mobile) + body normal (desktop) */}
+        {/* Offcanvas + body */}
         <div
           className="offcanvas offcanvas-end offcanvas-nav"
           tabIndex="-1"
@@ -87,26 +151,34 @@ export default function Header() {
           </div>
 
           <div className="offcanvas-body">
-            {/* ÚNICA lista: ms-auto → empuja TODO al margen derecho en desktop */}
             <ul className="navbar-nav ms-auto align-items-lg-center nav-underline gap-lg-3">
               {logged ? (
                 <>
+                  {/* Portal (siempre para logueados) */}
                   <li className="nav-item">
                     <NavLink to="/portal" className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}>
                       Portal
                     </NavLink>
                   </li>
 
+                  {/* Generar Certificado (siempre para logueados; ajustá si tu back lo restringe) */}
                   <li className="nav-item">
                     <NavLink to="/certificado" className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}>
                       Generar Certificado
                     </NavLink>
                   </li>
 
+                  {/* Gestión de Entidades → canManageEntities */}
                   <li className="nav-item">
-                    <NavLink to="/entidades" className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}>
-                      Gestión de Entidades
-                    </NavLink>
+                    {caps.canManageEntities ? (
+                      <NavLink to="/entidades" className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}>
+                        Gestión de Entidades
+                      </NavLink>
+                    ) : (
+                      <a href="#!" className="nav-link opacity-75" onClick={noPerm}>
+                        Gestión de Entidades
+                      </a>
+                    )}
                   </li>
 
                   {/* Dropdown Obligaciones */}
@@ -117,19 +189,20 @@ export default function Header() {
                       id="deudoresDropdown"
                       role="button"
                       data-bs-toggle="dropdown"
-                      data-bs-display="static"      /* 👈 evita auto-reposicionamiento */
+                      data-bs-display="static"
                       aria-expanded="false"
                     >
                       Obligaciones
                     </a>
 
                     <div
-                      className="dropdown-menu dropdown-menu-start dropdown-menu-modern p-3" /* 👈 fija a la izquierda */
-                      data-bs-popper="static"                                            /* 👈 posición estática */
+                      className="dropdown-menu dropdown-menu-start dropdown-menu-modern p-3"
+                      data-bs-popper="static"
                       aria-labelledby="deudoresDropdown"
                     >
                       <div className="d-grid gap-2" style={{ minWidth: 260 }}>
-                        <NavLink to="/carga-datos/upload" className="modern-item d-flex align-items-start gap-3 text-decoration-none">
+                        {/* Cargar Excel → canUploadExcel */}
+                        <RenderLink to="/carga-datos/upload" allowed={caps.canUploadExcel}>
                           <span className="modern-icon" aria-hidden="true">
                             {/* Upload */}
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -141,9 +214,10 @@ export default function Header() {
                             <div className="modern-title">Cargar Excel</div>
                             <small className="text-secondary">Subí un excel para actualizar los registros</small>
                           </div>
-                        </NavLink>
+                        </RenderLink>
 
-                        <NavLink to="/datos/mostrar" className="modern-item d-flex align-items-start gap-3 text-decoration-none">
+                        {/* Listar por DNI → canViewClients */}
+                        <RenderLink to="/datos/mostrar" allowed={caps.canViewClients}>
                           <span className="modern-icon" aria-hidden="true">
                             {/* Search */}
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -155,54 +229,32 @@ export default function Header() {
                             <div className="modern-title">Listar por DNI</div>
                             <small className="text-secondary">Consultá y editá estados individuales</small>
                           </div>
-                        </NavLink>
+                        </RenderLink>
 
-                        {/* Modificar Masivo */}
-                        {canModifyMasivo ? (
-                          <NavLink to="/modificar-masivo" className="modern-item d-flex align-items-start gap-3 text-decoration-none">
-                            <span className="modern-icon" aria-hidden="true">
-                              {/* Tools / Pencil */}
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                                <path d="M14 7l3 3-8 8H6v-3l8-8Z"
-                                      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                                <path d="M13 6l1-1a2.828 2.828 0 1 1 4 4l-1 1"
-                                      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                              </svg>
-                            </span>
-                            <div className="flex-grow-1">
-                              <div className="modern-title d-flex align-items-center gap-2">
-                                <span>Modificar Masivo</span>
-                                <span className="badge text-bg-light border">Nuevo</span>
-                              </div>
-                              <small className="text-secondary">Ajuste masivo de columnas desde un excel</small>
+                        {/* Modificar Masivo → canBulkModify */}
+                        <RenderLink to="/modificar-masivo" allowed={caps.canBulkModify}>
+                          <span className="modern-icon" aria-hidden="true">
+                            {/* Tools / Pencil */}
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                              <path d="M14 7l3 3-8 8H6v-3l8-8Z"
+                                    stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                              <path d="M13 6l1-1a2.828 2.828 0 1 1 4 4l-1 1"
+                                    stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                            </svg>
+                          </span>
+                          <div className="flex-grow-1">
+                            <div className="modern-title d-flex align-items-center gap-2">
+                              <span>Modificar Masivo</span>
+                              <span className="badge text-bg-light border">Nuevo</span>
                             </div>
-                          </NavLink>
-                        ) : (
-                          <div
-                            className="modern-item d-flex align-items-start gap-3 text-decoration-none opacity-75"
-                            title="Requiere rol: admin, editor o approver"
-                            aria-disabled="true"
-                            role="button"
-                            onClick={() => guardTo("/modificar-masivo")}
-                          >
-                            <span className="modern-icon" aria-hidden="true">
-                              {/* Lock */}
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                                <path d="M7 10V7a5 5 0 1 1 10 0v3M6 10h12v9a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2v-9Z"
-                                      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-                              </svg>
-                            </span>
-                            <div className="flex-grow-1">
-                              <div className="modern-title">Modificar Masivo</div>
-                              <small className="text-secondary">Requiere rol autorizado</small>
-                            </div>
+                            <small className="text-secondary">Ajuste masivo de columnas desde un excel</small>
                           </div>
-                        )}
+                        </RenderLink>
                       </div>
                     </div>
                   </li>
 
-                  {/* Perfil */}
+                  {/* Perfil (siempre para logueados) */}
                   <li className="nav-item">
                     <NavLink
                       to="/perfil"
@@ -247,6 +299,13 @@ export default function Header() {
           </div>
         </div>
       </div>
+
+      {/* Opcional: indicador de carga de /me para evitar “parpadeos” de menú */}
+      {logged && loadingMe && (
+        <div className="position-fixed top-0 end-0 p-2">
+          <span className="badge text-bg-light border">Verificando permisos…</span>
+        </div>
+      )}
     </nav>
   );
 }

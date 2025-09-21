@@ -318,8 +318,16 @@ export function adminGetMe() {
 export function adminListRoles() {
   return api.get('/carga-datos/api/admin/roles');
 }
-export function adminSearchUsers(q) {
-  return api.get('/carga-datos/api/admin/users', { params: { q } });
+// ✅ MINI-INTEGRACIÓN: búsqueda con filtros opcionales por grupo y roles
+// - q: string de búsqueda. Si querés listar todo, podés pasar "__all__"
+// - group: nombre del grupo (Admin/Supervisor/Operador), opcional
+// - rolesCsv: string "Admin,Supervisor" (si el backend lo soporta). Si no, el front filtrará en cliente.
+export function adminSearchUsers(q, group = "", rolesCsv = "") {
+  const params = {};
+  if (typeof q === 'string' && q.trim() !== '') params.q = q;
+  if (group) params.group = group;
+  if (rolesCsv) params.roles = rolesCsv;
+  return api.get('/carga-datos/api/admin/users', { params });
 }
 export function adminGetUserRoles(userId) {
   return api.get(`/carga-datos/api/admin/users/${userId}/roles`);
@@ -342,6 +350,7 @@ export function adminCreateUser(payload) {
 }
 export function adminUpdateUser(userId, payload) {
   // payload: mismos campos que create; password es opcional en edición
+  // soporta también: { current_password, new_password } para cambio propio
   return api.patch(`/carga-datos/api/admin/users/${userId}`, payload, {
     headers: { 'Content-Type': 'application/json' },
   });
