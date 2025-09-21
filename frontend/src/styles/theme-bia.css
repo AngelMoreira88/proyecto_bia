@@ -484,3 +484,104 @@
     border: 0 !important;
     box-shadow: none !important;
   }
+
+  /* --- Tabla sticky: header, 1ª columna y Acciones --- */
+
+/* El contenedor que scrollea debe ser relativo */
+.table-responsive { position: relative; overflow: auto; }
+
+/* Header fijo */
+.bia-grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: linear-gradient(180deg, rgba(29,72,166,.06), #fff 60%);
+  white-space: nowrap;
+}
+
+/* Primera columna fija (TH y TD) */
+.bia-grid .sticky-first {
+  position: sticky;
+  left: 0;
+  z-index: 4;                    /* por debajo del header */
+  background: #fff;              /* evita ver lo de atrás */
+  box-shadow: inset -1px 0 0 rgba(16,24,40,.08);
+  min-width: 160px;
+}
+.bia-grid thead .sticky-first { z-index: 6; }  /* header por encima del body */
+
+/* Columna Acciones fija a la derecha (TH y TD) */
+.bia-grid .sticky-actions {
+  position: sticky;
+  right: 0;
+  z-index: 4;
+  background: #fff;
+  box-shadow: inset 1px 0 0 rgba(16,24,40,.08);
+  white-space: nowrap;
+  min-width: 140px;
+}
+.bia-grid thead .sticky-actions { z-index: 6; }
+
+/* Asegura fondo blanco también en el body */
+.bia-grid tbody td { background: #fff; }
+
+/* Utilidad usada en las celdas para truncar texto */
+.truncate-200 {
+  display: inline-block;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row-clickable { cursor: pointer; }
+.row-clickable:focus { outline: 2px solid rgba(29,72,166,.35); outline-offset: -2px; }
+
+/* Resalta el campo seleccionado al abrir el drawer */
+.form-floating.flash-highlight {
+  animation: flash-bg 1.2s ease-out 1;
+  box-shadow: 0 0 0 3px rgba(29,72,166,.25);
+  border-radius: 0.75rem;
+}
+.form-floating.flash-highlight .form-control {
+  background-color: #fffbe6; /* suave */
+}
+
+@keyframes flash-bg {
+  0%   { background-color: #fff6cc; }
+  100% { background-color: transparent; }
+}
+
+/* ===== GenerarCertificado – mejoras de layout ===== */
+.gc-card{
+  /* ancho cómodo en desktop, pero responsivo */
+  max-width: min(1100px, 96vw);
+  margin: 0 auto;
+}
+
+/* Tabla más legible y estable en anchos */
+.gc-table th,
+.gc-table td{
+  vertical-align: middle;
+}
+
+/* Anchos mínimos por columna */
+.gc-table .col-entity{ min-width: 180px; }
+.gc-table .col-status{ min-width: 140px; }
+.gc-table .col-money{
+  min-width: 160px;
+  white-space: nowrap;           /* evita salto de $ 130.000,00 */
+  font-variant-numeric: tabular-nums; /* dígitos alineados */
+}
+.gc-table .col-action{ min-width: 230px; }
+
+/* Botones que no rompen la fila */
+.btn-nowrap{ white-space: nowrap; }
+
+/* Ajuste en móviles: botones más compactos */
+@media (max-width: 576px){
+  .gc-table .btn{ padding: .375rem .5rem; font-size: .875rem; }
+}
+
+/* Tabla GenerarCertificado */
+.table .fit-col { white-space: nowrap; width: 1%; }

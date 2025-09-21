@@ -157,14 +157,14 @@ export default function Header() {
                   {/* Portal (siempre para logueados) */}
                   <li className="nav-item">
                     <NavLink to="/portal" className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}>
-                      Portal
+                      Portal BIA
                     </NavLink>
                   </li>
 
                   {/* Generar Certificado (siempre para logueados; ajustá si tu back lo restringe) */}
                   <li className="nav-item">
                     <NavLink to="/certificado" className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}>
-                      Generar Certificado
+                      Consultas y Descargas
                     </NavLink>
                   </li>
 

@@ -23,6 +23,7 @@ const GET_ENDPOINT = "/api/certificado/generar/"; // descarga directa por id
 /* ========= Preferencias de respuesta ========= */
 const ACCEPT_PREF = "application/pdf, application/json, */*";
 
+/* ========= Utils ========= */
 const toBlobText = async (maybeBlob) => {
   if (!maybeBlob) return "";
   try {
@@ -32,7 +33,6 @@ const toBlobText = async (maybeBlob) => {
   }
 };
 
-// Detecta si la respuesta parece una página HTML (login/error)
 const isLikelyHtml = (text = "") => {
   const t = String(text).trim().toLowerCase();
   return t.startsWith("<!doctype html") || t.startsWith("<html");
@@ -48,13 +48,35 @@ const norm = (s) =>
     .toLowerCase()
     .trim();
 
+const getFirst = (obj, keys) => {
+  if (!obj || typeof obj !== "object") return "";
+  for (const k of keys) {
+    if (obj[k] != null && String(obj[k]).trim() !== "") return obj[k];
+  }
+  return "";
+};
+
+const fmtMoney = (v) => {
+  if (v == null || v === "") return "—";
+  const n = Number(String(v).toString().replace(/[^\d.-]/g, ""));
+  if (Number.isNaN(n)) return String(v);
+  try {
+    return n.toLocaleString("es-AR", {
+      style: "currency",
+      currency: "ARS",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  } catch {
+    return n.toFixed(2);
+  }
+};
+
+/* ========= Lectores tolerantes ========= */
 const readEstado = (obj) => {
   if (!obj || typeof obj !== "object") return "";
   for (const k of Object.keys(obj)) {
     if (/estado|status|situaci[oó]n/i.test(k)) return String(obj[k]);
-  }
-  for (const k of ["estado", "Estado", "ESTADO", "status", "Status"]) {
-    if (obj[k] != null) return String(obj[k]);
   }
   return "";
 };
@@ -69,26 +91,50 @@ const isCanceladoValue = (val) => {
   );
 };
 
-const readIdPagoUnico = (obj) => {
-  if (!obj || typeof obj !== "object") return "";
-  const candidates = ["id_pago_unico", "idPagoUnico", "id_pago", "id", "ID"];
-  for (const k of candidates) {
-    if (obj[k] != null && String(obj[k]).trim() !== "") {
-      return String(obj[k]).trim();
-    }
-  }
-  return "";
-};
+const readIdPagoUnico = (obj) =>
+  String(
+    getFirst(obj, ["id_pago_unico", "idPagoUnico", "id_pago", "id", "ID"]) || ""
+  ).trim();
 
+const readEntidadActual = (obj) =>
+  getFirst(obj, [
+    "entidadinterna",
+    "entidad_interna",
+    "entidad",
+    "entidadactual",
+    "entidad_actual",
+  ]) || "—";
+
+const readSaldoActualizado = (obj) =>
+  getFirst(obj, [
+    "saldo_actualizado",
+    "saldoActualizado",
+    "saldo",
+    "saldo_capital",
+    "saldoCapital",
+    "total_deuda",
+    "totaldeuda",
+  ]);
+
+const readCancelMin = (obj) =>
+  getFirst(obj, [
+    "cancel_min",
+    "cancelmin",
+    "cancel_minimo",
+    "cancelMin",
+    "cancelacion_minima",
+    "cancel_minima",
+  ]);
+
+/* ========= Dedupe / Merge ========= */
 const looksLikeDeuda = (x) => {
   if (!x || typeof x !== "object") return false;
   const est = readEstado(x);
   return (
     "id_pago_unico" in x ||
     "idPagoUnico" in x ||
-    "propietario" in x ||
     "entidadinterna" in x ||
-    "grupo" in x ||
+    "entidad_interna" in x ||
     est !== ""
   );
 };
@@ -122,7 +168,6 @@ const collectArrays = (payload) => {
   return arrays;
 };
 
-/** Dedupe SOLO por ID. Si no hay ID, solo quita duplicados idénticos (JSON igual). */
 const dedupeRows = (arr) => {
   const seenIds = new Set();
   const seenExact = new Set();
@@ -143,14 +188,12 @@ const dedupeRows = (arr) => {
   return out;
 };
 
-// Clasifica robusto: NO cancelados
 const pickNoCancelados = (payload) => {
   const pools = collectArrays(payload);
   const merged = pools.flat();
   return dedupeRows(merged.filter((x) => !isCanceladoValue(readEstado(x))));
 };
 
-// Clasifica robusto: SOLO cancelados
 const pickSoloCancelados = (payload) => {
   if (Array.isArray(payload?.certificados)) return dedupeRows(payload.certificados);
   if (Array.isArray(payload?.cancelados)) return dedupeRows(payload.cancelados);
@@ -160,7 +203,6 @@ const pickSoloCancelados = (payload) => {
   return dedupeRows(only);
 };
 
-/** Merge para la tabla */
 const mergeRowsForTable = (noCancelados, cancelados) => {
   const out = [];
   const byIdIndex = new Map();
@@ -168,9 +210,8 @@ const mergeRowsForTable = (noCancelados, cancelados) => {
   const push = (x, hintedCat) => {
     const id = readIdPagoUnico(x);
     const raw = (readEstado(x) || "").trim();
-    const isCanc = raw ? isCanceladoValue(raw) : hintedCat === "cancelado";
-    const display = raw || (isCanc ? "cancelado" : "pendiente");
-    const row = { ...x, _id: id, _cat: isCanc ? "cancelado" : "no_cancelado", _estado: display };
+    const isCanc = raw ? isCanceladoValue(raw) : hintedCat === "cancelado"; // ← FIX
+    const row = { ...x, _id: id, _cat: isCanc ? "cancelado" : "no_cancelado" };
 
     if (id) {
       if (byIdIndex.has(id)) {
@@ -188,7 +229,7 @@ const mergeRowsForTable = (noCancelados, cancelados) => {
   return out;
 };
 
-// Extrae un id posible del Content-Disposition
+/* ========= Helpers varios ========= */
 const idFromContentDisposition = (cd = "") => {
   const m = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(cd);
   const fn = m && m[1] ? decodeURIComponent(m[1]) : "";
@@ -196,7 +237,6 @@ const idFromContentDisposition = (cd = "") => {
   return d ? d[1] : "";
 };
 
-// Normaliza distintas formas de payload->array
 const normalizeResults = (payload) => {
   if (Array.isArray(payload)) return payload;
   if (payload?.results && Array.isArray(payload.results)) return payload.results;
@@ -206,7 +246,6 @@ const normalizeResults = (payload) => {
   return [];
 };
 
-// Busca meta por DNI + ID (solo si hay sesión)
 const fetchMetaById = async (dniTrim, idp) => {
   if (!isLoggedIn()) return { propietario: "—", entidadinterna: "—" };
   try {
@@ -222,7 +261,6 @@ const fetchMetaById = async (dniTrim, idp) => {
   }
 };
 
-/** Fallback por DNI (solo si hay sesión) */
 const fetchAllByDni = async (dniTrim) => {
   if (!isLoggedIn()) return { nc: [], ok: [] };
   try {
@@ -243,9 +281,9 @@ function CertificadoForm({
   loading,
   msg,
   setMsg,
-  deudas, // NO cancelados
+  deudas,
   setDeudas,
-  varios, // SOLO cancelados
+  varios,
   setVarios,
   onSubmit,
   onDescargarPorId,
@@ -255,15 +293,24 @@ function CertificadoForm({
   const hasResultados = filas.length > 0;
 
   return (
-    <>
-      <h2 className="text-bia fw-bold mb-3 text-center">Generar Certificado Libre de Deuda</h2>
-      <p className="text-muted text-center mb-4">Ingresá tu DNI a continuación</p>
+    <div className="gc-compact">
+      {/* Compactado de espacios + columnas ajustadas al contenido */}
+      <style>{`
+        .gc-compact h2 { margin-bottom:.5rem; }
+        .gc-compact .helper { margin-bottom:.75rem; }
+        .gc-compact form { margin-bottom:.75rem; }
+        .gc-compact .form-control { padding:.45rem .65rem; height:2.5rem; }
+        .gc-compact .table td, .gc-compact .table th { padding:.45rem .5rem; }
+        .gc-compact .btn-sm { padding:.35rem .6rem; font-size:.875rem; }
+        .gc-compact .fit-col { white-space:nowrap; width:1%; }
+      `}</style>
+
+      <h2 className="text-bia fw-bold text-center">Portal de Consultas y Descargas</h2>
+      <p className="text-muted text-center helper">Ingresá tu DNI a continuación</p>
 
       <form onSubmit={onSubmit} className="mx-auto" style={{ maxWidth: 420 }}>
-        <div className="mb-2 text-start">
-          <label htmlFor="dni" className="form-label visually-hidden">
-            DNI
-          </label>
+        <div className="text-start">
+          <label htmlFor="dni" className="form-label visually-hidden">DNI</label>
           <input
             type="text"
             id="dni"
@@ -284,48 +331,54 @@ function CertificadoForm({
           />
         </div>
 
-        {msg && (
-          <div className={`alert alert-${msg.type} mt-2 mb-0`} role="alert">
-            {msg.text}
-          </div>
-        )}
+        {msg && <div className={`alert alert-${msg.type} mt-2 mb-0`}>{msg.text}</div>}
 
-        <div className="d-flex justify-content-center gap-2 mt-3">
-          <button type="submit" className="btn btn-bia" disabled={loading}>
+        <div className="d-flex justify-content-center gap-2 mt-2">
+          <button type="submit" className="btn btn-bia btn-sm" disabled={loading}>
             {loading ? "Consultando..." : "Consultar / Generar"}
           </button>
-          <BackHomeLink>Volver al home</BackHomeLink>
+          <BackHomeLink><span className="small">Volver al home</span></BackHomeLink>
         </div>
       </form>
 
       {hasResultados && (
-        <div className="table-responsive mt-3">
+        <div className="table-responsive mt-2">
           <table className="table table-sm align-middle mb-0">
             <thead className="table-light">
               <tr>
-                <th>Propietario</th>
                 <th>Entidad actual</th>
-                <th>Estado de la deuda</th>
-                <th className="text-end">¿Desea descargar su PDF?</th>
+                <th className="fit-col">Estado de la deuda</th>
+                <th className="text-end fit-col">Saldo actualizado</th>
+                <th className="text-end fit-col">Cancel Min</th>
+                <th className="text-end fit-col">Acción</th>
               </tr>
             </thead>
             <tbody>
               {filas.map((r, i) => {
                 const idp = r._id || readIdPagoUnico(r);
-                const estado = r._estado || readEstado(r) || "—";
-                const showWA = r._cat === "no_cancelado";
+                const entidad = readEntidadActual(r);
 
+                const estadoRaw = readEstado(r);
+                const estadoSimple = isCanceladoValue(estadoRaw) ? "Cancelado" : "Con deuda";
+                const estadoClass =
+                  estadoSimple === "Cancelado" ? "text-success fw-semibold" : "text-danger fw-semibold";
+
+                const saldoAct = fmtMoney(readSaldoActualizado(r));
+                const cancelMin = fmtMoney(readCancelMin(r));
+
+                const showWA = estadoSimple !== "Cancelado";
                 const waText =
                   `${WA_MSG_DEFAULT} DNI: ${dniTrim}` + (idp ? ` • ID pago único: ${idp}` : "");
                 const waHref = buildWAUrl(WA_PHONE, waText);
-                const key = `row-${idp || ""}-${r.propietario || ""}-${r.entidadinterna || ""}-${estado}-${i}`;
+                const key = `row-${idp || ""}-${entidad}-${estadoSimple}-${i}`;
 
                 return (
                   <tr key={key}>
-                    <td>{r.propietario ?? "—"}</td>
-                    <td>{r.entidadinterna ?? "—"}</td>
-                    <td>{estado}</td>
-                    <td className="text-end">
+                    <td>{entidad || "—"}</td>
+                    <td className={`fit-col ${estadoClass}`}>{estadoSimple}</td>
+                    <td className="text-end fit-col">{saldoAct}</td>
+                    <td className="text-end fit-col">{cancelMin}</td>
+                    <td className="text-end fit-col">
                       {showWA ? (
                         <a
                           className="btn btn-sm btn-success"
@@ -334,7 +387,7 @@ function CertificadoForm({
                           rel="noopener noreferrer"
                           title="Contactar por WhatsApp"
                         >
-                          Contactános a traves de WhatsApp
+                          Contactanos a través de WhatsApp
                         </a>
                       ) : (
                         <button
@@ -343,7 +396,7 @@ function CertificadoForm({
                           disabled={!idp}
                           title={idp ? "Descargar certificado" : "Falta ID para descargar"}
                         >
-                          Descarga tu libre de deuda en PDF
+                          Descargá tu libre de deuda en PDF
                         </button>
                       )}
                     </td>
@@ -354,7 +407,7 @@ function CertificadoForm({
           </table>
         </div>
       )}
-    </>
+    </div>
   );
 }
 
@@ -466,7 +519,7 @@ export default function GenerarCertificado() {
       if (ct.includes("application/pdf")) {
         const cd = res.headers?.["content-disposition"] || "";
         const idp = idFromContentDisposition(cd);
-        const meta = await fetchMetaById(dniTrim, idp); // solo consulta DB si hay sesión
+        const meta = await fetchMetaById(dniTrim, idp);
         setVarios([
           {
             id_pago_unico: idp || "",
@@ -475,9 +528,8 @@ export default function GenerarCertificado() {
             estado: "Cancelado",
           },
         ]);
-        setMsg({ type: "success", text: "Podés emitir el/los certificado(s)." });
+        setMsg({ type: "success", text: "Tenes saldos pendientes de pago y certificados para emitir." });
 
-        // Si hay sesión, enriquecemos con la DB
         const fb = await fetchAllByDni(dniTrim);
         setVarios((prev) => dedupeRows([...prev, ...fb.ok]));
         setDeudas((prev) => dedupeRows([...prev, ...fb.nc]));
@@ -495,7 +547,6 @@ export default function GenerarCertificado() {
       let detOK = pickSoloCancelados(payload);
       let detNC = pickNoCancelados(payload);
 
-      // Enriquecer con DB solo si hay sesión
       const fb = await fetchAllByDni(dniTrim);
       detOK = dedupeRows([...detOK, ...fb.ok]);
       detNC = dedupeRows([...detNC, ...fb.nc]);
@@ -538,7 +589,6 @@ export default function GenerarCertificado() {
       try {
         const payload = JSON.parse(text || "{}");
 
-        // Compat: algún backend viejo manda 400 con varios_cancelados
         if (
           status === 400 &&
           /varios_cancelados/i.test(String(payload?.estado || "")) &&
@@ -600,15 +650,17 @@ export default function GenerarCertificado() {
 
   // === Layout ===
   if (!logged) {
-    // 🔙 RESTAURADO: fondo/hero original para público
     return (
       <div className="page-fill position-relative overflow-hidden d-flex align-items-center">
         <div className="pm-hero-bg" aria-hidden></div>
         <div className="pm-hero-vignette" aria-hidden></div>
         <div className="container position-relative" style={{ zIndex: 2 }}>
           <div className="row justify-content-center">
-            <div className="col-12 col-md-10 col-lg-8 col-xl-7">
-              <div className="glass-card glass-card--ultra rounded-4 shadow-lg p-4 p-md-5">
+            <div className="col-12 col-lg-11 col-xl-10">
+              <div
+                className="glass-card glass-card--ultra rounded-4 shadow-lg p-4 p-md-5"
+                style={{ maxWidth: 1100, margin: "0 auto" }}
+              >
                 <CertificadoForm
                   dni={dni}
                   setDni={setDni}
@@ -630,11 +682,13 @@ export default function GenerarCertificado() {
     );
   }
 
-  // Con sesión (podés dejar sin hero si querés)
   return (
     <div className="container page-fill d-flex align-items-center">
       <div className="w-100">
-        <div className="card border-0 shadow-sm rounded-4 w-100 mx-auto" style={{ maxWidth: 760 }}>
+        <div
+          className="card border-0 shadow-sm rounded-4 w-100 mx-auto"
+          style={{ maxWidth: 1100 }}
+        >
           <div className="card-body p-4 p-md-5">
             <CertificadoForm
               dni={dni}

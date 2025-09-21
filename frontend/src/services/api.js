@@ -12,8 +12,8 @@ const API_BASE = process.env.REACT_APP_API_BASE || '/';
 const api = axios.create({
   baseURL: API_BASE,
   timeout: 30000,
-  withCredentials: true,           // si usás sesión/CSRF en el mismo dominio
-  xsrfCookieName: 'csrftoken',     // nombres por defecto Django/DRF
+  withCredentials: true,
+  xsrfCookieName: 'csrftoken',
   xsrfHeaderName: 'X-CSRFToken',
 });
 
@@ -46,7 +46,7 @@ function getCookie(name) {
 // ===============================
 async function safeLogout() {
   try {
-    const mod = await import('./auth'); // ← import dinámico para evitar ciclos
+    const mod = await import('./auth'); // import dinámico, evita ciclo
     if (typeof mod.logout === 'function') {
       mod.logout();
       return;
@@ -74,9 +74,6 @@ const processQueue = (error, newAccess = null) => {
 
 // ===================================
 // Interceptor de REQUEST
-// - Agrega Authorization Bearer si hay JWT
-// - Agrega CSRF (por si usás sesión)
-// - No fuerza Content-Type con FormData
 // ===================================
 api.interceptors.request.use((config) => {
   const token = getAccessToken();
@@ -85,13 +82,14 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
+  // Adjunta CSRF si existe cookie
   const csrftoken = getCookie('csrftoken');
   if (csrftoken) {
     config.headers = config.headers || {};
     config.headers['X-CSRFToken'] = csrftoken;
   }
 
-  // Si es FormData, dejar que Axios setee el boundary automáticamente
+  // Si es FormData, no fijar Content-Type manualmente
   if (config.data instanceof FormData) {
     if (config.headers && config.headers['Content-Type']) {
       delete config.headers['Content-Type'];
@@ -102,11 +100,10 @@ api.interceptors.request.use((config) => {
 });
 
 // ===================================
-// Interceptor de RESPONSE (inteligente)
-// - 401 sin Authorization → reintenta 1 vez con access actual (sin refresh)
-// - 401 con Authorization → intenta refresh (con cola de espera)
-// - 401 final → logout suave
-// - 403 → NO desloguea; devuelve error a la UI
+// Interceptor de RESPONSE
+//  - 401: refresh / logout
+//  - 403: devolver a la UI
+//  - 429: backoff y reintento hasta 3 veces
 // ===================================
 api.interceptors.response.use(
   (response) => response,
@@ -114,27 +111,13 @@ api.interceptors.response.use(
     const status = error?.response?.status;
     const originalRequest = error?.config;
 
-    // Sin response (network/CORS): rechazar
-    if (!error.response) {
-      return Promise.reject(error);
-    }
+    if (!error.response) return Promise.reject(error);
 
-    if (status === 401 && originalRequest) {
-      const access = getAccessToken();
+    // 401 con refresh disponible: intenta renovar y reintenta
+    if (status === 401 && originalRequest && !originalRequest._retry) {
       const refresh = getRefreshToken();
-      const hadAuthHeader = !!(originalRequest.headers && originalRequest.headers.Authorization);
-
-      // Caso A: la request original salió SIN Authorization → reintentar 1 vez con el access actual
-      if (!hadAuthHeader && access) {
-        originalRequest.headers = originalRequest.headers || {};
-        originalRequest.headers.Authorization = `Bearer ${access}`;
-        return api(originalRequest);
-      }
-
-      // Caso B: venía con Authorization y falló → intentar refresh (una sola vez por request)
-      if (!originalRequest._retry && refresh) {
+      if (refresh) {
         if (isRefreshing) {
-          // Esperar a que otro refresh termine
           return new Promise((resolve, reject) => {
             pendingRequests.push({
               resolve: (newAccess) => {
@@ -153,7 +136,6 @@ api.interceptors.response.use(
         isRefreshing = true;
 
         try {
-          // usar axios plano para evitar loop con el mismo interceptor
           const { data } = await axios.post(
             `${API_BASE}api/token/refresh/`,
             { refresh },
@@ -167,19 +149,15 @@ api.interceptors.response.use(
           const newAccess = data?.access;
           if (!newAccess) throw new Error('No se recibió access token en refresh');
 
-          // Guardar y aplicar nuevo access
-          try { localStorage.setItem('access_token', newAccess); } catch {}
+          localStorage.setItem('access_token', newAccess);
           api.defaults.headers.common.Authorization = `Bearer ${newAccess}`;
           processQueue(null, newAccess);
 
-          // Reintentar el request original con el token nuevo
           originalRequest.headers = originalRequest.headers || {};
           originalRequest.headers.Authorization = `Bearer ${newAccess}`;
           return api(originalRequest);
         } catch (refreshErr) {
           processQueue(refreshErr, null);
-
-          // Logout y redirección
           await safeLogout();
           try { history.push('/login'); } catch {}
           window.location.reload();
@@ -188,21 +166,36 @@ api.interceptors.response.use(
           isRefreshing = false;
         }
       }
+    }
 
-      // 401 sin posibilidad de refresh → logout
+    // 401 sin refresh: logout
+    if (status === 401) {
       await safeLogout();
       try { history.push('/login'); } catch {}
       window.location.reload();
       return Promise.reject(error);
     }
 
+    // 403: no desloguear; que la UI lo maneje
     if (status === 403) {
-      // No cerrar sesión; dejar que la UI muestre “No autorizado”
       console.warn('403 Forbidden:', error?.response?.data || '(sin detalle)');
       return Promise.reject(error);
     }
 
-    // Resto de errores: se devuelven a la UI
+    // 429: backoff y reintento hasta 3 veces
+    if (status === 429 && originalRequest) {
+      const prev = originalRequest._retry429 || 0;
+      if (prev >= 3) {
+        return Promise.reject(error);
+      }
+      const hdr = error.response.headers?.['retry-after'];
+      const retryMs = hdr ? Number(hdr) * 1000 : 2000 * (prev + 1); // 2s,4s,6s
+      originalRequest._retry429 = prev + 1;
+      return new Promise((resolve) => {
+        setTimeout(() => resolve(api(originalRequest)), retryMs);
+      });
+    }
+
     return Promise.reject(error);
   }
 );
@@ -210,23 +203,13 @@ api.interceptors.response.use(
 export default api;
 
 // =======================================================
-// Endpoints: CARGA DE DATOS (se mantienen los que tenías)
-// Base final: /carga-datos/api/...
+// Endpoints: CARGA DE DATOS (base /carga-datos/api/...)
 // =======================================================
 
-/**
- * Sube un Excel/CSV para validación previa.
- * formData: { archivo: File }
- */
 export function subirExcel(formData) {
   return api.post('/carga-datos/api/cargar/', formData);
 }
 
-/**
- * Confirma la carga después de la vista previa.
- * records: payload validado del backend
- * (⚠️ Si no pasás `records`, el backend usa lo guardado en sesión.)
- */
 export function confirmarCarga(records) {
   const payload = Array.isArray(records) && records.length > 0 ? { records } : {};
   return api.post('/carga-datos/api/confirmar/', payload, {
@@ -234,29 +217,26 @@ export function confirmarCarga(records) {
   });
 }
 
-/** Errores de validación detectados en la carga previa */
 export function fetchErrores() {
   return api.get('/carga-datos/api/errores/');
 }
 
-/** Lista registros de DB BIA (filtros por params) */
 export function listarDatosBia(params) {
   return api.get('/carga-datos/api/mostrar-datos-bia/', { params });
 }
 
-/** Actualiza un registro por PK (PATCH) */
 export function actualizarDatoBia(pk, payload) {
   return api.patch(`/carga-datos/api/mostrar-datos-bia/${pk}/`, payload, {
     headers: { 'Content-Type': 'application/json' },
   });
 }
 
-/** Exporta CSV de datos BIA */
 export function exportarDatosBiaCSV() {
-  return api.get('/carga-datos/api/exportar-datos-bia.csv', { responseType: 'blob' });
+  return api.get('/carga-datos/api/exportar-datos-bia.csv', {
+    responseType: 'blob',
+  });
 }
 
-/** Ping de salud (smoke test) */
 export function pingCargaDatos() {
   return api.get('/carga-datos/api/ping/');
 }
@@ -264,70 +244,93 @@ export function pingCargaDatos() {
 // =============================================
 // Endpoints: CERTIFICADOS LDD
 // =============================================
-
-/** Genera el certificado (POST) */
 export function generarCertificado(payload) {
-  // El view acepta GET/POST; usamos POST JSON por simplicidad
   return api.post('/api/certificado/generar/', payload, {
     headers: { 'Content-Type': 'application/json' },
   });
 }
 
-/** Lista de entidades (ViewSet DRF) */
 export function listarEntidades(params) {
   return api.get('/api/certificado/entidades/', { params });
 }
 
-/** Detalle de entidad por id (ViewSet DRF) */
 export function obtenerEntidad(id) {
   return api.get(`/api/certificado/entidades/${id}/`);
 }
 
-/** Crear entidad (FormData con imágenes/archivos) */
 export function crearEntidad(formData) {
   return api.post('/api/certificado/entidades/', formData);
 }
 
-/** Actualizar entidad (PATCH con FormData) */
 export function actualizarEntidad(id, formData) {
   return api.patch(`/api/certificado/entidades/${id}/`, formData);
 }
 
-/** Eliminar entidad */
 export function eliminarEntidad(id) {
   return api.delete(`/api/certificado/entidades/${id}/`);
 }
 
-/** Ping de salud certificados */
 export function pingCertificado() {
   return api.get('/api/certificado/ping/');
 }
 
 // =======================================================
-// Otros endpoints que ya tenías (ejemplo DB BIA delete)
+// Otros endpoints previos
 // =======================================================
 export const eliminarDatoBia = (id) =>
   api.delete(`/api/db_bia/${encodeURIComponent(id)}/`);
 
 // =======================================================
-// Endpoints Admin de roles (prefijo de app carga_datos)
+// Endpoints Admin de roles (app carga_datos)
+//  - adminGetMe y adminListRoles con CACHE + DEDUPE
 // =======================================================
-export function adminGetMe() {
-  return api.get('/carga-datos/api/admin/me');
+
+// --- Cache y dedupe para /admin/me ---
+let _meCache = { data: null, at: 0, promise: null };
+const ME_TTL_MS = 5 * 60 * 1000; // 5 min
+
+export function adminGetMe({ force = false } = {}) {
+  const now = Date.now();
+  if (!force && _meCache.data && (now - _meCache.at) < ME_TTL_MS) {
+    return Promise.resolve({ data: _meCache.data });
+  }
+  if (_meCache.promise && !force) return _meCache.promise;
+
+  _meCache.promise = api.get('/carga-datos/api/admin/me')
+    .then((res) => {
+      _meCache.data = res.data;
+      _meCache.at = Date.now();
+      return res;
+    })
+    .finally(() => { _meCache.promise = null; });
+
+  return _meCache.promise;
 }
-export function adminListRoles() {
-  return api.get('/carga-datos/api/admin/roles');
+
+// --- Cache y dedupe para /admin/roles ---
+let _rolesCache = { data: null, at: 0, promise: null };
+const ROLES_TTL_MS = 30 * 60 * 1000; // 30 min
+
+export function adminListRoles({ force = false } = {}) {
+  const now = Date.now();
+  if (!force && _rolesCache.data && (now - _rolesCache.at) < ROLES_TTL_MS) {
+    return Promise.resolve({ data: _rolesCache.data });
+  }
+  if (_rolesCache.promise && !force) return _rolesCache.promise;
+
+  _rolesCache.promise = api.get('/carga-datos/api/admin/roles')
+    .then((res) => {
+      _rolesCache.data = res.data;
+      _rolesCache.at = Date.now();
+      return res;
+    })
+    .finally(() => { _rolesCache.promise = null; });
+
+  return _rolesCache.promise;
 }
-// ✅ MINI-INTEGRACIÓN: búsqueda con filtros opcionales por grupo y roles
-// - q: string de búsqueda. Si querés listar todo, podés pasar "__all__"
-// - group: nombre del grupo (Admin/Supervisor/Operador), opcional
-// - rolesCsv: string "Admin,Supervisor" (si el backend lo soporta). Si no, el front filtrará en cliente.
-export function adminSearchUsers(q, group = "", rolesCsv = "") {
-  const params = {};
-  if (typeof q === 'string' && q.trim() !== '') params.q = q;
-  if (group) params.group = group;
-  if (rolesCsv) params.roles = rolesCsv;
-  return api.get('/carga-datos/api/admin/users', { params });
+
+export function adminSearchUsers(q) {
+  return api.get('/carga-datos/api/admin/users', { params: { q } });
 }
 export function adminGetUserRoles(userId) {
   return api.get(`/carga-datos/api/admin/users/${userId}/roles`);
@@ -338,26 +341,9 @@ export function adminSetUserRoles(userId, body) {
   });
 }
 
-// =======================================================
-// NUEVO: Endpoints Admin de usuarios (para Perfil.jsx)
-// (mantenemos el mismo estilo de paths sin barra final)
-// =======================================================
-export function adminCreateUser(payload) {
-  // payload: {username, email, first_name, last_name, password, is_active}
-  return api.post('/carga-datos/api/admin/users', payload, {
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-export function adminUpdateUser(userId, payload) {
-  // payload: mismos campos que create; password es opcional en edición
-  // soporta también: { current_password, new_password } para cambio propio
-  return api.patch(`/carga-datos/api/admin/users/${userId}`, payload, {
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-// (opcional) desactivar usuario
-export function adminDeactivateUser(userId) {
-  return api.post(`/carga-datos/api/admin/users/${userId}/deactivate`, {});
+// (Opcional) Endpoint para “calentar” CSRF cookie desde el front.
+export function ensureCsrf() {
+  return api.get('/carga-datos/api/admin/csrf');
 }
 
 // =======================================================
@@ -370,4 +356,15 @@ export function bulkCommit(jobId) {
   return api.post('/carga-datos/api/bulk-update/commit', { job_id: jobId }, {
     headers: { 'Content-Type': 'application/json' },
   });
+}
+
+// =======================================================
+// Crear usuario (Admin / Supervisor)
+// =======================================================
+export function adminCreateUser({ email, password, role, nombre }) {
+  return api.post(
+    '/carga-datos/api/admin/users',
+    { email, password, role, nombre },
+    { headers: { 'Content-Type': 'application/json' } }
+  );
 }
