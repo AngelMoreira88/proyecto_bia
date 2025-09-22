@@ -1,10 +1,11 @@
 // src/components/MostrarDatos.jsx
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
+import api, {
   listarDatosBia,
   actualizarDatoBia,
   exportarDatosBiaCSV,
   eliminarDatoBia,
+  consultarPorDni, // ⬅️ NUEVO
 } from '../services/api';
 import { getUserRole } from '../services/auth';
 import BackToHomeButton from './BackToHomeButton';
@@ -65,11 +66,72 @@ const PREFERRED_ORDER = [
 ];
 
 /* ============================
-   Helpers de estado
+   Helpers
    ============================ */
-const isCancelado = (v) => String(v || '').trim().toLowerCase() === 'cancelado';
+const norm = (s) => String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+const isCanceladoFlag = (v) => {
+  const x = norm(v);
+  return x === 'cancelado' || x.startsWith('cancelado');
+};
+const isCancelado = (v) => isCanceladoFlag(v);
 const estadoBucket = (v) => (isCancelado(v) ? 'cancelado' : 'no_cancelado');
+const readIdPagoUnico = (r) => String(r.id_pago_unico ?? r.idpago_unico ?? '').trim();
 
+const scoreRow = (r) => {
+  // prioriza cancelado y luego recencia si hubiera fechas
+  const cancelScore = isCanceladoFlag(r.estado) ? 1 : 0;
+  const ts = new Date(r.ultima_fecha_pago || r.fecha_plan || r.fecha_apertura || 0).getTime() || 0;
+  return cancelScore * 1e15 + ts;
+};
+
+const dedupeByIdPagoUnico = (arr) => {
+  const best = new Map();
+  for (const r of arr) {
+    const idp = readIdPagoUnico(r) || `__noid__-${JSON.stringify(r)}`;
+    const prev = best.get(idp);
+    if (!prev || scoreRow(r) > scoreRow(prev)) best.set(idp, r);
+  }
+  return Array.from(best.values());
+};
+
+const classifyQuery = (q) => {
+  const s = String(q || '').trim();
+  const onlyDigits = /^\d+$/.test(s);
+  if (onlyDigits && s.length >= 7 && s.length <= 9) return { kind: 'dni', value: s };
+  return { kind: 'id_pago_unico', value: s };
+};
+
+const normalizeResults = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (payload && Array.isArray(payload.results)) return payload.results;
+  if (payload && Array.isArray(payload.items)) return payload.items;
+  return [];
+};
+
+const ACCEPT_PREF = "application/pdf, application/json, */*";
+const GET_PDF_ENDPOINT = "/api/certificado/generar/";
+async function descargarPDF(id_pago_unico, dni) {
+  const res = await api.get(GET_PDF_ENDPOINT, {
+    responseType: "blob",
+    headers: { "X-Requested-With": "XMLHttpRequest", Accept: ACCEPT_PREF },
+    params: { id_pago_unico, dni: dni || undefined },
+  });
+  const ct = (res.headers?.["content-type"] || "").toLowerCase();
+  if (!ct.includes("application/pdf")) throw new Error("Respuesta no es PDF");
+  const cd = res.headers?.["content-disposition"] || "";
+  let filename = "certificado.pdf";
+  const m = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(cd);
+  if (m && m[1]) filename = decodeURIComponent(m[1]);
+  const blob = new Blob([res.data], { type: "application/pdf" });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+/* ============================
+   Componente
+   ============================ */
 export default function MostrarDatos() {
   const [query, setQuery] = useState('');
   const [datos, setDatos] = useState([]);
@@ -85,21 +147,18 @@ export default function MostrarDatos() {
   const [estadoTab, setEstadoTab] = useState('todos'); // 'todos' | 'cancelado' | 'no_cancelado'
   const [device, setDevice] = useState('desktop'); // 'mobile' | 'tablet' | 'desktop'
 
-  // 🔑 NUEVO: foco en campo específico
+  // 🔑 foco en campo específico
   const [focusKey, setFocusKey] = useState(null);
   const fieldRefs = useRef({});
 
   // Roles/permisos
   const roleRaw = getUserRole?.() ?? '';
   const role = String(roleRaw).toLowerCase();
-
   const isAdmin      = role === 'admin';
   const isSupervisor = role === 'supervisor' || role === 'sup' || role === 'super';
-
-  // Permisos finales
-  const canEdit   = isAdmin || isSupervisor || role === 'write'; // admin y supervisor (y "write") editan
-  const canDelete = isAdmin;                                     // solo admin elimina
-  const canWrite  = canEdit;                                     // se usa en el drawer
+  const canEdit   = isAdmin || isSupervisor || role === 'write';
+  const canDelete = isAdmin;
+  const canWrite  = canEdit;
 
   /* ====== Detección simple de dispositivo (bloquea móviles) ====== */
   useEffect(() => {
@@ -148,14 +207,6 @@ export default function MostrarDatos() {
     return <span className="truncate-200" title={String(val)}>{String(val)}</span>;
   };
 
-  /* ====== Normalización de payload ====== */
-  const normalizeResults = (payload) => {
-    if (Array.isArray(payload)) return payload;
-    if (payload && Array.isArray(payload.results)) return payload.results;
-    if (payload && Array.isArray(payload.items)) return payload.items;
-    return [];
-  };
-
   /* ====== Búsqueda ====== */
   const doSearch = async () => {
     const q = String(query).trim();
@@ -168,20 +219,39 @@ export default function MostrarDatos() {
     setLoading(true);
     setError('');
     setDatos([]);
+
     try {
-      const res = await listarDatosBia({ dni: q, id_pago_unico: q, page: 1 });
-      const payload = res.data || {};
-      const results = normalizeResults(payload);
+      const { kind, value } = classifyQuery(q);
 
-      // Aseguramos un id estable
-      const data = results.map(r => ({
-        id: r.id ?? r.id_pago_unico ?? r.idpago_unico ?? `${r.dni || ''}-${r.id_pago_unico || ''}`,
-        ...r,
-      }));
-
-      setDatos(data);
-
-      if ((payload.count ?? data.length) === 0) setError('No se encontraron registros');
+      if (kind === 'dni') {
+        // ✅ usa el endpoint unificado → mismas filas que el público
+        const { data } = await consultarPorDni(value);
+        const arr = Array.isArray(data?.deudas) ? data.deudas : [];
+        // garantizar id estable
+        const mapped = arr.map(r => ({
+          id: r.id ?? r.id_pago_unico ?? r.idpago_unico ?? `${r.dni || ''}-${r.id_pago_unico || ''}`,
+          ...r,
+          // backend ya devuelve cancelado, pero si no, lo derivamos
+          cancelado: typeof r.cancelado === 'boolean' ? r.cancelado : isCanceladoFlag(r.estado),
+        }));
+        setDatos(mapped);
+        if (!mapped.length) setError('No se encontraron registros');
+      } else {
+        // 🔎 búsqueda por ID pago único → listarDatosBia con SOLO id, dedupe y derivar cancelado
+        const res = await listarDatosBia({ id_pago_unico: value, page: 1 });
+        const payload = res.data || {};
+        const results = normalizeResults(payload);
+        const raw = results.map(r => ({
+          id: r.id ?? r.id_pago_unico ?? r.idpago_unico ?? `${r.dni || ''}-${r.id_pago_unico || ''}`,
+          ...r,
+        }));
+        const deduped = dedupeByIdPagoUnico(raw).map(r => ({
+          ...r,
+          cancelado: isCanceladoFlag(r.estado),
+        }));
+        setDatos(deduped);
+        if ((payload.count ?? deduped.length) === 0) setError('No se encontraron registros');
+      }
     } catch (e) {
       console.error(e);
       setError('Error al consultar la base de datos');
@@ -197,7 +267,7 @@ export default function MostrarDatos() {
     const estadoRaw = (row?.estado ?? '').toString();
     setActiveRow(row);
     setFormData({ ...row, estado: estadoRaw });
-    setFocusKey(keyToFocus);       // <- cuál campo resaltar/enfocar
+    setFocusKey(keyToFocus);
     setDrawerOpen(true);
   };
 
@@ -210,14 +280,9 @@ export default function MostrarDatos() {
 
   const onChangeForm = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
 
-  // Campos no editables (siempre bloqueados)
+  // Campos no editables
   const LOCKED_FIELDS = new Set(['id', 'id_pago_unico', 'idpago_unico']);
-
-  const isFieldEditable = (k) => {
-    if (!canWrite) return false;
-    if (LOCKED_FIELDS.has(k)) return false;
-    return true;
-  };
+  const isFieldEditable = (k) => canWrite && !LOCKED_FIELDS.has(k);
 
   const hasChanges = useMemo(() => {
     if (!activeRow) return false;
@@ -250,17 +315,17 @@ export default function MostrarDatos() {
     }
   };
 
-  /* ====== Enfocar y resaltar el campo al abrir ====== */
+  /* ====== Enfocar campo al abrir ====== */
   useEffect(() => {
     if (drawerOpen && focusKey) {
       const t = setTimeout(() => {
         const el = fieldRefs.current[focusKey];
-        if (el && el.focus) {
+        if (el?.focus) {
           el.focus();
           try { el.select?.(); } catch {}
           try { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch {}
         }
-      }, 60); // pequeño delay para montar el DOM
+      }, 60);
       return () => clearTimeout(t);
     }
   }, [drawerOpen, focusKey]);
@@ -444,7 +509,6 @@ export default function MostrarDatos() {
 
           {/* Búsqueda + vista */}
           <form onSubmit={handleSubmit} className="d-flex flex-wrap align-items-center justify-content-between gap-2">
-            {/* Slab con halo azul */}
             <div
               className="w-100 rounded-4"
               style={{
@@ -532,67 +596,46 @@ export default function MostrarDatos() {
                     </div>
 
                     <div className="row g-2 small mt-1">
-                      <div
-                        className="col-6"
-                        onClick={(e) => { e.stopPropagation(); openRow(row, 'id_pago_unico'); }}
-                        role="button" tabIndex={0}
+                      <div className="col-6" onClick={(e) => { e.stopPropagation(); openRow(row, 'id_pago_unico'); }} role="button" tabIndex={0}
                         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openRow(row, 'id_pago_unico'); } }}
-                        style={{ cursor: 'pointer' }}
-                      >
+                        style={{ cursor: 'pointer' }}>
                         <div className="text-secondary">ID pago único</div>
                         <div className="fw-medium">{row.id_pago_unico ?? row.idpago_unico ?? '—'}</div>
                       </div>
-                      <div
-                        className="col-6"
-                        onClick={(e) => { e.stopPropagation(); openRow(row, 'entidadinterna'); }}
-                        role="button" tabIndex={0}
+                      <div className="col-6" onClick={(e) => { e.stopPropagation(); openRow(row, 'entidadinterna'); }} role="button" tabIndex={0}
                         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openRow(row, 'entidadinterna'); } }}
-                        style={{ cursor: 'pointer' }}
-                      >
+                        style={{ cursor: 'pointer' }}>
                         <div className="text-secondary">Entidad</div>
                         <div className="fw-medium">{row.entidadinterna ?? row.entidad_interna ?? '—'}</div>
                       </div>
-                      <div
-                        className="col-6"
-                        onClick={(e) => { e.stopPropagation(); openRow(row, 'creditos'); }}
-                        role="button" tabIndex={0}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openRow(row, 'creditos'); } }}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <div className="text-secondary">Créditos</div>
-                        <div className="fw-medium">{row.creditos ?? '—'}</div>
-                      </div>
-                      <div
-                        className="col-6"
-                        onClick={(e) => { e.stopPropagation(); openRow(row, 'fecl'); }}
-                        role="button" tabIndex={0}
-                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); openRow(row, 'fecl'); } }}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <div className="text-secondary">FECL</div>
-                        <div className="fw-medium">{row.fecl ?? '—'}</div>
-                      </div>
                     </div>
 
-                    <div
-                      className="mt-2 d-flex justify-content-between gap-2"
-                      onClick={(e) => e.stopPropagation()}
-                      onKeyDown={(e) => e.stopPropagation()}
-                    >
+                    <div className="mt-2 d-flex justify-content-between gap-2" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                       {canEdit ? (
                         <button className="btn btn-sm btn-outline-bia" onClick={() => openRow(row)}>Editar</button>
                       ) : (
                         <button className="btn btn-sm btn-outline-secondary" onClick={() => openRow(row)}>Ver</button>
                       )}
-                      {canDelete && (
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => handleDelete(row.id)}
-                          disabled={deletingId === row.id}
-                        >
-                          {deletingId === row.id ? 'Eliminando…' : 'Eliminar'}
-                        </button>
-                      )}
+                      <div className="d-flex gap-2">
+                        {row.cancelado && (
+                          <button
+                            className="btn btn-sm btn-outline-primary"
+                            title="Descargar Libre de Deuda (PDF)"
+                            onClick={() => descargarPDF(row.id_pago_unico, row.dni)}
+                          >
+                            PDF
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => handleDelete(row.id)}
+                            disabled={deletingId === row.id}
+                          >
+                            {deletingId === row.id ? 'Eliminando…' : 'Eliminar'}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -646,12 +689,17 @@ export default function MostrarDatos() {
                             <Cell k={k} v={row[k]} />
                           </td>
                         ))}
-                        <td
-                          className="text-end sticky-actions bg-white"
-                          onClick={(e) => e.stopPropagation()}
-                          onKeyDown={(e) => e.stopPropagation()}
-                        >
+                        <td className="text-end sticky-actions bg-white" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                           <div className="d-flex gap-2 justify-content-end">
+                            {row.cancelado && (
+                              <button
+                                className="btn btn-sm btn-outline-primary"
+                                title="Descargar Libre de Deuda (PDF)"
+                                onClick={() => descargarPDF(row.id_pago_unico, row.dni)}
+                              >
+                                PDF
+                              </button>
+                            )}
                             {canEdit ? (
                               <button className="btn btn-sm btn-outline-bia" onClick={() => openRow(row)}>
                                 Editar

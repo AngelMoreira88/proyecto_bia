@@ -248,6 +248,10 @@ export function generarCertificado(payload) {
   });
 }
 
+export function consultarPorDni(dni) {
+  return api.get('/api/certificado/consulta/dni/', { params: { dni } });
+}
+
 export function listarEntidades(params) {
   return api.get('/api/certificado/entidades/', { params });
 }
