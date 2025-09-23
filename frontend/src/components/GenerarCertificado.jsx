@@ -3,6 +3,7 @@ import { useState } from "react";
 import api, { consultarPorDni } from "../services/api";
 import { isLoggedIn } from "../services/auth";
 import BackHomeLink from "./BackHomeLink";
+import WhatsAppButton from "./WhatsAppButton";
 
 /* ========= WhatsApp config ========= */
 const WA_PHONE = (process.env.REACT_APP_WA_PHONE || "5491100000000")
@@ -12,10 +13,16 @@ const WA_MSG_DEFAULT =
   process.env.REACT_APP_WA_MSG ||
   "Hola, tengo una deuda para cancelar y necesito asesoramiento";
 
+/* Mensaje específico para la burbuja pública (distinto al de deuda) */
+const WA_MSG_PUBLIC =
+  process.env.REACT_APP_WA_MSG_PUBLIC ||
+  "Hola, necesito ayuda con el Portal de Consultas y Descargas";
+
 /* ========= Preferencias de respuesta ========= */
 const ACCEPT_PREF = "application/pdf, application/json, */*";
 const GET_PDF_ENDPOINT = "/api/certificado/generar/"; // tu endpoint actual de descarga
 
+/* ========= Helpers ========= */
 const fmtMoney = (v) => {
   if (v == null || v === "") return "—";
   const n = Number(String(v).toString().replace(/[^\d.-]/g, ""));
@@ -34,6 +41,16 @@ const fmtMoney = (v) => {
 
 const buildWAUrl = (phone, text) =>
   `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(text)}`;
+
+const norm = (s) =>
+  String(s || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+const isRowCancelado = (row) =>
+  row?.cancelado === true || norm(row?.estado).startsWith("cancelado");
 
 async function descargarPDF(id_pago_unico, dni) {
   const res = await api.get(GET_PDF_ENDPOINT, {
@@ -90,7 +107,7 @@ export default function GenerarCertificado() {
       if (!arr.length) {
         setMsg({ type: "info", text: "No se encontraron deudas para este DNI." });
       } else {
-        const canceladas = arr.filter(r => r.cancelado).length;
+        const canceladas = arr.filter((r) => isRowCancelado(r)).length;
         const noCancel = arr.length - canceladas;
         setMsg({
           type: "light",
@@ -131,9 +148,8 @@ export default function GenerarCertificado() {
         </thead>
         <tbody>
           {rows.map((r, i) => {
-            const estado = (r.estado || "").trim();
-            const isCanc = !!r.cancelado;
-            const estadoSimple = isCanc ? "Cancelado" : (estado || "Con deuda");
+            const isCanc = isRowCancelado(r);
+            const estadoSimple = isCanc ? "Cancelado" : "Con Deuda";
             const estadoClass = isCanc ? "text-success fw-semibold" : "text-danger fw-semibold";
             const saldoAct = fmtMoney(r.saldo_actualizado);
             const cancelMin = fmtMoney(r.cancel_min);
@@ -168,7 +184,7 @@ export default function GenerarCertificado() {
                       disabled={!r.id_pago_unico}
                       title={r.id_pago_unico ? "Descargar certificado" : "Falta ID para descargar"}
                     >
-                      Descargar Libre de Deuda (PDF)
+                      Descargar Libre de Deuda
                     </button>
                   )}
                 </td>
@@ -183,7 +199,9 @@ export default function GenerarCertificado() {
   const Form = () => (
     <form onSubmit={onSubmit} className="mx-auto" style={{ maxWidth: 420 }}>
       <div className="text-start">
-        <label htmlFor="dni" className="form-label visually-hidden">DNI</label>
+        <label htmlFor="dni" className="form-label visually-hidden">
+          DNI
+        </label>
         <input
           type="text"
           id="dni"
@@ -209,46 +227,61 @@ export default function GenerarCertificado() {
         <button type="submit" className="btn btn-bia btn-sm" disabled={loading}>
           {loading ? "Consultando..." : "Consultar"}
         </button>
-        <BackHomeLink><span className="small">Volver al home</span></BackHomeLink>
+        <BackHomeLink>
+          <span className="small">Volver al home</span>
+        </BackHomeLink>
       </div>
     </form>
   );
 
+  // ======== RENDER ========
   if (!logged) {
+    // Página pública: mostrar burbuja con MENSAJE PÚBLICO
+    const waTextPublic = WA_MSG_PUBLIC; // sin DNI ni ID
     return (
-      <div className="page-fill position-relative overflow-hidden d-flex align-items-center">
-        <div className="pm-hero-bg" aria-hidden></div>
-        <div className="pm-hero-vignette" aria-hidden></div>
-        <div className="container position-relative" style={{ zIndex: 2 }}>
-          <div className="row justify-content-center">
-            <div className="col-12 col-lg-11 col-xl-10">
-              <div
-                className="glass-card glass-card--ultra rounded-4 shadow-lg p-4 p-md-5"
-                style={{ maxWidth: 1100, margin: "0 auto" }}
-              >
-                <h2 className="text-bia fw-bold text-center">Portal de Consultas y Descargas</h2>
-                <p className="text-muted text-center mb-2">Ingresá tu DNI</p>
-                <Form />
-                {rows.length > 0 && <Table />}
+      <>
+        <div className="page-fill position-relative overflow-hidden d-flex align-items-center">
+          <div className="pm-hero-bg" aria-hidden></div>
+          <div className="pm-hero-vignette" aria-hidden></div>
+          <div className="container position-relative" style={{ zIndex: 2 }}>
+            <div className="row justify-content-center">
+              <div className="col-12 col-lg-11 col-xl-10">
+                <div
+                  className="glass-card glass-card--ultra rounded-4 shadow-lg p-4 p-md-5"
+                  style={{ maxWidth: 1100, margin: "0 auto" }}
+                >
+                  <h2 className="text-bia fw-bold text-center">Portal de Consultas y Descargas</h2>
+                  <p className="text-muted text-center mb-2">Ingresá tu DNI</p>
+                  <Form />
+                  {rows.length > 0 && <Table />}
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+
+        {/* Burbuja flotante: SOLO en público con mensaje distinto */}
+        <WhatsAppButton phone={WA_PHONE} text={waTextPublic} show={true} />
+      </>
     );
   }
+
+  // Página privada (logueado): SIN burbuja
   return (
-    <div className="container page-fill d-flex align-items-center">
-      <div className="w-100">
-        <div className="card border-0 shadow-sm rounded-4 w-100 mx-auto" style={{ maxWidth: 1100 }}>
-          <div className="card-body p-4 p-md-5">
-            <h2 className="text-bia fw-bold text-center">Portal de Consultas y Descargas</h2>
-            <p className="text-muted text-center mb-2">Ingresá tu DNI</p>
-            <Form />
-            {rows.length > 0 && <Table />}
+    <>
+      <div className="container page-fill d-flex align-items-center">
+        <div className="w-100">
+          <div className="card border-0 shadow-sm rounded-4 w-100 mx-auto" style={{ maxWidth: 1100 }}>
+            <div className="card-body p-4 p-md-5">
+              <h2 className="text-bia fw-bold text-center">Portal de Consultas y Descargas</h2>
+              <p className="text-muted text-center mb-2">Ingresá tu DNI</p>
+              <Form />
+              {rows.length > 0 && <Table />}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+      {/* sin WhatsAppButton aquí */}
+    </>
   );
 }

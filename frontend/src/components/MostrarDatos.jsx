@@ -414,7 +414,7 @@ export default function MostrarDatos() {
   /* ====== Bloquea móviles ====== */
   if (device === 'mobile') {
     return (
-      <div className="container mt-4 pb-5 page-fill d-flex align-items-center justify-content-center">
+      <div className="container-fluid mt-4 pb-5 page-fill d-flex align-items-center justify-content-center px-3 px-md-4">
         <div className="alert alert-warning border shadow-sm rounded-4 p-4 text-center" role="alert" style={{ maxWidth: 520 }}>
           <h5 className="mb-2">No disponible en celulares</h5>
           <p className="mb-0 text-secondary">
@@ -460,7 +460,7 @@ export default function MostrarDatos() {
   /* ====== UI ====== */
   return (
     <div
-      className="container mt-4 mt-md-5 pb-3 page-fill bg-app"
+      className="container-fluid mt-4 mt-md-5 pb-3 page-fill bg-app px-3 px-md-4"
       style={{ marginTop: 'clamp(12px, 2vh, 28px)' }}
     >
       {/* Toolbar */}
@@ -512,7 +512,7 @@ export default function MostrarDatos() {
             <div
               className="w-100 rounded-4"
               style={{
-                maxWidth: 520,
+                maxWidth: 'min(720px, 100%)',
                 background: '#fff',
                 border: '1px solid rgba(16,24,40,.08)',
                 boxShadow: '0 0 0 4px rgba(29,72,166,.10), 0 10px 24px rgba(16,24,40,.10)',
