@@ -144,7 +144,39 @@ class IsAdminRole(BasePermission):
     def has_object_permission(self, request, view, obj):
         return self.has_permission(request, view)
 
+class IsSelfOrAdminRole(BasePermission):
+    """
+    Permite la acción si:
+    - el usuario es superusuario, o
+    - pertenece a un grupo admin (configurable), o
+    - es el *mismo* usuario del objeto (edición de perfil/contraseña propios)
+    """
+    def has_permission(self, request, view):
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+        if user.is_superuser:
+            return True
+        # Grupo admin (case-insensitive, configurable)
+        if _is_in_any_group_ci(user, _get_admin_group_names()):
+            return True
+        # Para métodos detail donde hay pk, la comprobación fina se hace en has_object_permission
+        return True
 
+    def has_object_permission(self, request, view, obj):
+        user = request.user
+        if not (user and user.is_authenticated):
+            return False
+        if user.is_superuser:
+            return True
+        if _is_in_any_group_ci(user, _get_admin_group_names()):
+            return True
+        # ¿Es el mismo usuario?
+        try:
+            return obj and getattr(obj, "pk", None) == user.pk
+        except Exception:
+            return False
+        
 __all__ = [
     "HasAppPerm",
     "CanManageEntities",
@@ -155,4 +187,5 @@ __all__ = [
     # Nuevos
     "CanManageUsers",
     "IsAdminRole",
+    "IsSelfOrAdminRole",
 ]

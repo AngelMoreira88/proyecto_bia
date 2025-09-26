@@ -193,9 +193,10 @@ def users_create_or_search(request):
 
 
 # ======== PATCH /users/<id> ========
-
+# Mejora: permite que un usuario NO admin edite SU propio perfil y cambie SU contraseña
+#         (current_password + new_password). Para editar a otros usuarios, sigue requiriendo Admin.
 @api_view(["PATCH"])
-@permission_classes([IsAuthenticated, IsAdminRole])
+@permission_classes([IsAuthenticated])  # base: todos autenticados entran; lógica fina abajo
 def user_update(request, user_id: int):
     try:
         u = User.objects.get(pk=user_id)
@@ -207,13 +208,83 @@ def user_update(request, user_id: int):
 
     data = request.data or {}
 
+    # ¿Quién llama?
+    requester = request.user
+    is_self = requester.is_authenticated and (requester.pk == u.pk)
+    # ¿Es admin? (reutilizamos tu permiso)
+    is_admin = IsAdminRole().has_permission(request, view=None)
+
+    # ───── Cambio de contraseña propio ─────
+    # Front (Perfil.jsx) ya envía: { current_password, new_password } cuando edita su propia clave
+    if is_self and ("current_password" in data and "new_password" in data):
+        current_password = str(data.get("current_password") or "")
+        new_password = str(data.get("new_password") or "")
+        if not u.check_password(current_password):
+            return Response(
+                {"detail": "La contraseña actual no es correcta."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if not new_password.strip():
+            return Response(
+                {"detail": "La nueva contraseña no puede estar vacía."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        u.set_password(new_password)
+        u.save(update_fields=["password"])
+        return Response({"success": True, "id": u.pk})
+
+    # ───── Edición de perfil propio (no admin) ─────
+    if is_self and not is_admin:
+        # Campos permitidos para autoedición
+        allowed_fields = {
+            "first_name", "last_name", "email", "phone", "preferences", "username"
+        }
+
+        # Validaciones de unicidad para email/username si vienen
+        email = data.get("email")
+        if email is not None:
+            email = str(email).strip()
+            if email and User.objects.exclude(pk=u.pk).filter(email__iexact=email).exists():
+                return Response(
+                    {"errors": ["Ya existe un usuario con ese email"]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        username = data.get("username")
+        if username is not None:
+            username = str(username).strip()
+            if username and User.objects.exclude(pk=u.pk).filter(username__iexact=username).exists():
+                return Response(
+                    {"errors": ["Ya existe un usuario con ese username"]},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        changed = False
+        for f in allowed_fields:
+            if f in data:
+                setattr(u, f, data[f])
+                changed = True
+
+        if changed:
+            u.save()
+            return Response({"success": True, "id": u.pk})
+
+        # Nada que actualizar, pero es válido
+        return Response({"success": True, "id": u.pk})
+
+    # ───── Si NO es self, requiere Admin ─────
+    if not is_admin:
+        return Response({"detail": "No autorizado."}, status=status.HTTP_403_FORBIDDEN)
+
+    # ───── Admin: puede editar más campos (incluye is_active y password directa) ─────
     email = data.get("email")
     username = data.get("username")
     first_name = data.get("first_name")
     last_name = data.get("last_name")
     is_active = data.get("is_active")
     password = data.get("password")
-    # cambio de password para self también podría venir aquí con current_password/new_password
+    phone = data.get("phone")
+    preferences = data.get("preferences")
 
     if email is not None:
         email = email.strip()
@@ -241,6 +312,12 @@ def user_update(request, user_id: int):
 
     if isinstance(is_active, bool):
         u.is_active = is_active
+
+    if phone is not None:
+        setattr(u, "phone", phone)
+
+    if preferences is not None:
+        setattr(u, "preferences", preferences)
 
     if password:
         u.set_password(password)

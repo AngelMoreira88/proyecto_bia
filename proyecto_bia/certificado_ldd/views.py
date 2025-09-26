@@ -29,7 +29,7 @@ from typing import Optional, Dict, Any, Tuple, List
 
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.db import connection, transaction
+from django.db import connection, transaction  # ← mantenido por compatibilidad
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
 from django.template.loader import render_to_string
@@ -37,6 +37,7 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.contrib.staticfiles import finders  # para resolver static relativos
 
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import api_view, permission_classes
@@ -66,20 +67,25 @@ BUSINESS = {
 MAX_PAGE_SIZE = 200
 DEFAULT_PAGE_SIZE = 50
 
+
 def _is_ajax(request: HttpRequest) -> bool:
     return (request.headers.get("X-Requested-With") == "XMLHttpRequest") or (
         request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest"
     )
 
+
 def allow_public(view_func):
     """Marcador no-op: vista pública (no exige login)."""
     return view_func
 
+
 def _norm_dni(s: str) -> str:
     return "".join(ch for ch in (s or "") if ch.isdigit())
 
+
 def _ok_dni(s: str) -> bool:
     return s.isdigit() and 6 <= len(s) <= 12  # rango defensivo
+
 
 # ==== FieldFile helpers (sin tocar .path) ====
 def _fieldfile_exists(ff) -> bool:
@@ -90,50 +96,95 @@ def _fieldfile_exists(ff) -> bool:
     except Exception:
         return False
 
+
 def _open_fieldfile(ff, mode="rb"):
     return ff.storage.open(ff.name, mode)
+
 
 # ======================================================================================
 # PDF helpers
 # ======================================================================================
 
-def link_callback(uri: str, rel: str) -> str:
-    s_url = settings.STATIC_URL
-    s_root = getattr(settings, "STATIC_ROOT", None)
-    s_dirs = list(getattr(settings, "STATICFILES_DIRS", []))
-    m_url = getattr(settings, "MEDIA_URL", None)
-    m_root = getattr(settings, "MEDIA_ROOT", None)
+def link_callback(uri: str, rel: str | None = None) -> str:
+    """
+    Convierte URIs de <img src> y <link rel="stylesheet"> a rutas locales
+    para que xhtml2pdf pueda leer CSS/imagenes desde disco.
 
-    if s_url and uri.startswith(s_url):
-        relpath = uri.replace(s_url, "", 1)
-        if s_root:
-            candidate = os.path.join(s_root, relpath)
-            if os.path.exists(candidate):
-                return candidate
-        for d in s_dirs:
-            candidate = os.path.join(d, relpath)
-            if os.path.exists(candidate):
-                return candidate
-        raise Exception(f"[link_callback] Archivo estático no encontrado: {relpath}")
+    Maneja:
+      - STATIC_URL  -> finders (DEBUG) y/o STATIC_ROOT (post-collectstatic)
+      - MEDIA_URL   -> MEDIA_ROOT
+      - Rutas relativas como 'css/pdf_template.css'
+      - data:...    -> retorna tal cual
+      - http(s)://  -> retorna tal cual (si el renderer puede acceder)
+    """
+    if not uri:
+        raise Exception("[link_callback] URI vacío")
 
-    if m_url and uri.startswith(m_url):
-        relpath = uri.replace(m_url, "", 1)
-        if m_root:
-            candidate = os.path.join(m_root, relpath)
-            if os.path.exists(candidate):
-                return candidate
-        raise Exception(f"[link_callback] Archivo media no encontrado: {relpath}")
+    # Data URLs
+    if uri.startswith("data:"):
+        return uri
 
+    # Absolutas http(s)
+    if uri.startswith("http://") or uri.startswith("https://"):
+        return uri
+
+    # Normaliza separadores (Windows/Linux)
+    def _n(path: str) -> str:
+        return os.path.normpath(path)
+
+    static_url = getattr(settings, "STATIC_URL", "/static/")
+    media_url = getattr(settings, "MEDIA_URL", "/media/")
+    static_root = getattr(settings, "STATIC_ROOT", "")
+    media_root = getattr(settings, "MEDIA_ROOT", "")
+
+    # Caso /static/...
+    if static_url and uri.startswith(static_url):
+        relative_path = uri[len(static_url):]
+        # finders primero (DEBUG)
+        abs_path = finders.find(relative_path)
+        if not abs_path and static_root:
+            abs_path = _n(os.path.join(static_root, relative_path))
+        if abs_path and os.path.exists(abs_path):
+            return abs_path
+        raise Exception(f"[link_callback] STATIC no encontrado: {uri} -> {relative_path}")
+
+    # Caso /media/...
+    if media_url and uri.startswith(media_url):
+        relative_path = uri[len(media_url):]
+        abs_path = _n(os.path.join(media_root, relative_path))
+        if os.path.exists(abs_path):
+            return abs_path
+        raise Exception(f"[link_callback] MEDIA no encontrado: {uri} -> {relative_path}")
+
+    # Caso ruta relativa (p. ej. 'css/pdf_template.css' o 'images/...' etc.)
+    abs_path = finders.find(uri)
+    if abs_path and os.path.exists(abs_path):
+        return abs_path
+    if static_root:
+        candidate = _n(os.path.join(static_root, uri))
+        if os.path.exists(candidate):
+            return candidate
+    candidate = _n(os.path.join(media_root, uri))
+    if os.path.exists(candidate):
+        return candidate
+
+    logger.warning("[link_callback] No se pudo resolver '%s' (rel=%s); devolviendo literal", uri, rel)
     return uri
+
 
 def generate_pdf(html: str) -> Optional[bytes]:
     logger.debug("[generate_pdf] Render HTML->PDF (len=%s)", len(html))
     buf = BytesIO()
-    result = pisa.CreatePDF(html, dest=buf, link_callback=link_callback, encoding="utf-8")
+    try:
+        result = pisa.CreatePDF(html, dest=buf, link_callback=link_callback, encoding="utf-8")
+    except Exception as e:
+        logger.exception("[generate_pdf] Excepción en CreatePDF: %s", e)
+        return None
     if result.err:
         logger.error("[generate_pdf] xhtml2pdf err=%s", result.err)
         return None
     return buf.getvalue()
+
 
 # ======================================================================================
 # Negocio
@@ -141,6 +192,7 @@ def generate_pdf(html: str) -> Optional[bytes]:
 
 def _is_cancelado(reg: BaseDeDatosBia) -> bool:
     return (reg.estado or "").strip().lower() == "cancelado"
+
 
 def _row_minimal(reg: BaseDeDatosBia) -> Dict[str, Any]:
     return {
@@ -151,6 +203,7 @@ def _row_minimal(reg: BaseDeDatosBia) -> Dict[str, Any]:
         "estado": reg.estado,
     }
 
+
 def get_entidad_emisora(registro: BaseDeDatosBia) -> Optional[Entidad]:
     propietario = (registro.propietario or "").strip()
     interna = (registro.entidadinterna or "").strip()
@@ -160,6 +213,7 @@ def get_entidad_emisora(registro: BaseDeDatosBia) -> Optional[Entidad]:
     if not ent and interna:
         ent = Entidad.objects.filter(nombre__iexact=interna).first()
     return ent
+
 
 def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate], Optional[bytes], Optional[str]]:
     logger.info("[_render_pdf_for_registro] id_pago_unico=%s", reg.id_pago_unico)
@@ -196,12 +250,18 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
         "firma_url": firma_url,
         "responsable": responsable,
         "cargo": cargo,
-        "entidad_firma": razon_social,
+        "entidad_firma": razon_social,        # tu clave original
+        "entidad_firma_text": razon_social,   # clave que usa el template actual
         "entidad_bia": entidad_bia,
         "entidad_otras": entidad_otras,
     }
 
-    html = render_to_string("pdf_template.html", context)
+    try:
+        html = render_to_string("pdf_template.html", context)
+    except Exception as e:
+        logger.exception("[_render_pdf_for_registro] Error renderizando template: %s", e)
+        return cert, None, "No se pudo renderizar el HTML del certificado."
+
     pdf_bytes = generate_pdf(html)
     if not pdf_bytes:
         return cert, None, "Falló la generación del PDF para el certificado."
@@ -216,6 +276,7 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
 
     return cert, pdf_bytes, None
 
+
 # ======================================================================================
 # Consulta unificada por DNI (pública)
 # ======================================================================================
@@ -223,6 +284,7 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
 def _supports_distinct_on() -> bool:
     # Si NO es PostgreSQL, evitamos .distinct("campo")
     return connection.vendor == "postgresql"
+
 
 def _query_unicas_por_id(dni: str):
     """
@@ -239,21 +301,17 @@ def _query_unicas_por_id(dni: str):
             .distinct("id_pago_unico")
         )
 
-    # Fallback genérico (no-Postgres): elegir la última por fechas. Puede ser más costoso.
-    # Nota: si usás SIEMPRE Postgres, esto no se ejecuta.
+    # Fallback genérico (no-Postgres): elegir la última por fechas.
     ids = (
         BaseDeDatosBia.objects
         .filter(dni=dni)
         .values_list("id_pago_unico", flat=True)
         .distinct()
     )
-    # Traemos todas esas deudas y ordenamos en memoria (controlado por page_size después)
-    # Para evitar memoria, podrías hacer un join/subquery más complejo; aquí priorizamos robustez.
     todas = list(
         BaseDeDatosBia.objects.filter(dni=dni, id_pago_unico__in=list(ids))
         .order_by(*order_fields)
     )
-    # Elegimos la primera ocurrencia por id_pago_unico en ese orden
     seen = set()
     out: List[BaseDeDatosBia] = []
     for r in todas:
@@ -261,26 +319,14 @@ def _query_unicas_por_id(dni: str):
             continue
         seen.add(r.id_pago_unico)
         out.append(r)
-    # Devolvemos una lista “queryset-like” (iterable)
     return out
+
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def api_consulta_dni_unificada(request: HttpRequest):
     """
     GET /api/certificado/consulta/dni/?dni=<DNI>[&page=1&page_size=50]
-
-    Devuelve TODAS las obligaciones únicas por id_pago_unico (canceladas y no) para el DNI.
-    Cada ítem incluye 'cancelado' para que el front decida si mostrar botón de PDF.
-
-    Respuesta:
-    {
-      "dni": "12345678",
-      "estado_global": "pendiente|varios_cancelados|solo_cancelados|sin_resultados",
-      "resumen": {...},
-      "paginacion": {"page":1,"page_size":50,"total":123},
-      "deudas": [ {...}, ... ]
-    }
     """
     raw = request.GET.get("dni") or ""
     dni = _norm_dni(raw)
@@ -300,10 +346,9 @@ def api_consulta_dni_unificada(request: HttpRequest):
 
     # Query “única por id_pago_unico”
     base = _query_unicas_por_id(dni)
-    # Para contar total:
     total = (base.count() if hasattr(base, "count") else len(base))
 
-    # Slice de paginado
+    # Slice
     start = (page - 1) * page_size
     end = start + page_size
     subset = (base[start:end] if hasattr(base, "__getitem__") else list(base)[start:end])
@@ -332,14 +377,9 @@ def api_consulta_dni_unificada(request: HttpRequest):
             canceladas += 1
         deudas.append(item)
 
-    # Resumen global (sobre todas las únicas, no solo la página)
-    # Para no cargar toda la tabla, si estamos en Postgres se puede computar eficiente;
-    # aquí, por simplicidad y robustez, consultamos contando por estado a nivel BD.
+    # Resumen global
     total_en_bd = BaseDeDatosBia.objects.filter(dni=dni).count()
-    # Estimaciones: si total==0, es sin_resultados. Si hay al menos 1 cancelado en total, "varios_cancelados" o "solo_cancelados"
-    # Para precisión, recalculamos canceladas reales en todas las únicas (con pequeña sobrecarga aceptable).
     if total > 0:
-        # Conteo canceladas únicas (sin paginar)
         if _supports_distinct_on():
             total_canceladas_unicas = (
                 BaseDeDatosBia.objects.filter(dni=dni, estado__iexact="cancelado")
@@ -348,7 +388,6 @@ def api_consulta_dni_unificada(request: HttpRequest):
                 .count()
             )
         else:
-            # Fallback: contamos en memoria
             base_all = _query_unicas_por_id(dni)
             total_canceladas_unicas = sum(1 for r in (base_all if isinstance(base_all, list) else list(base_all)) if _is_cancelado(r))
     else:
@@ -382,6 +421,7 @@ def api_consulta_dni_unificada(request: HttpRequest):
         "deudas": deudas,
     }
     return Response(payload, status=200)
+
 
 # ======================================================================================
 # Selección HTML (interna)
@@ -428,6 +468,7 @@ def seleccionar_certificado(request: HttpRequest) -> HttpResponse:
         status=200,
     )
 
+
 # ======================================================================================
 # Generar certificado (PDF/JSON) – público
 # ======================================================================================
@@ -446,6 +487,7 @@ def api_generar_certificado(request: HttpRequest) -> HttpResponse:
     if method == "POST":
         return _handle_post_generar(request)
     return JsonResponse({"error": "Método no permitido. Use GET o POST."}, status=405)
+
 
 def _handle_get_generar(request: HttpRequest) -> HttpResponse:
     dni = _norm_dni(request.GET.get("dni") or "")
@@ -479,6 +521,7 @@ def _handle_get_generar(request: HttpRequest) -> HttpResponse:
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
     resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
     return resp
+
 
 def _handle_post_generar(request: HttpRequest) -> HttpResponse:
     dni = _norm_dni(request.POST.get("dni") or "")
@@ -562,6 +605,7 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
     resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
     return resp
 
+
 # ======================================================================================
 # Entidades (CRUD) – interno
 # ======================================================================================
@@ -573,6 +617,7 @@ class EntidadViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ["id", "nombre", "responsable"]
     ordering = ["id"]
+
 
 # ======================================================================================
 # Health check

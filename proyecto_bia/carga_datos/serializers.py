@@ -77,3 +77,41 @@ class AdminUserCreateUpdateSerializer(serializers.ModelSerializer):
             instance.set_password(pwd)
         instance.save()
         return instance
+
+
+# ============================
+# Extras para autoedición
+# ============================
+
+class SelfPasswordChangeSerializer(serializers.Serializer):
+    """
+    Cambio de contraseña propio:
+    - current_password
+    - new_password
+    """
+    current_password = serializers.CharField(write_only=True, trim_whitespace=False)
+    new_password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+    def validate(self, attrs):
+        cur = attrs.get("current_password") or ""
+        new = attrs.get("new_password") or ""
+        if not cur or not new:
+            raise serializers.ValidationError("Debés completar la contraseña actual y la nueva.")
+        if cur == new:
+            raise serializers.ValidationError("La nueva contraseña no puede ser igual a la actual.")
+        return attrs
+
+
+class SelfProfileUpdateSerializer(serializers.ModelSerializer):
+    """
+    Edición de datos básicos propios (no-admin).
+    """
+    class Meta:
+        model = User
+        fields = ("username", "email", "first_name", "last_name",)
+        extra_kwargs = {
+            "username": {"required": False, "allow_blank": True},
+            "email": {"required": False, "allow_blank": True},
+            "first_name": {"required": False, "allow_blank": True},
+            "last_name": {"required": False, "allow_blank": True},
+        }
