@@ -98,7 +98,7 @@ export default function ModificarMasivo() {
     }
   };
 
-  // ====== PLANTILLA XLSX (opcional, generada en front) ======
+  // ====== PLANTILLA XLSX (completa, generada en front) ======
   const buildTemplateAOA = () => {
     const header = ['id_pago_unico', '__op', ...ALL_MODEL_FIELDS];
 
@@ -130,6 +130,14 @@ export default function ModificarMasivo() {
     return [header, rowUpdate, rowInsert, rowDelete];
   };
 
+  // ====== PLANTILLA XLSX (mínima, solo columnas necesarias para UPDATE) ======
+  const buildTemplateMinimalAOA = () => {
+    const header = ['id_pago_unico', '__op', 'estado']; // ejemplo mínimo
+    const rowUpdate = ['12345', 'UPDATE', 'CONTACTADO'];
+    const rowNoChange = ['67890', 'NOCHANGE', '']; // ilustrativo
+    return [header, rowUpdate, rowNoChange];
+  };
+
   const downloadTemplateXLSX = () => {
     const aoa = buildTemplateAOA();
     const ws  = XLSX.utils.aoa_to_sheet(aoa);
@@ -142,15 +150,15 @@ export default function ModificarMasivo() {
     });
 
     const instrucciones = [
-      ['Cómo usar la planilla'],
-      [`• 'id_pago_unico' es la clave de negocio: NO se modifica en UPDATE; identifica el registro.`],
-      [`• '__op' es opcional: UPDATE (o vacío), INSERT, DELETE, NOCHANGE. Si está vacío se infiere.`],
-      [`• Para UPDATE podés dejar en blanco las columnas que no cambian.`],
-      [`• Para INSERT, 'id_pago_unico' debe ser nuevo y único.`],
-      [`• Para DELETE se usa solo 'id_pago_unico'.`],
-      [`• Fechas: YYYY-MM-DD; decimales con punto; 'entidad' puede ser ID o nombre (el backend resuelve).`],
-      [`• Esta plantilla incluye TODAS las columnas del modelo.`],
-      [`• En UPDATE el backend ignorará cambios en: ${NON_EDITABLE_IN_UPDATE.join(', ')}.`],
+      ['Cómo usar la planilla (COMPLETA)'],
+      ['• Para UPDATE, NO hace falta enviar todas las columnas: incluí solo las que vas a cambiar + id_pago_unico + __op=UPDATE.'],
+      ['• __op: UPDATE (o vacío), INSERT, DELETE, NOCHANGE.'],
+      ['• Para UPDATE podés dejar fuera columnas no modificadas (recomendado).'],
+      ['• Para INSERT, id_pago_unico debe ser nuevo.'],
+      ['• Para DELETE, alcanza con id_pago_unico + __op=DELETE.'],
+      ['• Fechas: YYYY-MM-DD; decimales con punto.'],
+      ['• "entidad" puede ser ID o nombre (el backend resuelve).'],
+      [`• En UPDATE, el backend ignora: ${NON_EDITABLE_IN_UPDATE.join(', ')} (si los envías con cambios).`],
     ];
     const wsInfo = XLSX.utils.aoa_to_sheet(instrucciones);
     wsInfo['!cols'] = [{ wch: 120 }];
@@ -166,6 +174,36 @@ export default function ModificarMasivo() {
     const a   = document.createElement('a');
     a.href = url;
     a.download = 'plantilla_modificacion_masiva.xlsx';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadTemplateMinimalXLSX = () => {
+    const aoa = buildTemplateMinimalAOA();
+    const ws  = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = [{ wch: 18 }, { wch: 10 }, { wch: 18 }];
+
+    const instrucciones = [
+      ['Cómo usar la planilla (MÍNIMA)'],
+      ['• UPDATE mínimo: id_pago_unico + __op=UPDATE + solo las columnas a cambiar (ej.: estado).'],
+      ['• No incluyas columnas que no vas a modificar.'],
+      ['• Para probar: reemplazá id_pago_unico por uno existente y elegí un estado distinto.'],
+      ['• Campos no editables en UPDATE: id_pago_unico, dni, cuit, fecha_apertura.'],
+    ];
+    const wsInfo = XLSX.utils.aoa_to_sheet(instrucciones);
+    wsInfo['!cols'] = [{ wch: 120 }];
+
+    const wb  = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Datos');
+    XLSX.utils.book_append_sheet(wb, wsInfo, 'Guía (mínima)');
+
+    const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob  = new Blob([wbout], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href = url;
+    a.download = 'plantilla_minima_update.xlsx';
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -337,22 +375,28 @@ export default function ModificarMasivo() {
             type="button"
             className="btn btn-sm btn-outline-secondary"
             onClick={downloadTemplateXLSX}
-            title="Descargar una planilla de ejemplo generada en el navegador"
+            title="Descargar la planilla COMPLETA generada en el navegador"
           >
-            Descargar plantilla (.xlsx)
+            Plantilla completa (.xlsx)
+          </button>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary"
+            onClick={downloadTemplateMinimalXLSX}
+            title="Descargar la planilla MÍNIMA para UPDATE"
+          >
+            Plantilla mínima (.xlsx)
           </button>
         </div>
         <div className="card-body">
           <ol className="mb-3">
             <li className="mb-1">
-              Usá <strong>Descargar base</strong> para obtener un Excel con <em>todas las columnas</em> de la tabla.
-              También podés usar la <em>plantilla</em> para pruebas puntuales.
+              Usá <strong>Descargar base</strong> o una <em>Plantilla</em>.
             </li>
             <li className="mb-1">
-              Completá una fila por registro. <strong>Obligatorio:</strong>{' '}
-              <code>id_pago_unico</code> (o <code>business_key</code>) como clave.
-              <br />
-              <span className="text-muted small">No cambies la clave en UPDATE; solo identifica el registro.</span>
+              <strong>Para UPDATE:</strong> incluí <code>id_pago_unico</code>, <code>__op=UPDATE</code> y
+              <strong> solo las columnas que querés cambiar</strong>. No incluyas campos no editables:
+              <code> {NON_EDITABLE_IN_UPDATE.join(', ')} </code>.
             </li>
             <li className="mb-1">
               <strong>Acciones</strong> (<code>__op</code>):{' '}
@@ -362,16 +406,8 @@ export default function ModificarMasivo() {
               <span className="badge text-bg-secondary">NOCHANGE</span> (o vacío).
             </li>
             <li className="mb-1">
-              <strong>Campos no editables en UPDATE:</strong>{' '}
-              <code>{NON_EDITABLE_IN_UPDATE.join(', ')}</code>. Si los cambiás, el backend los ignorará.
-            </li>
-            <li className="mb-1">
-              Guardá el archivo como <code>.xlsx</code> (también acepta <code>.xls</code> o <code>.csv</code>) y{' '}
-              <strong>subilo</strong>.
-            </li>
-            <li>
-              Presioná <em>Validar / Previsualizar</em>. Si está todo ok,{' '}
-              <strong>Confirmar cambios</strong>.
+              Guardá el archivo y <strong>subilo</strong>. Luego presioná <em>Validar / Previsualizar</em>.
+              Si está todo ok, <strong>Confirmar cambios</strong>.
             </li>
           </ol>
           <div className="small text-muted">
