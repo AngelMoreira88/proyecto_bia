@@ -17,7 +17,6 @@ def _sanitize_pg_env():
         if v is None:
             continue
         try:
-            # Si no se puede codificar exactamente en UTF-8, la removemos
             v.encode("utf-8", errors="strict")
         except Exception:
             os.environ.pop(k, None)
@@ -31,12 +30,8 @@ try:
 except Exception:
     pass
 
-# --- Helpers para sanear variables de entorno a str/UTF-8 ---
+# --- Helper seguro para leer envs como str UTF-8 ---
 def _env_str(key: str, default=None):
-    """
-    Devuelve siempre str (UTF-8 si es posible). Si la variable viene como bytes
-    o con tildes en Latin-1, intenta decodificarla sin romper.
-    """
     v = os.environ.get(key, default)
     if v is None:
         return None
@@ -45,19 +40,17 @@ def _env_str(key: str, default=None):
             return v.decode("utf-8")
         except Exception:
             return v.decode("latin-1", errors="ignore")
-    # ya es str
     try:
-        # fuerza a ser representable en UTF-8 (no cambia el contenido)
         v.encode("utf-8", errors="strict")
         return v
     except Exception:
-        # si tiene bytes “raros” por historial Latin-1, limpiamos sin romper
         return v.encode("latin-1", errors="ignore").decode("utf-8", errors="ignore")
 
-# --- Desarrollo local ---
+# =========================
+# DEV
+# =========================
 DEBUG = True
 
-# Clave SOLO para dev
 SECRET_KEY = _env_str("DJANGO_SECRET_KEY_DEV", "dev-only-not-secure")
 
 ALLOWED_HOSTS = ["127.0.0.1", "localhost", "[::1]"]
@@ -66,7 +59,6 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
 ]
 
-# Nada de forzar HTTPS en local
 SECURE_SSL_REDIRECT = False
 SESSION_COOKIE_SECURE = False
 CSRF_COOKIE_SECURE = False
@@ -74,7 +66,6 @@ SECURE_PROXY_SSL_HEADER = None
 USE_X_FORWARDED_HOST = False
 
 # --- Base de datos ---
-# Para usar Azure desde local, corré con USE_AZURE_DB=1 y seteá las envs.
 USE_AZURE_DB = _env_str("USE_AZURE_DB", "0") == "1"
 
 if USE_AZURE_DB:
@@ -86,13 +77,12 @@ if USE_AZURE_DB:
             "PASSWORD": _env_str("DATABASE_PASSWORD"),
             "HOST": _env_str("DATABASE_HOST", "bia.postgres.database.azure.com"),
             "PORT": _env_str("DATABASE_PORT", "5432"),
-            # Fuerza UTF-8 del lado cliente para evitar UnicodeDecodeError
             "OPTIONS": {
                 "sslmode": "require",
                 "options": "-c client_encoding=UTF8",
-                "application_name": "bia",  # evita PGAPPNAME con acentos
+                "application_name": "bia",  # ASCII seguro
             },
-            "CONN_MAX_AGE": 0,  # en dev prefiero conexiones cortas
+            "CONN_MAX_AGE": 0,
         }
     }
 else:
@@ -104,7 +94,6 @@ else:
             "PASSWORD": _env_str("DB_LOCAL_PASSWORD", "postgres"),
             "HOST": _env_str("DB_LOCAL_HOST", "127.0.0.1"),
             "PORT": _env_str("DB_LOCAL_PORT", "5432"),
-            # Evita problemas de codificación en Windows/psycopg2
             "OPTIONS": {
                 "options": "-c client_encoding=UTF8",
                 "application_name": "bia",
@@ -116,7 +105,7 @@ else:
 # --- Email a consola en dev ---
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
-# --- Logging prolijo a consola ---
+# --- Logging a consola ---
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
