@@ -18,18 +18,25 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install & Build
+      - name: Install & Build (no fail on warnings)
         working-directory: frontend
         env:
-          CI: ""              # ← NO tratar warnings como errores
+          CI: ""     # << evita que CRA trate warnings como errores
         run: |
           npm ci
           npm run build
 
-      - name: Deploy to Azure Static Web Apps
+      # (opcional) ver qué hay en build
+      - name: Show build output
+        run: ls -la frontend/build || true
+
+      - name: Deploy prebuilt artifact to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           action: "upload"
-          app_location: "frontend"
-          output_location: "build"
+          # Subimos el artefacto ya compilado (evita Oryx)
+          app_location: "/"                    # no se usa para build al subir artefacto
+          app_artifact_location: "frontend/build"
+          routes_location: "frontend"          # aquí está tu staticwebapp.config.json
+          skip_app_build: true                 # clave para NO reconstruir
