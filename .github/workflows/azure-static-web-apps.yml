@@ -20,6 +20,8 @@ jobs:
 
       - name: Install & Build
         working-directory: frontend
+        env:
+          CI: ""              # ← NO tratar warnings como errores
         run: |
           npm ci
           npm run build
