@@ -11,32 +11,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: 'npm'
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install & Build (no fail on warnings)
-        working-directory: frontend
-        env:
-          CI: ""     # << evita que CRA trate warnings como errores
-        run: |
-          npm ci
-          npm run build
-
-      # (opcional) ver qué hay en build
-      - name: Show build output
-        run: ls -la frontend/build || true
-
-      - name: Deploy prebuilt artifact to Azure Static Web Apps
+      # Usamos la acción de SWA pero con "app_build_command" propio
+      # para desactivar CI y que no corte por warnings de ESLint.
+      - name: Deploy via SWA Action (custom build)
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           action: "upload"
-          # Subimos el artefacto ya compilado (evita Oryx)
-          app_location: "/"                    # no se usa para build al subir artefacto
-          app_artifact_location: "frontend/build"
-          routes_location: "frontend"          # aquí está tu staticwebapp.config.json
-          skip_app_build: true                 # clave para NO reconstruir
+          app_location: "frontend"   # aquí vive tu package.json y staticwebapp.config.json
+          output_location: "build"   # carpeta que crea "npm run build"
+          app_build_command: "CI='' npm ci && CI='' npm run build"
