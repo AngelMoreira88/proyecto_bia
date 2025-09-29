@@ -218,7 +218,7 @@ export default function ModificarMasivo() {
     }
     const sizeMB = f.size / (1024 * 1024);
     if (sizeMB > MAX_FILE_MB) {
-      return `El archivo supera ${MAX_FILE_MB} MB.`;
+      return `El archivo supera ${MAX_FILE_MB} MB.`;d
     }
     return null;
   };
