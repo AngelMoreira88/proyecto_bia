@@ -52,7 +52,7 @@ const ALL_MODEL_FIELDS = [
 ];
 
 // Campos que NO se pueden modificar en UPDATE (el backend los ignora)
-const NON_EDITABLE_IN_UPDATE = ['id_pago_unico', 'dni', 'cuit', 'fecha_apertura'];
+const NON_EDITABLE_IN_UPDATE = ['id_pago_unico', 'fecha_apertura'];
 
 export default function ModificarMasivo() {
   const navigate = useNavigate();
@@ -154,9 +154,9 @@ export default function ModificarMasivo() {
       ['• Para UPDATE, NO hace falta enviar todas las columnas: incluí solo las que vas a cambiar + id_pago_unico + __op=UPDATE.'],
       ['• __op: UPDATE (o vacío), INSERT, DELETE, NOCHANGE.'],
       ['• Para UPDATE podés dejar fuera columnas no modificadas (recomendado).'],
-      ['• Para INSERT, id_pago_unico debe ser nuevo.'],
+      ['• Para INSERT, podés dejar id_pago_unico vacío: el backend lo autogenera.'],
       ['• Para DELETE, alcanza con id_pago_unico + __op=DELETE.'],
-      ['• Fechas: YYYY-MM-DD; decimales con punto.'],
+      ['• Fechas: YYYY-MM-DD; fecha_deuda debe ser anterior a fecha_apertura; fecha_apertura se completa si falta.'],
       ['• "entidad" puede ser ID o nombre (el backend resuelve).'],
       [`• En UPDATE, el backend ignora: ${NON_EDITABLE_IN_UPDATE.join(', ')} (si los envías con cambios).`],
     ];
@@ -186,9 +186,10 @@ export default function ModificarMasivo() {
     const instrucciones = [
       ['Cómo usar la planilla (MÍNIMA)'],
       ['• UPDATE mínimo: id_pago_unico + __op=UPDATE + solo las columnas a cambiar (ej.: estado).'],
-      ['• No incluyas columnas que no vas a modificar.'],
-      ['• Para probar: reemplazá id_pago_unico por uno existente y elegí un estado distinto.'],
-      ['• Campos no editables en UPDATE: id_pago_unico, dni, cuit, fecha_apertura.'],
+      ['• No incluyas columnas que no vas a modificar (las vacías se ignoran).'],
+      ['• Campos no editables en UPDATE: id_pago_unico, fecha_apertura.'],
+      ['• Estados especiales (unicidad blanda): CANCELADO / CON DEUDA.'],
+      ['• __op: UPDATE (o vacío), INSERT, DELETE, NOCHANGE.'],
     ];
     const wsInfo = XLSX.utils.aoa_to_sheet(instrucciones);
     wsInfo['!cols'] = [{ wch: 120 }];
