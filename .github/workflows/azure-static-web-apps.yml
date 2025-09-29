@@ -21,13 +21,11 @@ jobs:
       - name: Build (tolerate warnings) + include SWA config
         working-directory: frontend
         env:
-          CI: ""   # evita que CRA corte por warnings
+          CI: ""
         run: |
           npm ci
           npm run build
-          # Copiar la config al artefacto (raíz de build/)
           cp staticwebapp.config.json build/
-          # Verificar que entró al artefacto
           ls -la build | grep staticwebapp.config.json || (echo "Config no encontrada en build/"; exit 1)
 
       - name: Deploy prebuilt artifact to SWA (skip Oryx)
@@ -35,5 +33,6 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           action: "upload"
-          app_artifact_location: "frontend/build"   # artefacto ya compilado (incluye la config)
-          skip_app_build: true                      # NO reconstruir con Oryx
+          app_artifact_location: "frontend/build"
+          config_file_location: "frontend/build"
+          skip_app_build: true
