@@ -74,9 +74,31 @@ const processQueue = (error, newAccess = null) => {
 };
 
 // ===================================
+// 🔧 Normalizador de rutas (FIX 404)
+// Reescribe /carga-datos/api/... -> /api/carga-datos/...
+// sin tocar el resto del código.
+// ===================================
+const LEGACY_PREFIX = '/carga-datos/api/';
+const CORRECT_PREFIX = '/api/carga-datos/';
+
+function normalizeLegacyPath(url) {
+  if (typeof url !== 'string') return url;
+  // Solo toca rutas relativas que empiezan con el prefijo legado
+  if (url.startsWith(LEGACY_PREFIX)) {
+    return url.replace(LEGACY_PREFIX, CORRECT_PREFIX);
+  }
+  return url;
+}
+
+// ===================================
 // Interceptor de REQUEST
 // ===================================
 api.interceptors.request.use((config) => {
+  // 🔧 Aplicar normalización de ruta ANTES de enviar
+  if (config && typeof config.url === 'string') {
+    config.url = normalizeLegacyPath(config.url);
+  }
+
   const token = getAccessToken();
   if (token && !config.headers?.Authorization) {
     config.headers = config.headers || {};
@@ -202,6 +224,7 @@ export default api;
 
 // =======================================================
 // Endpoints: CARGA DE DATOS (base /carga-datos/api/...)
+// (Se normalizan a /api/carga-datos/ en el interceptor)
 // =======================================================
 
 export function subirExcel(formData) {

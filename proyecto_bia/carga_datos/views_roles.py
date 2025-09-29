@@ -39,16 +39,17 @@ def _ensure_groups_exist():
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def me(request):
+    _ensure_groups_exist()
     u: User = request.user
     roles = list(u.groups.values_list("name", flat=True))
     data = {
         "id": u.id,
-        "username": u.username,
-        "email": u.email,
-        "first_name": u.first_name,
-        "last_name": u.last_name,
+        "username": getattr(u, "username", ""),
+        "email": getattr(u, "email", ""),
+        "first_name": getattr(u, "first_name", ""),
+        "last_name": getattr(u, "last_name", ""),
         "phone": getattr(u, "phone", ""),
-        "is_superuser": u.is_superuser,
+        "is_superuser": getattr(u, "is_superuser", False),
         "roles": roles,
         "preferences": getattr(u, "preferences", None) or {},
     }
@@ -56,7 +57,7 @@ def me(request):
 
 
 @api_view(["GET"])
-@permission_classes([IsAuthenticated])  # o [IsAdminRole]
+@permission_classes([IsAuthenticated])  # o [IsAdminRole] si querés
 def roles_list(request):
     _ensure_groups_exist()
     return Response({"roles": list(VALID_ROLES)})
@@ -72,8 +73,16 @@ def users_create_or_search(request):
     if request.method == "GET":
         q = (request.query_params.get("q") or "").strip()
         roles_csv = (request.query_params.get("roles") or "").strip()
-        page = int(request.query_params.get("page") or 1)
-        page_size = int(request.query_params.get("page_size") or 10)
+        try:
+            page = int(request.query_params.get("page") or 1)
+        except Exception:
+            page = 1
+        try:
+            page_size = int(request.query_params.get("page_size") or 10)
+        except Exception:
+            page_size = 10
+        page = max(page, 1)
+        page_size = min(max(page_size, 1), 100)
 
         qs = User.objects.all().order_by("id")
 
@@ -123,7 +132,7 @@ def users_create_or_search(request):
     data = request.data or {}
     email = (data.get("email") or "").strip()
     password = data.get("password") or ""
-    username = (data.get("username") or "").strip() or email.split("@")[0]
+    username = (data.get("username") or "").strip() or (email.split("@")[0] if "@" in email else "")
     first_name = (data.get("first_name") or data.get("nombre") or "").strip()
     last_name = (data.get("last_name") or data.get("apellido") or "").strip()
     is_active = bool(data.get("is_active", True))
@@ -140,11 +149,21 @@ def users_create_or_search(request):
             status=status.HTTP_400_BAD_REQUEST,
         )
 
-    if User.objects.filter(username__iexact=username).exists():
+    if username and User.objects.filter(username__iexact=username).exists():
         return Response(
             {"errors": ["Ya existe un usuario con ese username"]},
             status=status.HTTP_400_BAD_REQUEST,
         )
+
+    # Si no vino username, generamos uno simple
+    if not username:
+        base = (email.split("@")[0] if "@" in email else "user").lower()
+        suffix = 1
+        candidate = base
+        while User.objects.filter(username__iexact=candidate).exists():
+            suffix += 1
+            candidate = f"{base}{suffix}"
+        username = candidate
 
     u = User.objects.create(
         email=email,
