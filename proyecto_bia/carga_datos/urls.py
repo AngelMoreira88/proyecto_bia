@@ -29,44 +29,48 @@ from carga_datos.views_roles import (
     user_roles,               # ✅ GET/POST /users/<id>/roles
 )
 
+app_name = "carga_datos"
+
 def ping(_request):
     return JsonResponse({"ok": True, "app": "carga_datos"})
 
 urlpatterns = [
     # ---------------------------
     # WEB (navegación)
+    # ⚠️ Ojo: si este módulo se incluye en /api/carga-datos/,
+    # estas vistas HTML quedarán bajo /api/carga-datos/...
+    # Si no querés eso, conviene moverlas a otro urls.py e incluirlas sin /api/.
     # ---------------------------
-    path('',                   cargar_excel,       name='cargar_excel'),
-    path('confirmar-web/',     confirmar_carga,    name='confirmar_carga_web'),
-    path('errores-web/',       errores_validacion, name='errores_validacion_web'),
+    path("",                   cargar_excel,       name="cargar_excel"),
+    path("confirmar-web/",     confirmar_carga,    name="confirmar_carga_web"),
+    path("errores-web/",       errores_validacion, name="errores_validacion_web"),
 
     # ---------------------------
-    # API (consumida por frontend)
+    # API (sin prefijo 'api/' aquí)
+    # Resultado final (vía include del proyecto):
+    #   /api/carga-datos/ping/
+    #   /api/carga-datos/cargar/
+    #   /api/carga-datos/confirmar/
+    #   ...
     # ---------------------------
-    path('api/ping/',                       ping,                   name='api_ping'),
-    path('api/cargar/',                     api_cargar_excel,       name='api_cargar'),
-    path('api/confirmar/',                  api_confirmar_carga,    name='api_confirmar'),
-    path('api/errores/',                    api_errores_validacion, name='api_errores'),
-    path('api/mostrar-datos-bia/',          mostrar_datos_bia,      name='api_mostrar_datos_bia'),
-    path('api/mostrar-datos-bia/<int:pk>/', actualizar_datos_bia,   name='api_actualizar_datos_bia'),
-    path('api/exportar-datos-bia.csv',      exportar_datos_bia_csv, name='api_exportar_datos_bia_csv'),
+    path("ping/",                       ping,                   name="api_ping"),
+    path("cargar/",                     api_cargar_excel,       name="api_cargar"),
+    path("confirmar/",                  api_confirmar_carga,    name="api_confirmar"),
+    path("errores/",                    api_errores_validacion, name="api_errores"),
+    path("mostrar-datos-bia/",          mostrar_datos_bia,      name="api_mostrar_datos_bia"),
+    path("mostrar-datos-bia/<int:pk>/", actualizar_datos_bia,   name="api_actualizar_datos_bia"),
+    path("exportar-datos-bia.csv",      exportar_datos_bia_csv, name="api_exportar_datos_bia_csv"),
 
     # Bulk update (Modificar Masivo)
-    path("api/bulk-update/validate",     bulk_validate,     name="bulk_update_validate"),
-    path("api/bulk-update/commit",       bulk_commit,       name="bulk_update_commit"),
-    path("api/bulk-update/export.xlsx",  bulk_export_xlsx,  name="bulk_export_xlsx"),
+    path("bulk-update/validate",     bulk_validate,     name="bulk_update_validate"),
+    path("bulk-update/commit",       bulk_commit,       name="bulk_update_commit"),
+    path("bulk-update/export.xlsx",  bulk_export_xlsx,  name="bulk_export_xlsx"),
 
     # Admin (me/roles/users)
-    path("api/admin/me",                         me,                      name="admin_me"),
-    path("api/admin/roles",                      roles_list,              name="admin_roles"),
-
-    # 🔁 GET (buscar) y POST (crear) en la misma ruta
-    path("api/admin/users",                      users_create_or_search,  name="admin_users_search"),
-
-    # ✅ Update/Deactivate
-    path("api/admin/users/<int:user_id>",               user_update,      name="admin_user_update"),
-    path("api/admin/users/<int:user_id>/deactivate",    user_deactivate,  name="admin_user_deactivate"),
-
-    # ✅ Roles por usuario
-    path("api/admin/users/<int:user_id>/roles",         user_roles,       name="admin_user_roles"),
+    path("admin/me",                         me,                      name="admin_me"),
+    path("admin/roles",                      roles_list,              name="admin_roles"),
+    path("admin/users",                      users_create_or_search,  name="admin_users_search"),
+    path("admin/users/<int:user_id>",        user_update,             name="admin_user_update"),
+    path("admin/users/<int:user_id>/deactivate",    user_deactivate,  name="admin_user_deactivate"),
+    path("admin/users/<int:user_id>/roles",         user_roles,       name="admin_user_roles"),
 ]
