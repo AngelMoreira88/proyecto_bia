@@ -1,0 +1,175 @@
+/* ===================== Tipografía / Base ===================== */
+@page {
+  /* Márgenes de página homogéneos en PDF */
+  margin: 18mm 16mm;
+}
+
+html, body {
+  font-family: DejaVu Sans, Arial, sans-serif;
+  font-size: 11pt;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.title {
+  text-align: center;
+  margin: 10px 0 0;
+}
+
+.date {
+  text-align: right;
+  margin: 8px 0 18px;
+  font-size: 10pt;
+}
+
+.content {
+  font-size: 12pt;
+  line-height: 1.5;
+}
+
+.signature {
+  margin-top: 40px;
+  text-align: center;
+}
+
+.hr {
+  border: 0;
+  height: 1px;
+  background: #999;
+  margin: 8px 0 14px;
+}
+
+img {
+  vertical-align: middle;
+  image-rendering: auto; /* seguro en la mayoría de motores PDF */
+}
+
+/* =============== Franja de logos (layout estable) =============== */
+.logo-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;       /* 2 columnas equilibradas */
+  margin-bottom: 16px;       /* separación con el resto */
+}
+
+.logo-table td.logo-cell {
+  width: 50%;
+  vertical-align: middle;
+  padding: 0 8px;            /* respira dentro de la celda */
+}
+
+/* Caja de logo: tamaño tope y sin desbordes */
+.logo-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+
+  /* Evita superposición/overflow visual */
+  overflow: hidden;
+
+  /* Asegura que el contenedor no colapse y mantenga altura fija */
+  min-height: 48px;
+  border: 0;
+}
+
+/* Dual (dos logos): caja tope 280×70 */
+.logo-box--dual {
+  max-width: 280px;
+  height: 70px;
+  margin: 0;                 /* centrado lo da flex del TD */
+}
+
+/* Single (logo único centrado): caja tope 320×80 */
+.logo-box--single {
+  max-width: 320px;
+  height: 80px;
+  margin: 0 auto;
+}
+
+/* Imagen de logo: bloque y contenida */
+.logo-img {
+  display: block;            /* elimina espacios “inline” */
+}
+
+/* Escalado sin deformar en cualquier caja */
+.fit-contain {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto !important;
+  height: auto !important;
+}
+
+/* Placeholder cuando no hay logo */
+.logo-placeholder {
+  display: inline-block;
+  width: 100%;
+  height: 100%;
+  font-size: 8pt;
+  color: #888;
+  border: 1px dashed #bbb;
+  line-height: 70px; /* coincide con .logo-box--dual */
+  text-align: center;
+}
+
+/* =============== Firma =============== */
+.signature-img {
+  max-height: 60px;
+  width: auto !important;
+  height: auto !important;
+}
+
+.signature-line {
+  margin: 10px auto 6px;
+  width: 280px;
+  border-bottom: 1px solid #777;
+  height: 0;
+}
+
+/* =========================================================
+   Reglas print: evitar cortes feos en bloques clave
+   ========================================================= */
+@media print {
+  h2.title,
+  .date,
+  .signature,
+  .signature * {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    -webkit-region-break-inside: avoid;
+  }
+
+  .content p {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    -webkit-region-break-inside: avoid;
+  }
+
+  .logo-table,
+  .logo-table tr,
+  .logo-table td,
+  .logo-box,
+  .logo-box--dual,
+  .logo-box--single {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    -webkit-region-break-inside: avoid;
+  }
+
+  .title,
+  .hr {
+    page-break-after: avoid;
+  }
+
+  .signature {
+    page-break-after: auto;
+    page-break-before: avoid;
+  }
+}
+
+/* Utilidad opcional para cualquier bloque que no quieras partir */
+.avoid-break {
+  page-break-inside: avoid;
+  break-inside: avoid;
+  -webkit-region-break-inside: avoid;
+}
