@@ -18,19 +18,20 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Build (CI disabled to tolerate warnings)
+      - name: Build (tolerate warnings)
         working-directory: frontend
         env:
           CI: ""   # evita que CRA corte por warnings
         run: |
           npm ci
           npm run build
+          # Copiar la config dentro del artefacto publicado
+          cp staticwebapp.config.json build/
 
       - name: Deploy prebuilt artifact to SWA (skip Oryx)
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           action: "upload"
-          app_artifact_location: "frontend/build"   # artefacto ya compilado
-          config_file_location: "frontend"          # <- aquí está staticwebapp.config.json
-          skip_app_build: true                      # no reconstruir con Oryx
+          app_artifact_location: "frontend/build"   # artefacto ya compilado (incluye la config)
+          skip_app_build: true                      # NO reconstruir con Oryx
