@@ -13,9 +13,13 @@ SECRET_KEY = os.environ.get("SECRET_KEY")  # definido en App Service
 # Armamos ALLOWED_HOSTS combinando lo que venga del base + producción
 _base_hosts = locals().get("ALLOWED_HOSTS", [])
 _prod_hosts = [
-    "grupobia.com.ar",
-    "www.grupobia.com.ar",
+    "https://grupobia.com.ar",
+    "https://www.grupobia.com.ar",
+    "portalbia.com.ar",
+    "www.portalbia.com.ar",
     "backend-grupobia.azurewebsites.net",  # <- webapp real en Azure
+    "https://happy-bay-014d9740f.2.azurestaticapps.net",
+
 ]
 _extra = os.environ.get("EXTRA_ALLOWED_HOSTS", "")
 _extra_hosts = [h.strip() for h in _extra.split(",") if h.strip()]
@@ -24,6 +28,9 @@ ALLOWED_HOSTS = list(dict.fromkeys(_base_hosts + _prod_hosts + _extra_hosts))
 CSRF_TRUSTED_ORIGINS = [
     "https://grupobia.com.ar",
     "https://www.grupobia.com.ar",
+    "https://happy-bay-014d9740f.2.azurestaticapps.net",
+    "https://www.portalbia.com.ar",
+    "portalbia.com.ar",
 ]
 
 # Detrás de Front Door / App Service
