@@ -19,3 +19,6 @@ logs/
 proyecto_bia/logs/
 proyecto_bia/proyecto_bia/logs/actividad.log
 proyecto_bia/logs/actividad.log
+# backups y artefactos locales
+backend.zip
+**/backend_grupobia_*.zip
