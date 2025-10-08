@@ -22,6 +22,7 @@ jobs:
       - name: Deploy to Azure Web App (ZipDeploy)
         uses: azure/webapps-deploy@v2
         with:
-          app-name: backend-grupobia
+          app-name: proyecto_bia
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
           package: backend.zip
+
