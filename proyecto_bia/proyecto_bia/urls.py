@@ -19,7 +19,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
 
     # Health (para Front Door / probes)
-    path("api/health/", health, name="health"),
+#    path("api/health/", health, name="health"),
 
     # JWT
     path("api/token/",         TokenObtainPairView.as_view(), name="token_obtain_pair"),
