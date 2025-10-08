@@ -2,8 +2,7 @@ name: Deploy Backend (Django) to Azure App Service
 
 on:
   push:
-    branches: [ main ]        # o main, ajusta a tu flujo
-  workflow_dispatch:
+    branches: [ main ]   # o la rama que quieras
 
 jobs:
   deploy:
@@ -13,23 +12,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Cambia esta ruta si tu backend está en otra carpeta
+      # Empaquetado como hacías (ZipDeploy)
       - name: Empaquetar backend (ZipDeploy)
         run: |
-          set -e
-          BACKEND_DIR="proyecto_bia"
-          cd "$BACKEND_DIR"
-
-          # Verificación mínima (manage.py + requirements.txt)
-          test -f manage.py
-          test -f requirements.txt
-
-          # El zip debe tener manage.py y requirements.txt en la RAÍZ del paquete
-          zip -r ../backend.zip \
-            manage.py requirements.txt proyecto_bia certificado_ldd carga_datos \
-            -x "**/__pycache__/*" "**/*.pyc" ".git/*" "*.zip" "media/*" "staticfiles/*"
-
-          cd -
+          cd proyecto_bia
+          zip -r ../backend.zip manage.py requirements.txt proyecto_bia certificado_ldd carga_datos media
+          cd ..
 
       - name: Deploy to Azure Web App (ZipDeploy)
         uses: azure/webapps-deploy@v2
@@ -37,4 +25,3 @@ jobs:
           app-name: backend-grupobia
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
           package: backend.zip
-
