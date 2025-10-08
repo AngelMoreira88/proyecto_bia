@@ -2,7 +2,7 @@ name: Deploy Backend (Django) to Azure App Service
 
 on:
   push:
-    branches: [ stage ]        # o main, ajusta a tu flujo
+    branches: [ main ]        # o main, ajusta a tu flujo
   workflow_dispatch:
 
 jobs:
@@ -37,3 +37,4 @@ jobs:
           app-name: backend-grupobia
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
           package: backend.zip
+
