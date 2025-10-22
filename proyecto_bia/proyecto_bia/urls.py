@@ -7,6 +7,7 @@ from django.http import JsonResponse
 from django.contrib.auth import views as auth_views
 from django.views.generic import TemplateView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from django.views.static import serve as static_serve
 
 # Vistas directas / legacy
 from certificado_ldd.views import api_generar_certificado
@@ -83,8 +84,10 @@ if not settings.DEBUG and settings.MEDIA_ROOT:
 # Esto evita que /api/token/, /api/carga-datos/, etc.
 # sean interceptados por la SPA (el problema que veías)
 spa_view = TemplateView.as_view(template_name="index.html")
-
-spa_view = TemplateView.as_view(template_name="index.html")
 urlpatterns += [
     re_path(r"^(?!api/).*$", spa_view),
+]
+
+urlpatterns += [
+    re_path(r"^media/(?P<path>.*)$", static_serve, {"document_root": settings.MEDIA_ROOT}),  # solo prod
 ]
