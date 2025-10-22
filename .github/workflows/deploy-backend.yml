@@ -1,8 +1,8 @@
-name: Deploy Django Backend (stage & prod)
+name: Deploy Django Backend to Azure Web App
 
 on:
   push:
-    branches: [ "stage", "main" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 env:
@@ -10,8 +10,7 @@ env:
   PYTHON_VERSION: "3.12"
 
 jobs:
-  deploy-stage:
-    if: github.ref == 'refs/heads/stage'
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -32,29 +31,7 @@ jobs:
           zip -r backend.zip . \
             -x "venv*/**" ".git/**" "__pycache__/**" "*.pyc" "static/**" "media/**"
 
-  deploy-prod:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
-      - name: Create ZIP artifact
-        run: |
-          zip -r backend.zip . \
-            -x "venv*/**" ".git/**" "__pycache__/**" "*.pyc" "static/**" "media/**"
-
-      - name: Deploy to Azure Web App (production)
+      - name: Deploy to Azure Web App (PROD)
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
