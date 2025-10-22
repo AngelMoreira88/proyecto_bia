@@ -80,6 +80,7 @@ if settings.DEBUG:
 # sean interceptados por la SPA (el problema que veías)
 spa_view = TemplateView.as_view(template_name="index.html")
 
+spa_view = TemplateView.as_view(template_name="index.html")
 urlpatterns += [
-    re_path(r"^(?!api/).*$", spa_view),  # cualquier ruta que NO empiece con /api/
+    re_path(r"^(?!api/).*$", spa_view),
 ]
