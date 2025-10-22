@@ -1,18 +1,49 @@
 # proyecto_bia/settings_production.py
-from .settings import *   # hereda TODO del base
+from .settings import *  # hereda todo del base (PostgreSQL-only)
+from django.core.exceptions import ImproperlyConfigured
 from pathlib import Path
 import os
 
 # =========================
 # Núcleo / Seguridad
 # =========================
-DEBUG = False  # producción
+DEBUG = False
+
+# Forzar PostgreSQL en PROD (defensa ante config accidental)
+if DATABASES["default"]["ENGINE"] != "django.db.backends.postgresql":
+    raise ImproperlyConfigured(
+        "En producción la base debe ser PostgreSQL. "
+        "Setea DB_ENGINE=django.db.backends.postgresql en App Settings."
+    )
+
+# Conexiones persistentes + SSL (Azure)
+DATABASES["default"]["CONN_MAX_AGE"] = 600  # 10 minutos
+DATABASES["default"].setdefault("OPTIONS", {})["sslmode"] = "require"
+
+# Detrás del proxy de Azure
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+USE_X_FORWARDED_HOST = True
+SECURE_SSL_REDIRECT = True  # forzar HTTPS
+
+# Cookies seguras
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SAMESITE = "Lax"
+
+# HSTS (activar cuando el dominio esté 100% en HTTPS)
+SECURE_HSTS_SECONDS = 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
 
 # =========================
 # Hosts permitidos
-# - Hereda DJANGO_ALLOWED_HOSTS del base (ENV)
-# - Agrega dominios de prod y variable EXTRA_ALLOWED_HOSTS (opcional)
 # =========================
+def _csv(name: str, default: str = ""):
+    val = os.getenv(name, default)
+    return [x.strip() for x in val.split(",") if x.strip()]
+
+# Suma tus hosts productivos + extras por ENV
 _prod_hosts = [
     "grupobia.com.ar",
     "www.grupobia.com.ar",
@@ -20,77 +51,46 @@ _prod_hosts = [
     "www.portalbia.com.ar",
     "backend-grupobia.azurewebsites.net",
 ]
-_extra = os.getenv("EXTRA_ALLOWED_HOSTS", "")
-_extra_hosts = [h.strip() for h in _extra.split(",") if h.strip()]
+ALLOWED_HOSTS = list(set(ALLOWED_HOSTS + _prod_hosts + _csv("EXTRA_ALLOWED_HOSTS", "")))
 
-# ALLOWED_HOSTS viene del base; lo fusionamos evitando duplicados
-ALLOWED_HOSTS = list(dict.fromkeys(ALLOWED_HOSTS + _prod_hosts + _extra_hosts))
-
-# =========================
-# CORS / CSRF
-# - Si no vienen por ENV, damos fallbacks razonables
-# - Tu base ya define CORS_ALLOWED_ORIGINS / CSRF_TRUSTED_ORIGINS desde ENV
-#   Aquí solo damos defaults si quedaron vacías.
-# =========================
-def _csv(name: str, default: str = ""):
-    val = os.getenv(name, default)
-    return [x.strip() for x in val.split(",") if x.strip()]
-
-if not CORS_ALLOWED_ORIGINS:
-    CORS_ALLOWED_ORIGINS = _csv(
-        "CORS_ALLOWED_ORIGINS",
-        # SWA (prod) + localhost:3000 para pruebas desde dev
-        "https://happy-bay-014d9740f.2.azurestaticapps.net,http://localhost:3000"
-    )
-
-# En JWT no es obligatorio, pero útil si algún flujo usa CSRF
-if not CSRF_TRUSTED_ORIGINS:
-    CSRF_TRUSTED_ORIGINS = _csv(
-        "CSRF_TRUSTED_ORIGINS",
-        "https://grupobia.com.ar,https://www.grupobia.com.ar,"
-        "https://portalbia.com.ar,https://www.portalbia.com.ar,"
-        "https://happy-bay-014d9740f.2.azurestaticapps.net,http://localhost:3000"
-    )
-
-CORS_ALLOW_CREDENTIALS = True
+# Warmup interno de Azure (hostname dinámico del sitio)
+if os.getenv("WEBSITE_HOSTNAME") and "*" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(os.getenv("WEBSITE_HOSTNAME"))
 
 # =========================
-# SSL / Cookies (detrás del proxy de Azure)
+# CORS / CSRF (endurecido)
 # =========================
-SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-USE_X_FORWARDED_HOST = True
-SECURE_SSL_REDIRECT = True  # forzamos HTTPS
+# Fronts “oficiales” (pueden sobreescribirse por ENV)
+_fronts_default = "https://portalbia.com.ar,https://www.portalbia.com.ar"
+_backend_default = "https://backend-grupobia.azurewebsites.net"
 
-# Cookies seguras en prod
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-# SameSite Lax (si en el futuro necesitás cookies cross-site, evalúa "None")
-SESSION_COOKIE_SAMESITE = "Lax"
-CSRF_COOKIE_SAMESITE = "Lax"
+# CORS: mezcla lo que venga del base/env con defaults de prod
+CORS_ALLOWED_ORIGINS = list(set((CORS_ALLOWED_ORIGINS or []) + _csv("CORS_ALLOWED_ORIGINS", _fronts_default)))
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https?:\/\/localhost:\d+$",
+    r"^https?:\/\/127\.0\.0\.1:\d+$",
+]
+CORS_ALLOW_CREDENTIALS = True  # no molesta con JWT
 
-# =========================
-# Base de datos
-# - El base toma credenciales desde ENV (DB_*)
-# - Afinamos keep-alive y SSL para Postgres gestionado
-# =========================
-DATABASES["default"]["CONN_MAX_AGE"] = 600  # 10 minutos
-if DATABASES["default"]["ENGINE"] == "django.db.backends.postgresql":
-    DATABASES["default"].setdefault("OPTIONS", {})["sslmode"] = "require"
+# CSRF: asegurar fronts + backend (útil para /admin/ o flujos con cookies)
+CSRF_TRUSTED_ORIGINS = list(set((CSRF_TRUSTED_ORIGINS or []) + _csv(
+    "CSRF_TRUSTED_ORIGINS",
+    f"{_fronts_default},{_backend_default}"
+)))
 
 # =========================
 # Archivos estáticos (WhiteNoise)
 # =========================
 BASE_DIR = Path(__file__).resolve().parent.parent
-
-# Respetamos STATIC_URL del base; definimos STATIC_ROOT para collectstatic
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Almacenamiento comprimido con manifest
+# Django 4+: usar STORAGES (o STATICFILES_STORAGE legacy si preferís)
 STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
     },
 }
+# Compatibilidad (no hace daño mantenerlo)
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Insertar WhiteNoise después de SecurityMiddleware si no está
@@ -104,16 +104,13 @@ if "whitenoise.middleware.WhiteNoiseMiddleware" not in _mw:
 MIDDLEWARE = _mw
 
 # =========================
-# Logging a consola (para `az webapp log tail`)
+# Logging (a consola para App Service)
 # =========================
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "formatters": {
-        "verbose": {
-            "format": "[{asctime}] {levelname} {name} - {message}",
-            "style": "{",
-        },
+        "verbose": {"format": "[{asctime}] {levelname} {name} - {message}", "style": "{"},
     },
     "handlers": {
         "console": {"class": "logging.StreamHandler", "formatter": "verbose"},

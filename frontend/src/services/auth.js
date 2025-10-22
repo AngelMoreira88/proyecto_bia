@@ -20,10 +20,10 @@ export function notifyRoleUpdated() {
 (function setAuthHeaderFromStorage() {
   try {
     const access = localStorage.getItem('access_token');
-    if (access) api.defaults.headers[AUTH_HEADER] = `Bearer ${access}`;
-    else delete api.defaults.headers[AUTH_HEADER];
+    if (access) api.defaults.headers.common[AUTH_HEADER] = `Bearer ${access}`;
+    else delete api.defaults.headers.common?.[AUTH_HEADER];
   } catch {
-    delete api.defaults.headers[AUTH_HEADER];
+    delete api.defaults.headers.common?.[AUTH_HEADER];
   }
 })();
 
@@ -57,7 +57,6 @@ export function getUserClaims() {
 /** --- Cache helpers --- */
 function setCachedRole(role) {
   try { localStorage.setItem(ROLE_KEY, role || 'readonly'); } catch {}
-  // avisar a toda la app inmediatamente
   notifyRoleUpdated();
   notifyAuthChanged();
 }
@@ -104,10 +103,10 @@ function primaryToLegacyAlias(primaryRole) {
 
 /** Setea header + rol/grupos *al instante* desde el JWT */
 function setAuthFromAccess(access) {
-  api.defaults.headers[AUTH_HEADER] = `Bearer ${access}`;
+  api.defaults.headers.common[AUTH_HEADER] = `Bearer ${access}`;
   try { localStorage.setItem('access_token', access); } catch {}
 
-  // Claims → rol / grupos inmediatos (UI sin lag)
+  // Claims → rol / grupos inmediatos
   const claims = parseJwt(access) || {};
   const jwtGroups = Array.isArray(claims.groups) ? claims.groups : [];
   const is_superuser = !!claims.is_superuser;
@@ -122,7 +121,7 @@ function setAuthFromAccess(access) {
   }
 
   setCachedGroups(jwtGroups);
-  setCachedRole(primary); // dispara role-updated + auth-changed
+  setCachedRole(primary);
 }
 
 /** --- Auth core --- */
@@ -130,13 +129,12 @@ export async function login(username, password) {
   const { data } = await api.post('/api/token/', { username, password });
   const { access, refresh } = data || {};
 
-  // Guardar refresh
   try { localStorage.setItem('refresh_token', refresh); } catch {}
 
-  // 👉 Aplicar access y rol/grupos *ya mismo* desde el JWT (sin esperar /me)
+  // Aplicar access y rol/grupos ya mismo
   setAuthFromAccess(access);
 
-  // Limpio caches del módulo API (por si había otra sesión)
+  // Limpiar caches del módulo API (por si había otra sesión)
   try {
     const mod = await import('./api');
     if (typeof mod.clearAdminCaches === 'function') mod.clearAdminCaches();
@@ -146,14 +144,13 @@ export async function login(username, password) {
 export function logout() {
   try { localStorage.removeItem('access_token'); } catch {}
   try { localStorage.removeItem('refresh_token'); } catch {}
-  delete api.defaults.headers[AUTH_HEADER];
+  delete api.defaults.headers.common?.[AUTH_HEADER];
 
   clearCachedRole();
   setCachedGroups([]);
   notifyRoleUpdated();
   notifyAuthChanged();
 
-  // limpiar caches del módulo API
   import('./api').then((mod) => {
     if (typeof mod.clearAdminCaches === 'function') mod.clearAdminCaches();
   }).catch(() => {});
@@ -176,7 +173,6 @@ export async function refreshToken() {
   const access = data?.access;
   if (!access) throw new Error('Refresh sin access token');
 
-  // 👉 También al refrescar: actualizar header + rol/grupos al instante
   setAuthFromAccess(access);
   return access;
 }
@@ -248,15 +244,14 @@ export async function refreshUserRole() {
     return 'readonly';
   }
   try {
-    const { data } = await api.get('/carga-datos/api/admin/me');
+    const { data } = await api.get('/api/carga-datos/admin/me');
     const groups = Array.isArray(data?.groups) ? data.groups : (Array.isArray(data?.roles) ? data.roles : []);
     const role = groupsToPrimaryRole(groups, { is_superuser: !!data?.is_superuser });
 
     setCachedGroups(groups);
-    setCachedRole(role); // dispara role-updated + auth-changed
+    setCachedRole(role);
     return role;
   } catch {
-    // fallback: no crashea la UI; mantiene rol inferido
     return getUserRole();
   }
 }
