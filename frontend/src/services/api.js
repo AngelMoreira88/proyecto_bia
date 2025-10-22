@@ -13,25 +13,30 @@ function ensureTrailingSlash(url) {
 }
 
 function resolveApiBase() {
+  // 1) .env
   const envBase = process.env.REACT_APP_API_BASE;
   if (envBase) return ensureTrailingSlash(envBase);
 
-  const host = (typeof window !== 'undefined' && window.location && window.location.hostname) || '';
-  if (host.endsWith('.azurestaticapps.net')) {
-    // 🚀 Producción: front en Azure Static Web Apps
+  // 2) Detección por host
+  const host =
+    (typeof window !== 'undefined' && window.location && window.location.hostname) || '';
+
+  // Producción: front en Azure Static Web Apps o portalbia
+  if (host.endsWith('.azurestaticapps.net') || host.endsWith('portalbia.com.ar')) {
     return 'https://backend-grupobia.azurewebsites.net/';
   }
 
+  // Desarrollo local → BACKEND en 8000 (⚠️ antes estaba 3000)
   if (process.env.NODE_ENV === 'development') {
-    // 🧪 Desarrollo local
     return 'http://localhost:8000/';
   }
 
-  // 🧯 Fallback: mismo origen
+  // 4) Fallback: mismo origen
   return '/';
 }
 
 const API_BASE = resolveApiBase();
+try { console.log('[API] baseURL =', API_BASE); } catch {}
 
 /* ===============================
    Axios preconfigurado (solo JWT)
@@ -39,7 +44,7 @@ const API_BASE = resolveApiBase();
 const api = axios.create({
   baseURL: API_BASE,
   timeout: 30000,
-  withCredentials: false, // ✅ sin cookies; todo por JWT
+  withCredentials: false, // JWT en headers, sin cookies
 });
 
 /* ===============================
@@ -82,7 +87,8 @@ const processQueue = (error, newAccess = null) => {
 };
 
 /* ===================================
-   🔧 Normalizador de rutas (FIX 404)
+   🔧 Normalizador de rutas (compat)
+   Transforma legacy '/carga-datos/api/*' -> '/api/carga-datos/*'
 =================================== */
 const LEGACY_PREFIX = '/carga-datos/api/';
 const CORRECT_PREFIX = '/api/carga-datos/';
@@ -106,6 +112,7 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
+  // FormData → deja que el browser ponga el boundary
   if (config.data instanceof FormData) {
     if (config.headers && config.headers['Content-Type']) {
       delete config.headers['Content-Type'];
@@ -126,6 +133,7 @@ api.interceptors.response.use(
 
     if (!error.response) return Promise.reject(error);
 
+    // 401 → intentar refresh (una sola vez)
     if (status === 401 && originalRequest && !originalRequest._retry) {
       const refresh = getRefreshToken();
       if (refresh) {
@@ -190,33 +198,33 @@ api.interceptors.response.use(
 export default api;
 
 /* =======================================================
-   Endpoints: CARGA DE DATOS
+   Endpoints: CARGA DE DATOS  (prefijo correcto)
 ======================================================= */
 export function subirExcel(formData) {
-  return api.post('/carga-datos/api/cargar/', formData);
+  return api.post('/api/carga-datos/cargar/', formData);
 }
 export function confirmarCarga(records) {
   const payload = Array.isArray(records) && records.length > 0 ? { records } : {};
-  return api.post('/carga-datos/api/confirmar/', payload, {
+  return api.post('/api/carga-datos/confirmar/', payload, {
     headers: { 'Content-Type': 'application/json' },
   });
 }
 export function fetchErrores() {
-  return api.get('/carga-datos/api/errores/');
+  return api.get('/api/carga-datos/errores/');
 }
 export function listarDatosBia(params) {
-  return api.get('/carga-datos/api/mostrar-datos-bia/', { params });
+  return api.get('/api/carga-datos/mostrar-datos-bia/', { params });
 }
 export function actualizarDatoBia(pk, payload) {
-  return api.patch(`/carga-datos/api/mostrar-datos-bia/${pk}/`, payload, {
+  return api.patch(`/api/carga-datos/mostrar-datos-bia/${pk}/`, payload, {
     headers: { 'Content-Type': 'application/json' },
   });
 }
 export function exportarDatosBiaCSV() {
-  return api.get('/carga-datos/api/exportar-datos-bia.csv', { responseType: 'blob' });
+  return api.get('/api/carga-datos/exportar-datos-bia.csv', { responseType: 'blob' });
 }
 export function pingCargaDatos() {
-  return api.get('/carga-datos/api/ping/');
+  return api.get('/api/carga-datos/ping/');
 }
 
 /* =============================================
@@ -258,7 +266,6 @@ export const eliminarDatoBia = (id) =>
 /* =======================================================
    Endpoints Admin de roles (app carga_datos)
 ======================================================= */
-// Cache /admin/me
 let _meCache = { data: null, at: 0, promise: null };
 const ME_TTL_MS = 5 * 60 * 1000; // 5 min
 export function adminGetMe({ force = false } = {}) {
@@ -268,7 +275,7 @@ export function adminGetMe({ force = false } = {}) {
   }
   if (_meCache.promise && !force) return _meCache.promise;
 
-  _meCache.promise = api.get('/carga-datos/api/admin/me')
+  _meCache.promise = api.get('/api/carga-datos/admin/me')
     .then((res) => {
       _meCache.data = res.data;
       _meCache.at = Date.now();
@@ -279,7 +286,6 @@ export function adminGetMe({ force = false } = {}) {
   return _meCache.promise;
 }
 
-// Cache /admin/roles
 let _rolesCache = { data: null, at: 0, promise: null };
 const ROLES_TTL_MS = 30 * 60 * 1000; // 30 min
 export function adminListRoles({ force = false } = {}) {
@@ -289,7 +295,7 @@ export function adminListRoles({ force = false } = {}) {
   }
   if (_rolesCache.promise && !force) return _rolesCache.promise;
 
-  _rolesCache.promise = api.get('/carga-datos/api/admin/roles')
+  _rolesCache.promise = api.get('/api/carga-datos/admin/roles')
     .then((res) => {
       _rolesCache.data = res.data;
       _rolesCache.at = Date.now();
@@ -306,21 +312,22 @@ export function adminSearchUsers(q = "", page = 1, rolesCsv, pageSize = 10) {
   if (rolesCsv) params.roles = rolesCsv;
   if (page) params.page = page;
   if (pageSize) params.page_size = pageSize;
-  return api.get('/carga-datos/api/admin/users', { params });
+  return api.get('/api/carga-datos/admin/users', { params });
 }
 
 export function adminGetUserRoles(userId) {
-  return api.get(`/carga-datos/api/admin/users/${userId}/roles`);
+  return api.get(`/api/carga-datos/admin/users/${userId}/roles`);
 }
 
 export function adminSetUserRoles(userId, body) {
-  return api.post(`/carga-datos/api/admin/users/${userId}/roles`, body, {
+  return api.post(`/api/carga-datos/admin/users/${userId}/roles`, body, {
     headers: { 'Content-Type': 'application/json' },
   });
 }
 
-/* ✅ Crear usuario (faltaba) */
-export function adminCreateUser({ email, password, role, roles, nombre, first_name, last_name, username, is_active }) {
+export function adminCreateUser({
+  email, password, role, roles, nombre, first_name, last_name, username, is_active,
+}) {
   const payload = { email, password };
   if (role) payload.role = role;
   if (Array.isArray(roles)) payload.roles = roles;
@@ -329,14 +336,14 @@ export function adminCreateUser({ email, password, role, roles, nombre, first_na
   if (last_name) payload.last_name = last_name;
   if (username) payload.username = username;
   if (typeof is_active === 'boolean') payload.is_active = is_active;
-  return api.post('/carga-datos/api/admin/users', payload, {
+
+  return api.post('/api/carga-datos/admin/users', payload, {
     headers: { 'Content-Type': 'application/json' },
   });
 }
 
-/* ✅ Actualizar usuario (ya usado por tu UI) */
 export function adminUpdateUser(userId, payload) {
-  return api.patch(`/carga-datos/api/admin/users/${userId}`, payload, {
+  return api.patch(`/api/carga-datos/admin/users/${userId}`, payload, {
     headers: { 'Content-Type': 'application/json' },
   });
 }

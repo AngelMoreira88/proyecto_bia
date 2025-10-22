@@ -328,16 +328,8 @@ export default function Header() {
                 <>
                   <li className="nav-item">
                     <NavLink to="/certificado" className={({ isActive }) => "nav-link" + (isActive ? " active" : "")}>
-                      Generar Certificado
+                      Portal de Consultas y Descargas
                     </NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <button
-                      className="btn btn-bia btn-nav-compact-s ms-lg-2"
-                      onClick={() => guardTo("/portal")}
-                    >
-                      Portal BIA
-                    </button>
                   </li>
                 </>
               )}

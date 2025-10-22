@@ -228,7 +228,7 @@ export default function GenerarCertificado() {
           {loading ? "Consultando..." : "Consultar"}
         </button>
         <BackHomeLink>
-          <span className="small">Volver al home</span>
+          <span className="small">Volver al home.</span>
         </BackHomeLink>
       </div>
     </form>
