@@ -72,6 +72,10 @@ urlpatterns = [
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
+from django.views.static import serve as media_serve
+if not settings.DEBUG and settings.MEDIA_ROOT:
+    urlpatterns += [re_path(r"^media/(?P<path>.*)$", media_serve, {"document_root": settings.MEDIA_ROOT})]
+
 
 # ====================================================================
 # 🔒 CATCH-ALL: servir React SOLO si NO empieza con /api/

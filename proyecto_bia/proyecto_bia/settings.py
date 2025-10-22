@@ -261,3 +261,10 @@ LOGGING = {
     },
     "root": {"handlers": list(_base_handlers.keys()), "level": "INFO"},
 }
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {"location": MEDIA_ROOT, "base_url": MEDIA_URL},
+    },
+}
