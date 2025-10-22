@@ -25,15 +25,9 @@ export default function Home() {
                 <Link to="/certificado" className="btn btn-bia">
                   Portal de Consultas y Descargas
                 </Link>
-                <Link to="/login" className="btn btn-outline-bia">
-                  Iniciar sesión
-                </Link>
               </div>
 
-              <div className="mt-4 small text-secondary">
-                ¿Sos parte del equipo? Ingresá al{" "}
-                <Link to="/portal" className="link-bia">Portal</Link>.
-              </div>
+
             </div>
           </div>
         </div>
