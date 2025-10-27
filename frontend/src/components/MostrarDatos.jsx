@@ -170,7 +170,7 @@ export default function MostrarDatos() {
   const isAdmin = role === 'admin';
   const isSupervisor = role === 'supervisor' || role === 'sup' || role === 'super';
   const canEdit = isAdmin || isSupervisor || role === 'write';
-  const canDelete = isAdmin;
+  const canDelete = false;
   const canWrite = canEdit;
 
   /* ====== Detección simple de dispositivo (bloquea móviles) ====== */

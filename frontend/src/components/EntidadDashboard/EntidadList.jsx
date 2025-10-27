@@ -15,23 +15,61 @@ export default function EntidadList({ onEdit, refreshKey = 0 }) {
     [count, pageSize]
   );
 
+  // normalizador para búsqueda (sin acentos, minúsculas)
+  const norm = (s) =>
+    String(s || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .trim();
+
   async function fetchData() {
     try {
       setLoading(true);
       setErr('');
+
       const q = (search || '').trim();
+
+      // Si hay búsqueda, pedimos muchos resultados y paginamos localmente
+      const effectivePage     = q ? 1 : page;
+      const effectivePageSize = q ? 1000 : pageSize;
+
       const { data } = await listarEntidades({
         search: q || undefined,
-        page,
-        page_size: pageSize,
+        page: effectivePage,
+        page_size: effectivePageSize,
       });
 
-      if (Array.isArray(data)) {
-        setRows(data);
-        setCount(data.length);
+      // Normalizamos la forma del payload (soporta results o array plano)
+      const sourceRows = Array.isArray(data)
+        ? data
+        : (data?.results ?? []);
+
+      if (q) {
+        // Filtro en front: busca en nombre, responsable, cargo, razón social
+        const tokens = norm(q).split(/\s+/).filter(Boolean);
+        const matches = (r) => {
+          const hay = norm(
+            [r?.nombre, r?.responsable, r?.cargo, r?.razon_social].join(' ')
+          );
+          return tokens.every(t => hay.includes(t));
+        };
+        const filtered = sourceRows.filter(matches);
+
+        // Paginación local sobre el resultado filtrado
+        const start = (page - 1) * pageSize;
+        const paged = filtered.slice(start, start + pageSize);
+
+        setRows(paged);
+        setCount(filtered.length);
       } else {
-        setRows(data?.results ?? []);
-        setCount(typeof data?.count === 'number' ? data.count : (data?.results ?? []).length);
+        // Sin búsqueda: usamos lo que devuelva el backend
+        setRows(sourceRows);
+        setCount(
+          typeof data?.count === 'number'
+            ? data.count
+            : sourceRows.length
+        );
       }
     } catch (e) {
       console.error('Error listando entidades:', e);

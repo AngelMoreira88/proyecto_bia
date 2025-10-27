@@ -257,6 +257,15 @@ def get_entidad_emisora(registro: BaseDeDatosBia) -> Optional[Entidad]:
     return ent
 
 
+# ---------- NUEVO helper lógico para logos válidos ----------
+def _has_valid_logo(ent: Optional[Entidad]) -> bool:
+    """Devuelve True si la entidad tiene ImageField y el archivo existe en el storage."""
+    try:
+        return bool(ent and _fieldfile_exists(getattr(ent, "logo", None)))
+    except Exception:
+        return False
+
+
 def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate], Optional[bytes], Optional[str]]:
     logger.info("[_render_pdf_for_registro] id_pago_unico=%s", reg.id_pago_unico)
 
@@ -281,14 +290,11 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
         reg_ts = _get_timestamp_like(reg)
         ent_ts = _get_timestamp_like(emisora) if emisora else None
 
-        # Si no podemos leer mtime del PDF, forzamos regeneración para evitar staleness silencioso
         if pdf_mtime and (reg_ts or ent_ts):
-            # Si el PDF es más nuevo o igual que los datos, podemos reutilizar
             newest_data_ts = max([t for t in (reg_ts, ent_ts) if t is not None], default=None)
             if newest_data_ts is not None and newest_data_ts <= pdf_mtime:
                 reuse_cached = True
         else:
-            # No hay mtime confiable: regeneramos para estar seguros
             reuse_cached = False
 
         if reuse_cached:
@@ -299,18 +305,16 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
                 logger.exception("[_render_pdf_for_registro] Error leyendo PDF cacheado: %s", e)
                 reuse_cached = False
         else:
-            # PDF desactualizado: lo limpiamos para re-generar
             try:
                 cert.pdf_file.delete(save=False)
             except Exception as e:
                 logger.debug("[_render_pdf_for_registro] No se pudo borrar PDF viejo: %s", e)
     else:
-        # Si apuntaba a un nombre inexistente, lo limpiamos (comportamiento original)
         if getattr(cert.pdf_file, "name", ""):
             logger.warning("[_render_pdf_for_registro] pdf_file apunta a %s pero no existe; se limpia.", cert.pdf_file.name)
             cert.pdf_file.delete(save=False)
 
-    # ===== Contexto del PDF (sin cambios, pero con emisora usando FK si hay) =====
+    # ===== Contexto del PDF (emisora + branding) =====
     firma_url = emisora.firma.url if (emisora and getattr(emisora, "firma", None)) else None
     responsable = emisora.responsable if (emisora and emisora.responsable) else "Socio/Gerente"
     cargo = emisora.cargo if (emisora and emisora.cargo) else ""
@@ -318,11 +322,14 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
 
     entidad_bia = Entidad.objects.filter(nombre__iexact="BIA").first()
     entidad_otras = None
-    if emisora:
-        if "bia" in emisora.nombre.lower():
-            entidad_bia = emisora
-        else:
+    if emisora and "bia" not in emisora.nombre.lower():
+        # Solo asignar si NO es BIA y tiene logo real
+        if _has_valid_logo(getattr(emisora, "logo", None)):
             entidad_otras = emisora
+
+    # ---------- FLAG para layout de logos ----------
+    # Solo usamos layout "dual" si hay otra entidad y su LOGO físico existe en storage.
+    mostrar_dual = bool(entidad_otras and _has_valid_logo(entidad_otras))
 
     context = {
         "client": reg,
@@ -333,6 +340,7 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
         "entidad_firma_text": razon_social,   # clave que usa el template actual
         "entidad_bia": entidad_bia,
         "entidad_otras": entidad_otras,
+        "mostrar_dual": mostrar_dual,         # <-- NUEVO: decide centrado o dos logos
     }
 
     try:

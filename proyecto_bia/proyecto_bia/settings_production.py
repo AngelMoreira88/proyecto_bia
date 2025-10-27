@@ -93,10 +93,54 @@ CSRF_TRUSTED_ORIGINS = list(set((CSRF_TRUSTED_ORIGINS or []) + _csv(
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 STATIC_URL = "/static/"
-STATIC_ROOT = Path(os.getenv("STATIC_ROOT", "/home/site/staticfiles"))
-
 MEDIA_URL = "/media/"
-MEDIA_ROOT = Path(os.getenv("MEDIA_ROOT", "/home/site/media"))
+
+# --- Resolución robusta de roots en App Service Linux ---
+def _pick_first_existing(candidates: list[str], fallback: str) -> Path:
+    for p in candidates:
+        if not p:
+            continue
+        try:
+            pp = Path(p)
+            if pp.exists():
+                return pp
+        except Exception:
+            pass
+    return Path(fallback)
+
+# Candidatos típicos en App Service:
+# - Código desplegado:           /home/site/wwwroot/...
+# - Montajes heredados/legacy:   /home/site/...
+# - Carpeta local del repo:      BASE_DIR / "staticfiles" o "media"
+_env_static = os.getenv("STATIC_ROOT", "")
+_env_media  = os.getenv("MEDIA_ROOT", "")
+
+_static_candidates = [
+    _env_static,
+    "/home/site/wwwroot/static",
+    "/home/site/static",
+    str(BASE_DIR / "staticfiles"),
+    str(BASE_DIR / "static"),
+]
+_media_candidates = [
+    _env_media,
+    "/home/site/wwwroot/media",
+    "/home/site/media",
+    str(BASE_DIR / "media"),
+]
+
+STATIC_ROOT = _pick_first_existing(_static_candidates, "/home/site/wwwroot/static")
+MEDIA_ROOT  = _pick_first_existing(_media_candidates,  "/home/site/wwwroot/media")
+
+# Creamos los directorios si no existen (no falla si ya existen)
+try:
+    STATIC_ROOT.mkdir(parents=True, exist_ok=True)
+    MEDIA_ROOT.mkdir(parents=True, exist_ok=True)
+except Exception:
+    pass
+
+# DEBUG de arranque para ver qué rutas tomó (aparece en az webapp log tail)
+print(f"[settings_production] STATIC_ROOT={STATIC_ROOT}  MEDIA_ROOT={MEDIA_ROOT}")
 
 STORAGES = {
     "default": {

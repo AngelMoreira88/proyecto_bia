@@ -4,69 +4,63 @@
 <head>
   <meta charset="UTF-8" />
   <title>Certificado de Libre de Deuda</title>
-<link rel="stylesheet" href="{% static 'css/pdf_template.css' %}" />
+  <link rel="stylesheet" href="{% static 'css/pdf_template.css' %}" />
 </head>
 <body>
 
   {% static 'images/bia.png' as bia_logo_static %}
 
   {# ================== LOGOS SUPERIORES ================== #}
-  {% if entidad_otras %}
+  {% if mostrar_dual %}
     <table class="logo-table logo-table--dual">
       <tr>
+        <!-- IZQUIERDA: OTRA ENTIDAD (tiene logo válido) -->
         <td class="logo-cell logo-cell--left" align="left">
           <div class="logo-box logo-box--dual">
-            {% if entidad_bia and entidad_bia.logo %}
-              <img
-                src="{{ entidad_bia.logo.url }}"
-                alt="Logo BIA"
-                title="Logo BIA"
-                class="fit-contain logo-img"
-              />
-            {% else %}
-              <img
-                src="{{ bia_logo_static }}"
-                alt="Logo BIA"
-                title="Logo BIA"
-                class="fit-contain logo-img"
-              />
-            {% endif %}
+            <img
+              src="{{ entidad_otras.logo.url }}"
+              alt="Logo {{ entidad_otras.nombre|default:'Entidad' }}"
+              title="Logo {{ entidad_otras.nombre|default:'Entidad' }}"
+              class="fit-contain logo-img"
+            />
           </div>
         </td>
+
+        <!-- DERECHA: BIA -->
         <td class="logo-cell logo-cell--right" align="right">
           <div class="logo-box logo-box--dual">
-            {% if entidad_otras.logo %}
-              <img
-                src="{{ entidad_otras.logo.url }}"
-                alt="Logo {{ entidad_otras.nombre }}"
-                title="Logo {{ entidad_otras.nombre }}"
-                class="fit-contain logo-img"
-              />
+            {% if entidad_bia and entidad_bia.logo %}
+              <img src="{{ entidad_bia.logo.url }}" alt="Logo BIA" title="Logo BIA" class="fit-contain logo-img" />
             {% else %}
-              <span class="logo-placeholder">Logo {{ entidad_otras.nombre|default:"Entidad" }} no disponible</span>
+              <img src="{{ bia_logo_static }}" alt="Logo BIA" title="Logo BIA" class="fit-contain logo-img" />
             {% endif %}
           </div>
         </td>
       </tr>
     </table>
   {% else %}
-    <table class="logo-table logo-table--single">
+    {# SIN otra entidad con logo válido → BIA CENTRADO (forzado inline) #}
+    <table class="logo-table logo-table--single" style="table-layout:auto;margin-bottom:12mm;">
       <tr>
-        <td class="logo-cell" align="center">
-          <div class="logo-box logo-box--single">
+        <td class="logo-cell"
+            style="text-align:center !important; padding:0 !important; width:100% !important;">
+          <div class="logo-box logo-box--single"
+               style="display:block; margin:0 auto; width:4cm; height:1.5cm; overflow:hidden;">
             {% if entidad_bia and entidad_bia.logo %}
               <img
                 src="{{ entidad_bia.logo.url }}"
                 alt="Logo BIA"
                 title="Logo BIA"
-                class="fit-contain logo-img"
+                class="logo-img"
+                style="display:block; margin:0 auto; max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain;"
               />
             {% else %}
               <img
                 src="{{ bia_logo_static }}"
                 alt="Logo BIA"
                 title="Logo BIA"
-                class="fit-contain logo-img"
+                class="logo-img"
+                style="display:block; margin:0 auto; max-width:100%; max-height:100%; width:auto; height:auto; object-fit:contain;"
               />
             {% endif %}
           </div>
@@ -89,9 +83,9 @@
       <strong>{{ client.nombre_apellido }}</strong>, con DNI
       <strong>{{ client.dni }}</strong>, ha cancelado la deuda que mantenía con
       <strong>{{ client.propietario|default:"(sin dato)" }}</strong>
-      {% if entidad_bia and not entidad_otras %}(administrado por BIA S.R.L.){% endif %},
+      {% if entidad_bia and not mostrar_dual %}(administrado por BIA S.R.L.){% endif %},
       por el crédito originado en
-      <strong>{{ client.entidadinterna|default:"(sin dato)" }}</strong>
+      <strong>{{ client.entidadoriginal|default:"(sin dato)" }}</strong>
       (ID de operación <strong>{{ client.id_pago_unico }}</strong>),
       conforme a los registros internos y comprobantes archivados.
     </p>
@@ -111,7 +105,8 @@
         src="{{ firma_url }}"
         alt="Firma de {{ responsable|default:'Representante' }}"
         title="Firma de {{ responsable|default:'Representante' }}"
-        class="signature-img fit-contain"
+        class="signature-img"
+        style="max-width:5cm; max-height:2cm; width:auto; height:auto; object-fit:contain;"
       /><br />
     {% else %}
       <div class="signature-line"></div>
