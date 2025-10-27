@@ -101,6 +101,34 @@ def _open_fieldfile(ff, mode="rb"):
     return ff.storage.open(ff.name, mode)
 
 
+def _get_storage_mtime(ff) -> Optional[object]:
+    """
+    Intenta obtener la fecha de modificación del archivo en el storage.
+    Devuelve objeto timezone-aware si el backend lo soporta; si no, None.
+    """
+    try:
+        if not _fieldfile_exists(ff):
+            return None
+        storage = ff.storage
+        if hasattr(storage, "get_modified_time"):
+            return storage.get_modified_time(ff.name)
+    except Exception as e:
+        logger.debug("[_get_storage_mtime] No se pudo leer mtime del storage: %s", e)
+    return None
+
+
+def _get_timestamp_like(obj) -> Optional[object]:
+    """
+    Devuelve el primer atributo de timestamp disponible, o None.
+    Prioridad: updated_at, modified, last_modified, created_at.
+    """
+    for attr in ("updated_at", "modified", "last_modified", "created_at", "created"):
+        val = getattr(obj, attr, None)
+        if val:
+            return val
+    return None
+
+
 # ======================================================================================
 # PDF helpers
 # ======================================================================================
@@ -205,6 +233,20 @@ def _row_minimal(reg: BaseDeDatosBia) -> Dict[str, Any]:
 
 
 def get_entidad_emisora(registro: BaseDeDatosBia) -> Optional[Entidad]:
+    """
+    Resolución de entidad emisora:
+    1) Si hay FK 'entidad' en registro, usarla.
+    2) Si no, fallback al comportamiento histórico por nombre (propietario / entidadinterna).
+    """
+    # Preferencia por FK si existe
+    try:
+        if hasattr(registro, "entidad_id") and registro.entidad_id:
+            # Si el objeto no viene con select_related, accedemos igual:
+            return getattr(registro, "entidad", None) or Entidad.objects.filter(pk=registro.entidad_id).first()
+    except Exception:
+        pass
+
+    # Fallback por nombres (comportamiento original)
     propietario = (registro.propietario or "").strip()
     interna = (registro.entidadinterna or "").strip()
     ent = None
@@ -217,22 +259,59 @@ def get_entidad_emisora(registro: BaseDeDatosBia) -> Optional[Entidad]:
 
 def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate], Optional[bytes], Optional[str]]:
     logger.info("[_render_pdf_for_registro] id_pago_unico=%s", reg.id_pago_unico)
+
+    # Reobtención defensiva con select_related para tener la FK lista si existe
+    try:
+        reg = BaseDeDatosBia.objects.select_related("entidad").get(pk=reg.pk)
+    except Exception:
+        # si falla, seguimos con 'reg' tal cual
+        pass
+
     cert, _created = Certificate.objects.get_or_create(client=reg)
 
-    # Reuso PDF si existe en storage
+    # ===== Resolución de emisora (ahora prioriza FK) =====
+    emisora = get_entidad_emisora(reg)
+
+    # ===== Decidir si el PDF cacheado está vigente =====
+    reuse_cached = False
     if _fieldfile_exists(cert.pdf_file):
-        try:
-            with _open_fieldfile(cert.pdf_file, "rb") as fh:
-                return cert, fh.read(), None
-        except Exception as e:
-            logger.exception("[_render_pdf_for_registro] Error leyendo PDF cacheado: %s", e)
+        pdf_mtime = _get_storage_mtime(cert.pdf_file)
+
+        # Timestamps relevantes (si el modelo los tiene)
+        reg_ts = _get_timestamp_like(reg)
+        ent_ts = _get_timestamp_like(emisora) if emisora else None
+
+        # Si no podemos leer mtime del PDF, forzamos regeneración para evitar staleness silencioso
+        if pdf_mtime and (reg_ts or ent_ts):
+            # Si el PDF es más nuevo o igual que los datos, podemos reutilizar
+            newest_data_ts = max([t for t in (reg_ts, ent_ts) if t is not None], default=None)
+            if newest_data_ts is not None and newest_data_ts <= pdf_mtime:
+                reuse_cached = True
+        else:
+            # No hay mtime confiable: regeneramos para estar seguros
+            reuse_cached = False
+
+        if reuse_cached:
+            try:
+                with _open_fieldfile(cert.pdf_file, "rb") as fh:
+                    return cert, fh.read(), None
+            except Exception as e:
+                logger.exception("[_render_pdf_for_registro] Error leyendo PDF cacheado: %s", e)
+                reuse_cached = False
+        else:
+            # PDF desactualizado: lo limpiamos para re-generar
+            try:
+                cert.pdf_file.delete(save=False)
+            except Exception as e:
+                logger.debug("[_render_pdf_for_registro] No se pudo borrar PDF viejo: %s", e)
     else:
+        # Si apuntaba a un nombre inexistente, lo limpiamos (comportamiento original)
         if getattr(cert.pdf_file, "name", ""):
             logger.warning("[_render_pdf_for_registro] pdf_file apunta a %s pero no existe; se limpia.", cert.pdf_file.name)
             cert.pdf_file.delete(save=False)
 
-    emisora = get_entidad_emisora(reg)
-    firma_url = emisora.firma.url if (emisora and emisora.firma) else None
+    # ===== Contexto del PDF (sin cambios, pero con emisora usando FK si hay) =====
+    firma_url = emisora.firma.url if (emisora and getattr(emisora, "firma", None)) else None
     responsable = emisora.responsable if (emisora and emisora.responsable) else "Socio/Gerente"
     cargo = emisora.cargo if (emisora and emisora.cargo) else ""
     razon_social = (emisora.razon_social or emisora.nombre) if emisora else (reg.propietario or reg.entidadinterna or "")
@@ -519,7 +598,7 @@ def _handle_get_generar(request: HttpRequest) -> HttpResponse:
         return JsonResponse({"estado": "error", "mensaje": err or "No se pudo generar el PDF."}, status=500)
 
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-    resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
+    resp["Content-Disposition"] = f'attachment; filename=\"certificado_{reg.id_pago_unico}.pdf\"'
     return resp
 
 
@@ -554,7 +633,7 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
             return JsonResponse({"estado": "error", "mensaje": err or "No se pudo generar el PDF."}, status=500)
 
         resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-        resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
+        resp["Content-Disposition"] = f'attachment; filename=\"certificado_{reg.id_pago_unico}.pdf\"'
         return resp
 
     # Caso 2: solo DNI
@@ -602,7 +681,7 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
         return JsonResponse({"estado": "error", "mensaje": err or "No se pudo generar el PDF."}, status=500)
 
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-    resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
+    resp["Content-Disposition"] = f'attachment; filename=\"certificado_{reg.id_pago_unico}.pdf\"'
     return resp
 
 

@@ -43,7 +43,7 @@ def _csv(name: str, default: str = ""):
     val = os.getenv(name, default)
     return [x.strip() for x in val.split(",") if x.strip()]
 
-# Suma tus hosts productivos + extras por ENV
+# Hosts base de producción
 _prod_hosts = [
     "grupobia.com.ar",
     "www.grupobia.com.ar",
@@ -51,45 +51,53 @@ _prod_hosts = [
     "www.portalbia.com.ar",
     "backend-grupobia.azurewebsites.net",
 ]
-ALLOWED_HOSTS = list(set(ALLOWED_HOSTS + _prod_hosts + _csv("EXTRA_ALLOWED_HOSTS", "")))
 
-# Warmup interno de Azure (hostname dinámico del sitio)
-if os.getenv("WEBSITE_HOSTNAME") and "*" not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append(os.getenv("WEBSITE_HOSTNAME"))
+# Construir ALLOWED_HOSTS una sola vez
+ALLOWED_HOSTS = list(set(
+    (_csv("DJANGO_ALLOWED_HOSTS", "") or []) +
+    _prod_hosts
+))
+
+# Hostname real del sitio en Azure
+wh = os.getenv("WEBSITE_HOSTNAME")
+if wh and wh not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(wh)
+
+# Warmup interno de Azure
+if "169.254.130.4" not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append("169.254.130.4")
 
 # =========================
 # CORS / CSRF (endurecido)
 # =========================
-# Fronts “oficiales” (pueden sobreescribirse por ENV)
 _fronts_default = "https://portalbia.com.ar,https://www.portalbia.com.ar"
 _backend_default = "https://backend-grupobia.azurewebsites.net"
 
-# CORS: mezcla lo que venga del base/env con defaults de prod
+# CORS
 CORS_ALLOWED_ORIGINS = list(set((CORS_ALLOWED_ORIGINS or []) + _csv("CORS_ALLOWED_ORIGINS", _fronts_default)))
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https?:\/\/localhost:\d+$",
     r"^https?:\/\/127\.0\.0\.1:\d+$",
 ]
-CORS_ALLOW_CREDENTIALS = True  # no molesta con JWT
+CORS_ALLOW_CREDENTIALS = True
 
-# CSRF: asegurar fronts + backend (útil para /admin/ o flujos con cookies)
+# CSRF
 CSRF_TRUSTED_ORIGINS = list(set((CSRF_TRUSTED_ORIGINS or []) + _csv(
     "CSRF_TRUSTED_ORIGINS",
     f"{_fronts_default},{_backend_default}"
 )))
 
 # =========================
-# Archivos estáticos (WhiteNoise)
+# Archivos estáticos y media (WhiteNoise + persistencia Azure)
 # =========================
 BASE_DIR = Path(__file__).resolve().parent.parent
-STATIC_ROOT = BASE_DIR / "staticfiles"
 
-# Django 4+: usar STORAGES (o STATICFILES_STORAGE legacy si preferís)
-# === Media ===
+STATIC_URL = "/static/"
+STATIC_ROOT = Path(os.getenv("STATIC_ROOT", "/home/site/staticfiles"))
+
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_ROOT = Path(os.getenv("MEDIA_ROOT", "/home/site/media"))
 
-# === Storages (Django 5 requiere esto) ===
 STORAGES = {
     "default": {
         "BACKEND": "django.core.files.storage.FileSystemStorage",
@@ -102,7 +110,6 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
-# Compatibilidad (no hace daño mantenerlo)
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 # Insertar WhiteNoise después de SecurityMiddleware si no está
@@ -129,3 +136,22 @@ LOGGING = {
     },
     "root": {"handlers": ["console"], "level": "INFO"},
 }
+
+# =========================
+# Templates (Django)
+# =========================
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [BASE_DIR / "templates"],
+        "APP_DIRS": True,
+        "OPTIONS": {
+            "context_processors": [
+                "django.template.context_processors.debug",
+                "django.template.context_processors.request",
+                "django.contrib.auth.context_processors.auth",
+                "django.contrib.messages.context_processors.messages",
+            ],
+        },
+    },
+]

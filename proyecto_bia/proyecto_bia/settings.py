@@ -4,6 +4,7 @@ from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 from datetime import timedelta
 import environ
+from corsheaders.defaults import default_headers
 
 # =====================================
 # Paths
@@ -36,8 +37,8 @@ env = environ.Env(
     ]),
 
     # Cookies
-    SESSION_COOKIE_SECURE=(bool, False),
-    CSRF_COOKIE_SECURE=(bool, False),
+    SESSION_COOKIE_SECURE=(bool, True),
+    CSRF_COOKIE_SECURE=(bool, True),
     SESSION_COOKIE_SAMESITE=(str, "Lax"),
     CSRF_COOKIE_SAMESITE=(str, "Lax"),
 
@@ -86,8 +87,19 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https?:\/\/localhost:\d+$",
     r"^https?:\/\/127\.0\.0\.1:\d+$",
 ]
-CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_CREDENTIALS = False  # solo necesario True si usás cookies cross-site
 CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
+
+# ⚙️ Headers permitidos para preflight y API requests
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "x-idempotency-key",
+    "x-requested-with",
+    "authorization",
+    "content-type",
+]
+
+CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
+CORS_PREFLIGHT_MAX_AGE = 86400  # cachea la preflight durante 24h
 
 SESSION_COOKIE_SECURE = env("SESSION_COOKIE_SECURE")
 CSRF_COOKIE_SECURE = env("CSRF_COOKIE_SECURE")
@@ -116,7 +128,7 @@ INSTALLED_APPS = [
 # Middleware
 # =====================================
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",
+    "corsheaders.middleware.CorsMiddleware",  # debe ir primero
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -260,11 +272,4 @@ LOGGING = {
         "carga_datos": {"handlers": list(_base_handlers.keys()), "level": "DEBUG" if DEBUG else "INFO", "propagate": False},
     },
     "root": {"handlers": list(_base_handlers.keys()), "level": "INFO"},
-}
-
-STORAGES = {
-    "default": {
-        "BACKEND": "django.core.files.storage.FileSystemStorage",
-        "OPTIONS": {"location": MEDIA_ROOT, "base_url": MEDIA_URL},
-    },
 }
