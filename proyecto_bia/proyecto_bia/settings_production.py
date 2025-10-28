@@ -199,3 +199,9 @@ TEMPLATES = [
         },
     },
 ]
+
+# Subida de archivos: use disco y aumente límites razonables
+DATA_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024      # 50 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 50 * 1024 * 1024
+FILE_UPLOAD_TEMP_DIR = "/tmp"                       # existe en App Service
+FILE_UPLOAD_HANDLERS = ["django.core.files.uploadhandler.TemporaryFileUploadHandler"]
