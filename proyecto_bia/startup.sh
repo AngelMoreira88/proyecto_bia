@@ -14,3 +14,11 @@ gunicorn proyecto_bia.wsgi:application \
   --worker-class=gthread \
   --threads=8 \                # paralelismo por threads
   --timeout=300  
+
+cd /home/site/wwwroot
+
+if [ -f "output.tar.gz" ]; then
+  echo "[startup] Descomprimiendo output.tar.gz ..."
+  tar -xzvf output.tar.gz
+  rm -f output.tar.gz
+fi
