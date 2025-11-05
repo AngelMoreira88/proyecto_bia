@@ -2,8 +2,8 @@ name: Deploy Backend BIA (App Service)
 
 on:
   push:
-    branches: [ "main" ]           # Cambiá si deployás desde otra rama
-  workflow_dispatch: {}            # Permite dispararlo manualmente
+    branches: [ "main" ]
+  workflow_dispatch: {}
 
 permissions:
   contents: read
@@ -13,12 +13,13 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  APP_NAME: backend-grupobia       # ← tu App Service
-  BACKEND_DIR: "."                 # "." si el backend está en la raíz; ej: "backend" si vive en /backend
+  APP_NAME: backend-grupobia
+  BACKEND_DIR: "."   # cambia a "backend" si tu código vive en /backend
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,7 +29,6 @@ jobs:
         with:
           python-version: "3.12"
 
-      # Instala deps SOLO si existe requirements.txt (evita fallas si no está)
       - name: Install deps (if requirements.txt exists)
         run: |
           set -e
@@ -40,19 +40,22 @@ jobs:
             echo "No requirements.txt in ${BACKEND_DIR} -> skipping pip install"
           fi
 
-      # Crea el ZIP siempre en la raíz del workspace (backend.zip)
       - name: Create ZIP artifact
         run: |
-          set -e
-          ROOT="$GITHUB_WORKSPACE"
-          SRC="$GITHUB_WORKSPACE/${BACKEND_DIR}"
-          OUT_ZIP="$ROOT/backend.zip"
+          set -euo pipefail
+          ROOT="${GITHUB_WORKSPACE}"
+          SRC="${GITHUB_WORKSPACE}/${BACKEND_DIR}"
+          OUT_ZIP="${ROOT}/backend.zip"
+
+          echo "ROOT=${ROOT}"
+          echo "SRC=${SRC}"
+          echo "OUT_ZIP=${OUT_ZIP}"
 
           cd "$SRC"
 
           include_list=()
           for p in \
-            manage.py proyecto_bia carga_datos certificado_ldd utils templates static \
+            manage.py proyecto_bia carga_datos certificado_ldd media utils templates static \
             requirements.txt startup.sh ; do
             [ -e "$p" ] && include_list+=("$p")
           done
@@ -62,20 +65,23 @@ jobs:
             exit 1
           fi
 
+          # crear zip en ruta ABSOLUTA
           zip -r "$OUT_ZIP" "${include_list[@]}"
 
-          cd "$ROOT"
-          ls -lh "$OUT_ZIP"
+          # verificar que exista
+          echo "Contenido del ZIP:"
+          unzip -l "$OUT_ZIP" | head -n 20 || true
 
-      # (Opcional) Guarda el ZIP como artefacto para inspección
-      - name: Upload ZIP artifact
+          # listar usando RUTA ABSOLUTA (antes fallaba por usar 'backend.zip' a secas)
+          stat "$OUT_ZIP" || ls -lh "$OUT_ZIP"
+
+      - name: Upload ZIP artifact (optional)
         uses: actions/upload-artifact@v4
         with:
           name: backend.zip
           path: backend.zip
           if-no-files-found: error
 
-      # ZipDeploy a Azure: Kudu descomprime en /home/site/wwwroot automáticamente
       - name: Deploy to Azure WebApp
         uses: azure/webapps-deploy@v2
         with:
