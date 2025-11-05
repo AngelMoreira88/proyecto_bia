@@ -2,7 +2,11 @@ name: Deploy Backend BIA (App Service)
 
 on:
   push:
-    branches: [ "main" ]  # o la rama que uses para prod
+    branches: [ "main" ]   # ajustá si deployás desde otra rama
+
+env:
+  APP_NAME: backend-grupobia          # nombre de tu App Service
+  BACKEND_DIR: "."                    # "." si el backend está en la raíz; ej: "backend" si está en /backend
 
 jobs:
   build-and-deploy:
@@ -17,23 +21,41 @@ jobs:
         with:
           python-version: "3.12"
 
-      # (opcional) validar que compila e instala
-      - name: Install deps
+      # Instala deps SOLO si existe requirements.txt en BACKEND_DIR (evita el error de tu screenshot)
+      - name: Install deps (if requirements.txt exists)
         run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          if [ -f "${BACKEND_DIR}/requirements.txt" ]; then
+            python -m pip install --upgrade pip
+            pip install -r "${BACKEND_DIR}/requirements.txt"
+          else
+            echo "No requirements.txt in ${BACKEND_DIR} -> skipping pip install"
+          fi
 
-      # Empaquetar SOLO el código necesario
+      # Crea el ZIP desde BACKEND_DIR; incluye solo lo que exista (sin romper el build)
       - name: Create ZIP artifact
         run: |
-          zip -r backend.zip \
+          cd "${BACKEND_DIR}"
+          # Armado flexible: agrega archivos si existen, ignora si faltan
+          include_list=()
+          for p in \
             manage.py proyecto_bia carga_datos certificado_ldd utils templates static \
-            requirements.txt startup.sh
+            requirements.txt startup.sh ; do
+            [ -e "$p" ] && include_list+=("$p")
+          done
 
-      # Deploy con ZipDeploy -> descomprime en /home/site/wwwroot
+          if [ ${#include_list[@]} -eq 0 ]; then
+            echo "Nada para zippear en ${BACKEND_DIR}. ¿BACKEND_DIR correcto?"
+            exit 1
+          fi
+
+          zip -r ../backend.zip "${include_list[@]}"
+          cd - 1>/dev/null
+          ls -lh backend.zip
+
+      # ZipDeploy (Kudu lo descomprime en /home/site/wwwroot automáticamente)
       - name: Deploy to Azure WebApp
         uses: azure/webapps-deploy@v2
         with:
-          app-name: backend-grupobia          # <-- tu App Service
+          app-name: ${{ env.APP_NAME }}
           package: backend.zip
-          publish-profile: ${{ secrets.AZUREAPPSVC_PublishProfile }}  # pegar publish profile en GitHub Secrets
+          publish-profile: ${{ secrets.AZUREAPPSVC_PublishProfile }}
