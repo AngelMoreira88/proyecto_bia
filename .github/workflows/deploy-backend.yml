@@ -5,16 +5,9 @@ on:
     branches: [ "main" ]
   workflow_dispatch: {}
 
-permissions:
-  contents: read
-
-concurrency:
-  group: deploy-backend
-  cancel-in-progress: true
-
 env:
   APP_NAME: backend-grupobia
-  BACKEND_DIR: "."   # cambia a "backend" si tu código vive en /backend
+  BACKEND_DIR: "."    # si tu backend vive en /backend, cambiá a "backend"
 
 jobs:
   build-and-deploy:
@@ -30,6 +23,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install deps (if requirements.txt exists)
+        shell: bash
         run: |
           set -e
           REQ_FILE="${GITHUB_WORKSPACE}/${BACKEND_DIR}/requirements.txt"
@@ -41,21 +35,23 @@ jobs:
           fi
 
       - name: Create ZIP artifact
+        shell: bash
         run: |
           set -euo pipefail
           ROOT="${GITHUB_WORKSPACE}"
           SRC="${GITHUB_WORKSPACE}/${BACKEND_DIR}"
           OUT_ZIP="${ROOT}/backend.zip"
 
-          echo "ROOT=${ROOT}"
-          echo "SRC=${SRC}"
-          echo "OUT_ZIP=${OUT_ZIP}"
+          echo "ROOT=$ROOT"
+          echo "SRC=$SRC"
+          echo "OUT_ZIP=$OUT_ZIP"
 
-          cd "$SRC"
+          # zipeamos DESDE la carpeta del backend pero escribimos el ZIP en la RAÍZ DEL WORKSPACE
+          pushd "$SRC" >/dev/null
 
           include_list=()
           for p in \
-            manage.py proyecto_bia carga_datos certificado_ldd media utils templates static \
+            manage.py proyecto_bia carga_datos certificado_ldd utils media templates static \
             requirements.txt startup.sh ; do
             [ -e "$p" ] && include_list+=("$p")
           done
@@ -65,26 +61,26 @@ jobs:
             exit 1
           fi
 
-          # crear zip en ruta ABSOLUTA
+          # crear zip con ruta ABSOLUTA (evita escribir fuera del workspace)
           zip -r "$OUT_ZIP" "${include_list[@]}"
 
-          # verificar que exista
-          echo "Contenido del ZIP:"
-          unzip -l "$OUT_ZIP" | head -n 20 || true
+          popd >/dev/null
 
-          # listar usando RUTA ABSOLUTA (antes fallaba por usar 'backend.zip' a secas)
+          # verificar existencia y tamaño
           stat "$OUT_ZIP" || ls -lh "$OUT_ZIP"
+          echo "Primeros ítems dentro del ZIP:"
+          unzip -l "$OUT_ZIP" | head -n 30 || true
 
       - name: Upload ZIP artifact (optional)
         uses: actions/upload-artifact@v4
         with:
           name: backend.zip
-          path: backend.zip
+          path: ${{ github.workspace }}/backend.zip
           if-no-files-found: error
 
-      - name: Deploy to Azure WebApp
+      - name: Deploy to Azure WebApp (ZipDeploy)
         uses: azure/webapps-deploy@v2
         with:
           app-name: ${{ env.APP_NAME }}
-          package: backend.zip
+          package: ${{ github.workspace }}/backend.zip   # ← ruta ABSOLUTA
           publish-profile: ${{ secrets.AZUREAPPSVC_PublishProfile }}
