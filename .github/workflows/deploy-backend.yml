@@ -1,17 +1,13 @@
-name: Deploy Django Backend to Azure Web App
+name: Deploy Backend BIA (App Service)
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch:
-
-env:
-  AZURE_WEBAPP_NAME: backend-grupobia
-  PYTHON_VERSION: "3.12"
+    branches: [ "main" ]  # o la rama que uses para prod
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -19,21 +15,25 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ env.PYTHON_VERSION }}
+          python-version: "3.12"
 
-      - name: Install dependencies
+      # (opcional) validar que compila e instala
+      - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -r requirements.txt
 
+      # Empaquetar SOLO el código necesario
       - name: Create ZIP artifact
         run: |
-          zip -r backend.zip . \
-            -x "venv*/**" ".git/**" "__pycache__/**" "*.pyc" "static/**" "media/**"
+          zip -r backend.zip \
+            manage.py proyecto_bia carga_datos certificado_ldd utils templates static \
+            requirements.txt startup.sh
 
-      - name: Deploy to Azure Web App (PROD)
-        uses: azure/webapps-deploy@v3
+      # Deploy con ZipDeploy -> descomprime en /home/site/wwwroot
+      - name: Deploy to Azure WebApp
+        uses: azure/webapps-deploy@v2
         with:
-          app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          app-name: backend-grupobia          # <-- tu App Service
           package: backend.zip
+          publish-profile: ${{ secrets.AZUREAPPSVC_PublishProfile }}  # pegar publish profile en GitHub Secrets
