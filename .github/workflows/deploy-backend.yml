@@ -77,10 +77,10 @@ jobs:
           name: backend.zip
           path: ${{ github.workspace }}/backend.zip
           if-no-files-found: error
-
+          
       - name: Deploy to Azure WebApp (ZipDeploy)
         uses: azure/webapps-deploy@v2
         with:
-          app-name: ${{ env.APP_NAME }}
-          package: ${{ github.workspace }}/backend.zip   # ← ruta ABSOLUTA
+          app-name: ${{ env.APP_NAME }}           # backend-grupobia
+          package: ${{ github.workspace }}/backend.zip
           publish-profile: ${{ secrets.AZUREAPPSVC_PUBLISHPROFILE_BIA }}

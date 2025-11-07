@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
 set -e
 
+cd /home/site/wwwroot
+
+# si existe un output.tar.gz no descomprimido, hacerlo una sola vez
+if [ -f "output.tar.gz" ]; then
+  echo "[startup] Descomprimiendo output.tar.gz en /home/site/wwwroot ..."
+  tar -xzvf output.tar.gz
+  rm -f output.tar.gz
+  echo "[startup] Descompresión completada."
+fi
+
 echo "[startup] applying migrations..."
 python manage.py migrate --settings=proyecto_bia.settings_production
 
@@ -14,11 +24,3 @@ gunicorn proyecto_bia.wsgi:application \
   --worker-class=gthread \
   --threads=8 \                # paralelismo por threads
   --timeout=300  
-
-cd /home/site/wwwroot
-
-if [ -f "output.tar.gz" ]; then
-  echo "[startup] Descomprimiendo output.tar.gz ..."
-  tar -xzvf output.tar.gz
-  rm -f output.tar.gz
-fi

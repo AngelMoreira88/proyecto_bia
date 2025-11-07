@@ -63,9 +63,10 @@ wh = os.getenv("WEBSITE_HOSTNAME")
 if wh and wh not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(wh)
 
-# Warmup interno de Azure
-if "169.254.130.4" not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append("169.254.130.4")
+# Warmup internos de Azure (IPs link-local que usan probes)
+for _probe_ip in ("169.254.130.4", "169.254.131.3"):
+    if _probe_ip not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(_probe_ip)
 
 # =========================
 # CORS / CSRF (endurecido)
@@ -81,11 +82,27 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
 ]
 CORS_ALLOW_CREDENTIALS = True
 
-# CSRF
+# CSRF - partir de defaults + env y además derivar de ALLOWED_HOSTS (https)
 CSRF_TRUSTED_ORIGINS = list(set((CSRF_TRUSTED_ORIGINS or []) + _csv(
     "CSRF_TRUSTED_ORIGINS",
     f"{_fronts_default},{_backend_default}"
 )))
+
+# Derivar https://<host> desde ALLOWED_HOSTS, evitando localhost y 169.254.x.x
+def _csrf_from_hosts(hosts):
+    out = []
+    for h in hosts:
+        h = (h or "").strip()
+        if not h:
+            continue
+        if h in ("localhost", "127.0.0.1") or h.startswith("169.254."):
+            continue
+        # normalizar si alguien puso ".dominio.com"
+        out.append(f"https://{h.lstrip('.')}")
+    return out
+
+# extender lista deduplicada
+CSRF_TRUSTED_ORIGINS = list(set(CSRF_TRUSTED_ORIGINS + _csrf_from_hosts(ALLOWED_HOSTS)))
 
 # =========================
 # Archivos estáticos y media (WhiteNoise + persistencia Azure)
