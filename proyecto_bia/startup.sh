@@ -1,26 +1,37 @@
-#!/usr/bin/env bash
-set -e
+#!/bin/bash
+set -euxo pipefail
 
-cd /home/site/wwwroot
+APP_DIR="/home/site/wwwroot"
+VENV_NAME="venvBIA"
+VENV_DIR="$APP_DIR/$VENV_NAME"
+PYBIN="$VENV_DIR/bin/python"
+PIP="$VENV_DIR/bin/pip"
 
-# si existe un output.tar.gz no descomprimido, hacerlo una sola vez
-if [ -f "output.tar.gz" ]; then
-  echo "[startup] Descomprimiendo output.tar.gz en /home/site/wwwroot ..."
-  tar -xzvf output.tar.gz
-  rm -f output.tar.gz
-  echo "[startup] Descompresión completada."
+# Fallback por si Oryx no creó el venv (no debería, pero nos cubrimos)
+if [ ! -d "$VENV_DIR" ]; then
+  python3.12 -m venv "$VENV_DIR"
 fi
 
-echo "[startup] applying migrations..."
-python manage.py migrate --settings=proyecto_bia.settings_production
+# Instalar deps una sola vez por arranque (o cuando falten)
+if [ ! -x "$PYBIN" ]; then
+  python3.12 -m venv "$VENV_DIR"
+fi
 
-echo "[startup] collectstatic..."
-python manage.py collectstatic --noinput --settings=proyecto_bia.settings_production
+"$PIP" install --upgrade pip wheel setuptools
+if [ -f "$APP_DIR/requirements.txt" ]; then
+  "$PIP" install -r "$APP_DIR/requirements.txt"
+fi
 
-echo "[startup] starting gunicorn..."
-gunicorn proyecto_bia.wsgi:application \
-  --bind=0.0.0.0:8000 \
-  --workers=1 \                # 1 worker reduce consumo total de memoria
-  --worker-class=gthread \
-  --threads=8 \                # paralelismo por threads
-  --timeout=300  
+export PYTHONPATH="$APP_DIR:${PYTHONPATH:-}"
+
+cd "$APP_DIR"
+
+# Django housekeeping
+"$PYBIN" manage.py migrate --noinput
+"$PYBIN" manage.py collectstatic --noinput
+
+# Arrancar gunicorn
+exec "$VENV_DIR/bin/gunicorn" proyecto_bia.wsgi:application \
+  --bind=0.0.0.0:${PORT:-8000} \
+  --workers=${GUNICORN_WORKERS:-3} \
+  --timeout=120
