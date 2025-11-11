@@ -10,6 +10,7 @@ import logging
 import os
 from io import BytesIO
 from typing import Optional, Dict, Any, Tuple, List
+from functools import lru_cache
 
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -60,6 +61,15 @@ BUSINESS = {
 MAX_PAGE_SIZE = 200
 DEFAULT_PAGE_SIZE = 50
 
+# Campos mínimos para lista/preview (evitar traer columnas innecesarias)
+_BDB_MIN_FIELDS = (
+    "id", "pk", "dni", "id_pago_unico", "nombre_apellido", "propietario",
+    "entidadinterna", "entidadoriginal", "estado",
+    "ultima_fecha_pago", "fecha_plan", "fecha_apertura", "entidad_id",
+)
+_ENTIDAD_MIN_FIELDS = ("id", "nombre", "razon_social", "responsable", "cargo", "pie_pdf")
+_ENTIDAD_MEDIA_FIELDS = _ENTIDAD_MIN_FIELDS + ("logo", "firma")  # solo cuando haga falta (PDF)
+
 def _is_ajax(request: HttpRequest) -> bool:
     return (request.headers.get("X-Requested-With") == "XMLHttpRequest") or (
         request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest"
@@ -89,10 +99,6 @@ def _open_fieldfile(ff, mode="rb"):
 
 # ==== Timestamps y mtimes de storage (para invalidar caché del PDF) ====
 def _get_storage_mtime(ff) -> Optional[object]:
-    """
-    Intenta obtener la fecha de modificación del archivo en el storage.
-    Devuelve objeto timezone-aware si el backend lo soporta; si no, None.
-    """
     try:
         if not _fieldfile_exists(ff):
             return None
@@ -104,10 +110,6 @@ def _get_storage_mtime(ff) -> Optional[object]:
     return None
 
 def _get_timestamp_like(obj) -> Optional[object]:
-    """
-    Devuelve el primer atributo de timestamp disponible, o None.
-    Prioridad típica: updated_at, modified, last_modified, created_at, created.
-    """
     for attr in ("updated_at", "modified", "last_modified", "created_at", "created"):
         val = getattr(obj, attr, None)
         if val:
@@ -115,9 +117,25 @@ def _get_timestamp_like(obj) -> Optional[object]:
     return None
 
 def _max_ts(*vals) -> Optional[object]:
-    """Máximo ignorando None."""
     vals = [v for v in vals if v is not None]
     return max(vals) if vals else None
+
+# ======================================================================================
+# Caches ligeras de entidades
+# ======================================================================================
+
+@lru_cache(maxsize=64)
+def _cached_entidad_bia_name() -> str:
+    return "BIA"
+
+@lru_cache(maxsize=64)
+def _cached_entidad_by_name(nombre: str) -> Optional[Entidad]:
+    # Solo los campos de texto necesarios para copy/firma; logo/firma se piden aparte si hace falta
+    return Entidad.objects.only(*_ENTIDAD_MIN_FIELDS).filter(nombre__iexact=nombre).first()
+
+@lru_cache(maxsize=1)
+def _cached_entidad_bia() -> Optional[Entidad]:
+    return _cached_entidad_by_name(_cached_entidad_bia_name())
 
 # ======================================================================================
 # ReportLab — Fuentes, imágenes y layout
@@ -126,10 +144,6 @@ def _max_ts(*vals) -> Optional[object]:
 _FONTS_REGISTERED = False
 
 def _register_fonts_for_azure():
-    """
-    Registra DejaVuSans / DejaVuSans-Bold si existen; si no, usa Helvetica.
-    Colocá los .ttf en <BASE_DIR>/fonts o definí settings.FONT_DIR.
-    """
     global _FONTS_REGISTERED
     if _FONTS_REGISTERED:
         return
@@ -151,10 +165,6 @@ def _register_fonts_for_azure():
         _FONTS_REGISTERED = True  # evitamos retry infinito
 
 def _img_flowable_from_fieldfile(ff, width_cm: float, height_cm: float) -> Optional[Image]:
-    """
-    Lee bytes de una imagen desde el storage configurado (local, Azure, S3, etc.)
-    y devuelve un Flowable Image.
-    """
     if not _fieldfile_exists(ff):
         return None
     try:
@@ -172,12 +182,6 @@ def _safe_text(value, default="-"):
     return str(value) if value not in (None, "") else default
 
 def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
-    """
-    Encabezado del certificado:
-      - Si hay entidad externa y BIA: ENTIDAD (izq) + BIA (der)
-      - Si solo hay BIA: BIA centrado
-      - Si solo hay entidad externa (poco común): centrado
-    """
     from reportlab.lib.utils import ImageReader
     canvas.saveState()
 
@@ -185,7 +189,6 @@ def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
     ml = doc.leftMargin
     mr = doc.rightMargin
 
-    # Ajustes de tamaño y posición (fiel al modelo)
     header_box_h = 3.0 * cm
     logo_size   = 2.6 * cm
     gap_below   = 0.35 * cm
@@ -221,7 +224,6 @@ def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
         x = (page_w - logo_size) / 2.0
         _draw_ff(logo_ent_ff, x, top_y - header_box_h)
 
-    # Línea fina debajo del header
     canvas.setStrokeColor(colors.HexColor("#DDDDDD"))
     canvas.setLineWidth(0.8)
     y_line = top_y - (header_box_h + gap_below)
@@ -253,21 +255,15 @@ def _page_template(logo_bia_ff, logo_ent_ff, footer_text: str):
     def _page(canvas, doc):
         _draw_header(canvas, doc, logo_bia_ff, logo_ent_ff)
         _draw_footer(canvas, doc, footer_text)
-    return _page, _page  # misma para first y later
+    return _page, _page
 
 # ======================================================================================
 # Copy por entidad (texto profesional fiel a modelo)
 # ======================================================================================
 
 def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool) -> dict:
-    """
-    Devuelve el copy (texto) y defaults de firma según la entidad emisora.
-    - entidad_nombre: nombre normalizado de la entidad emisora (str o None)
-    - has_ent_externa: True si hay entidad externa además de BIA (para “administrado por BIA S.R.L.”)
-    """
     nombre = (entidad_nombre or "").strip().lower()
 
-    # Base común (con coletilla “administrado por BIA S.R.L.” si aplica)
     base_parrafo1 = (
         "Por medio de la presente se deja constancia que <b>{nombre}</b>, con DNI <b>{dni}</b>, "
         "ha cancelado la deuda que mantenía con <b>{propietario}</b>{admin_bia}, "
@@ -329,7 +325,7 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
         "parrafo1_fmt": selected["parrafo1_fmt"],
         "parrafo2": parrafo2,
         "firma_defaults": selected["firma"],
-        "agregar_admin_bia": not has_ent_externa,  # agrega “(administrado por BIA S.R.L.)” si no hay entidad externa
+        "agregar_admin_bia": not has_ent_externa,
     }
 
 # ======================================================================================
@@ -347,16 +343,6 @@ def _build_pdf_bytes_azure(
     subtitulo: str | None,
     footer_text: str | None
 ) -> bytes:
-    """
-    ReportLab (Azure-ready). Reproduce tu HTML/Word:
-      - Header: logos (entidad izq. + BIA der; o BIA centrado si único)
-      - “Ciudad, Fecha”
-      - Cuerpo formal (según entidad; puede incluir “administrado por BIA S.R.L.”)
-      - Parrafo de cierre
-      - Vigencia (opcional)
-      - Firmas (1 o 2) con defaults por entidad si faltan datos en DB
-      - Footer con paginación
-    """
     _register_fonts_for_azure()
 
     buf = BytesIO()
@@ -365,13 +351,12 @@ def _build_pdf_bytes_azure(
         pagesize=A4,
         leftMargin=2.0 * cm,
         rightMargin=2.0 * cm,
-        topMargin=4.0 * cm,      # espacio para encabezado con logos
+        topMargin=4.0 * cm,
         bottomMargin=2.2 * cm,
         title=titulo,
         author="BIA",
     )
 
-    # Estilos
     styles = getSampleStyleSheet()
     base_font = "DejaVuSans" if "DejaVuSans" in pdfmetrics.getRegisteredFontNames() else "Helvetica"
     base_bold = "DejaVuSans-Bold" if "DejaVuSans-Bold" in pdfmetrics.getRegisteredFontNames() else "Helvetica-Bold"
@@ -389,26 +374,20 @@ def _build_pdf_bytes_azure(
 
     elements = []
 
-    # ===== Título =====
     elements.append(Paragraph(_safe_text(titulo), styles["Titulo"]))
 
-    # ===== Ciudad y fecha =====
     from datetime import datetime
-    # Preferimos “Fecha de Emisión” (seteada en _render...), fallback a hoy
     fecha_emision = _safe_text(datos.get("Fecha de Emisión")) or datetime.now().strftime("%d/%m/%Y")
 
-    # Nombre de la emisora para ajustar copy/firma y si hay “administrado por BIA”
     ent_nombre = datos.get("Entidad Emisora") or datos.get("Razón Social") or ""
-    has_ent_externa = _fieldfile_exists(logo_ent_ff)  # si hay logo externo, no agregamos “administrado por BIA...”
+    has_ent_externa = _fieldfile_exists(logo_ent_ff)
     copy = _select_copy_for_entity(entidad_nombre=ent_nombre, has_ent_externa=has_ent_externa)
 
     elements.append(Paragraph(f'{copy["ciudad"]}, <b>{fecha_emision}</b>', styles["Fecha"]))
 
-    # ===== Cuerpo (coherente con tu BD) =====
     nombre_apellido = _safe_text(datos.get("Nombre y Apellido"), default="(sin dato)")
     dni_txt = _safe_text(datos.get("DNI"), default="(sin dato)")
     propietario_txt = _safe_text(datos.get("Razón Social"), default="(sin dato)")
-    # Prioriza entidadoriginal (fallback entidadinterna ya resuelto en _render_pdf_for_registro)
     entidad_original_txt = _safe_text(datos.get("Entidad Original"), default="(sin dato)")
     id_operacion = _safe_text(datos.get("Número"), default="(sin dato)")
 
@@ -424,7 +403,6 @@ def _build_pdf_bytes_azure(
     elements.append(Paragraph(parrafo_1, styles["Cuerpo"]))
     elements.append(Paragraph(copy["parrafo2"], styles["Nota"]))
 
-    # ===== Vigencia (opcional) =====
     if datos.get("Vigencia Hasta") or datos.get("vigencia_hasta"):
         vig = datos.get("Vigencia Hasta") or datos.get("vigencia_hasta")
         nota_vig = (
@@ -433,7 +411,6 @@ def _build_pdf_bytes_azure(
         )
         elements.append(Paragraph(nota_vig, styles["Nota"]))
 
-    # ===== Firmas =====
     def _firma_block(f, defaults):
         if not f:
             f = {}
@@ -444,7 +421,6 @@ def _build_pdf_bytes_azure(
             if img:
                 blocks.append(img)
                 blocks.append(Spacer(1, 0.12 * cm))
-        # Línea + texto
         blocks.append(HRFlowable(width="75%", color=colors.HexColor("#CCCCCC"), thickness=1))
         blocks.append(Spacer(1, 0.08 * cm))
         texto = "<b>{}</b><br/>{}<br/>{}".format(
@@ -471,7 +447,6 @@ def _build_pdf_bytes_azure(
         elements.append(Spacer(1, 0.6 * cm))
         elements.append(firmas_table)
 
-    # ===== Build con header/footer =====
     footer_text = footer_text or "BIA • Certificados de Libre Deuda"
     first, later = _page_template(logo_bia_ff, logo_ent_ff, footer_text)
     doc.build(elements, onFirstPage=first, onLaterPages=later)
@@ -496,43 +471,58 @@ def _row_minimal(reg: BaseDeDatosBia) -> Dict[str, Any]:
 
 def get_entidad_emisora(registro: BaseDeDatosBia) -> Optional[Entidad]:
     """
-    Resolución de entidad emisora:
-    1) Si hay FK 'entidad' en registro, usarla.
-    2) Si no, fallback por nombre (propietario / entidadinterna).
+    Resolución de entidad emisora optimizada:
+    1) Si hay FK 'entidad' y ya está select_related, úsala (sin query extra).
+    2) Si no, búsqueda por nombre con cache LRU.
     """
     try:
-        if hasattr(registro, "entidad_id") and registro.entidad_id:
-            return getattr(registro, "entidad", None) or Entidad.objects.filter(pk=registro.entidad_id).first()
+        if getattr(registro, "entidad_id", None):
+            ent = getattr(registro, "entidad", None)
+            if ent:
+                return ent  # ya viene de select_related
+            # fallback por pk (solo campos mínimos)
+            return Entidad.objects.only(*_ENTIDAD_MIN_FIELDS).filter(pk=registro.entidad_id).first()
     except Exception:
         pass
 
     propietario = (registro.propietario or "").strip()
     interna = (registro.entidadinterna or "").strip()
-    ent = None
+
     if propietario:
-        ent = Entidad.objects.filter(nombre__iexact=propietario).first()
-    if not ent and interna:
-        ent = Entidad.objects.filter(nombre__iexact=interna).first()
-    return ent
+        ent = _cached_entidad_by_name(propietario)
+        if ent:
+            return ent
+    if interna and interna.lower() != (propietario or "").lower():
+        ent = _cached_entidad_by_name(interna)
+        if ent:
+            return ent
+    return None
 
 def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate], Optional[bytes], Optional[str]]:
     """
     Genera y cachea PDF para un registro cancelado (ReportLab; Azure-ready).
-    Con invalidación de caché basada en timestamps del modelo y mtimes de archivos en storage.
+    Optimizaciones: select_related + only() para evitar overfetch y recargas.
     """
     logger.info("[PDF] Generación para id_pago_unico=%s", reg.id_pago_unico)
 
-    # Reobtención defensiva con select_related si tu modelo tiene FK -> Entidad
+    # Reobtención defensiva, pero solo campos necesarios + entidad
     try:
-        reg = BaseDeDatosBia.objects.select_related("entidad").get(pk=reg.pk)
+        reg = (
+            BaseDeDatosBia.objects
+            .select_related("entidad")
+            .only(*_BDB_MIN_FIELDS)
+            .get(pk=reg.pk)
+        )
     except Exception:
+        # En caso de error, continuar con reg tal cual (ya cargado)
         pass
 
     cert, _created = Certificate.objects.get_or_create(client=reg)
 
-    # Resolver entidades
-    emisora = get_entidad_emisora(reg)
-    entidad_bia = Entidad.objects.filter(nombre__iexact="BIA").first()
+    # Resolver entidades (sin blobs primero)
+    emisora = get_entidad_emisora(reg)  # only() aplicado
+    entidad_bia = _cached_entidad_bia()
+
     entidad_otras = None
     if emisora:
         if "bia" in (emisora.nombre or "").lower():
@@ -540,25 +530,37 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
         else:
             entidad_otras = emisora
 
+    # Para PDF sí necesitamos blobs (logo/firma). Releer SOLO esas entidad(es) con logo/firma.
+    def _load_media(ent: Optional[Entidad]) -> Optional[Entidad]:
+        if not ent:
+            return None
+        if hasattr(ent, "logo") and hasattr(ent, "firma"):
+            # ya podría estar, pero aseguramos carga
+            return Entidad.objects.only(*_ENTIDAD_MEDIA_FIELDS).filter(pk=ent.pk).first()
+        return Entidad.objects.only(*_ENTIDAD_MEDIA_FIELDS).filter(pk=ent.pk).first()
+
+    entidad_bia_m = _load_media(entidad_bia)
+    entidad_otras_m = _load_media(entidad_otras)
+
     # Firmas extendidas (FieldFile para leer desde storage)
     firma_bia = {
-        "firma_ff": getattr(entidad_bia, "firma", None),
-        "responsable": getattr(entidad_bia, "responsable", "") or "Responsable",
-        "cargo": getattr(entidad_bia, "cargo", "") or "Responsable",
-        "entidad": getattr(entidad_bia, "razon_social", "") or "BIA",
+        "firma_ff": getattr(entidad_bia_m, "firma", None) if entidad_bia_m else None,
+        "responsable": getattr(entidad_bia_m, "responsable", "") or "Responsable",
+        "cargo": getattr(entidad_bia_m, "cargo", "") or "Responsable",
+        "entidad": getattr(entidad_bia_m, "razon_social", "") or "BIA",
     }
     firma_ext = None
-    if entidad_otras:
+    if entidad_otras_m:
         firma_ext = {
-            "firma_ff": getattr(entidad_otras, "firma", None),
-            "responsable": getattr(entidad_otras, "responsable", "") or "",
-            "cargo": getattr(entidad_otras, "cargo", "") or "",
-            "entidad": getattr(entidad_otras, "razon_social", "") or "",
+            "firma_ff": getattr(entidad_otras_m, "firma", None),
+            "responsable": getattr(entidad_otras_m, "responsable", "") or "",
+            "cargo": getattr(entidad_otras_m, "cargo", "") or "",
+            "entidad": getattr(entidad_otras_m, "razon_social", "") or "",
         }
 
     # Logos para header
-    logo_bia_ff = getattr(entidad_bia, "logo", None) if entidad_bia else None
-    logo_ent_ff = getattr(entidad_otras, "logo", None) if entidad_otras else None
+    logo_bia_ff = getattr(entidad_bia_m, "logo", None) if entidad_bia_m else None
+    logo_ent_ff = getattr(entidad_otras_m, "logo", None) if entidad_otras_m else None
 
     # ===== Invalidación de caché por timestamps/mtimes =====
     reuse_cached = False
@@ -566,26 +568,22 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
         pdf_mtime = _get_storage_mtime(cert.pdf_file)
 
         ts_reg   = _get_timestamp_like(reg)
-        ts_bia   = _get_timestamp_like(entidad_bia) if entidad_bia else None
-        ts_otras = _get_timestamp_like(entidad_otras) if entidad_otras else None
+        ts_bia   = _get_timestamp_like(entidad_bia_m) if entidad_bia_m else None
+        ts_otras = _get_timestamp_like(entidad_otras_m) if entidad_otras_m else None
 
         mt_bia_logo   = _get_storage_mtime(logo_bia_ff) if logo_bia_ff else None
-        mt_bia_firma  = _get_storage_mtime(getattr(entidad_bia, "firma", None)) if entidad_bia else None
+        mt_bia_firma  = _get_storage_mtime(getattr(entidad_bia_m, "firma", None)) if entidad_bia_m else None
         mt_ent_logo   = _get_storage_mtime(logo_ent_ff) if logo_ent_ff else None
-        mt_ent_firma  = _get_storage_mtime(getattr(entidad_otras, "firma", None)) if entidad_otras else None
+        mt_ent_firma  = _get_storage_mtime(getattr(entidad_otras_m, "firma", None)) if entidad_otras_m else None
 
         newest_data_ts = _max_ts(ts_reg, ts_bia, ts_otras, mt_bia_logo, mt_bia_firma, mt_ent_logo, mt_ent_firma)
 
         if pdf_mtime and newest_data_ts and newest_data_ts <= pdf_mtime:
-            reuse_cached = True
-
-        if reuse_cached:
             try:
                 with _open_fieldfile(cert.pdf_file, "rb") as fh:
                     return cert, fh.read(), None
             except Exception as e:
                 logger.exception("[PDF] Error leyendo PDF cacheado: %s", e)
-                reuse_cached = False
         else:
             try:
                 cert.pdf_file.delete(save=False)
@@ -596,42 +594,33 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
             logger.warning("[PDF] pdf_file apunta a %s pero no existe; se limpia.", cert.pdf_file.name)
             cert.pdf_file.delete(save=False)
 
-    # ===== Datos del certificado (coherentes con la BD) =====
+    # ===== Datos del certificado =====
     from datetime import datetime
     hoy_str = datetime.now().strftime("%d/%m/%Y")
 
-    # “Entidad Original” prioriza entidadoriginal; fallback a entidadinterna
-    entidad_original_val = (
-        (reg.entidadoriginal or "").strip()
-        or (reg.entidadinterna or "").strip()
-    )
+    entidad_original_val = (reg.entidadoriginal or "").strip() or (reg.entidadinterna or "").strip()
 
-    # Auditoría (no impresa por defecto)
     emitido = getattr(reg, "ultima_fecha_pago", None) or getattr(reg, "fecha_plan", None) or getattr(reg, "fecha_apertura", None)
     try:
         emitido_str = emitido.strftime("%d/%m/%Y") if hasattr(emitido, "strftime") else _safe_text(emitido)
     except Exception:
         emitido_str = _safe_text(emitido)
 
-    # Nombre/razón de la emisora (para copy/firma)
-    ent_emisora_nombre = (entidad_otras or entidad_bia).nombre if (entidad_otras or entidad_bia) else ""
+    ent_emisora_nombre = (entidad_otras_m or entidad_bia_m).nombre if (entidad_otras_m or entidad_bia_m) else ""
 
     datos = {
-        # Claves consumidas por _build_pdf_bytes_azure
         "Número": reg.id_pago_unico,
         "DNI": reg.dni,
         "Nombre y Apellido": reg.nombre_apellido,
         "Razón Social": reg.propietario or "",
         "Entidad Original": entidad_original_val,
         "Entidad Emisora": ent_emisora_nombre,
-
-        # Metadatos útiles:
-        "Emitido": emitido_str,        # última fecha de pago/plan/apertura (opcional)
+        "Emitido": emitido_str,
         "Estado": reg.estado or "",
-        "Fecha de Emisión": hoy_str,   # lo que se muestra en “Buenos Aires, …”
+        "Fecha de Emisión": hoy_str,
     }
 
-    footer_text = getattr(entidad_bia, "pie_pdf", None) or "BIA • Certificados de Libre Deuda"
+    footer_text = getattr(entidad_bia_m, "pie_pdf", None) or "BIA • Certificados de Libre Deuda"
 
     try:
         pdf_bytes = _build_pdf_bytes_azure(
@@ -648,7 +637,6 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
         logger.exception("[PDF] Error generando PDF: %s", e)
         return cert, None, "Falló la generación del PDF para el certificado."
 
-    # Persistir en storage
     try:
         filename = f"certificado_{reg.id_pago_unico}.pdf"
         cert.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
@@ -665,24 +653,28 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
 def _supports_distinct_on() -> bool:
     return connection.vendor == "postgresql"
 
+def _order_fields_distinct():
+    # Mantener consistencia de ordering con DISTINCT ON (Postgres)
+    return ("id_pago_unico", "-ultima_fecha_pago", "-fecha_plan", "-fecha_apertura")
+
+def _base_bdb_qs():
+    # QS base con solo campos necesarios
+    return BaseDeDatosBia.objects.only(*_BDB_MIN_FIELDS)
+
 def _query_unicas_por_id(dni: str):
-    order_fields = ("id_pago_unico", "-ultima_fecha_pago", "-fecha_plan", "-fecha_apertura")
+    order_fields = _order_fields_distinct()
+    qs = _base_bdb_qs().filter(dni=dni)
     if _supports_distinct_on():
-        return (
-            BaseDeDatosBia.objects
-            .filter(dni=dni)
-            .order_by(*order_fields)
-            .distinct("id_pago_unico")
-        )
+        return qs.order_by(*order_fields).distinct("id_pago_unico")
+
+    # Fallback no-Postgres: dos queries eficientes y dedupe en Python sin cargar demás columnas
     ids = (
-        BaseDeDatosBia.objects
-        .filter(dni=dni)
-        .values_list("id_pago_unico", flat=True)
-        .distinct()
+        qs.values_list("id_pago_unico", flat=True)
+          .distinct()
     )
     todas = list(
-        BaseDeDatosBia.objects.filter(dni=dni, id_pago_unico__in=list(ids))
-        .order_by(*order_fields)
+        _base_bdb_qs().filter(dni=dni, id_pago_unico__in=list(ids))
+                      .order_by(*order_fields)
     )
     seen = set()
     out: List[BaseDeDatosBia] = []
@@ -717,6 +709,7 @@ def api_consulta_dni_unificada(request: HttpRequest):
     end = start + page_size
     subset = (base[start:end] if hasattr(base, "__getitem__") else list(base)[start:end])
 
+    # Construimos payload con campos ya cargados; evitamos acceder a relaciones
     deudas = []
     total_canceladas_unicas = 0
     for r in subset:
@@ -735,7 +728,7 @@ def api_consulta_dni_unificada(request: HttpRequest):
             "cancelado": cancelado,
         })
 
-    total_en_bd = BaseDeDatosBia.objects.filter(dni=dni).count()
+    total_en_bd = _base_bdb_qs().filter(dni=dni).count()
     total_no_canceladas_unicas = total - total_canceladas_unicas
 
     if total == 0:
@@ -779,8 +772,10 @@ def seleccionar_certificado(request: HttpRequest) -> HttpResponse:
             status=400,
         )
 
-    registros = BaseDeDatosBia.objects.filter(dni=dni)
-    if not registros.exists():
+    # Un solo query con only() (lista completa para la página de selección)
+    registros_qs = _base_bdb_qs().filter(dni=dni)
+    registros = list(registros_qs)  # fuerza evaluación una vez
+    if not registros:
         return render(
             request,
             "certificado_seleccionar.html",
@@ -832,7 +827,7 @@ def _handle_get_generar(request: HttpRequest) -> HttpResponse:
     if not idp:
         return JsonResponse({"error": "Debe indicar id_pago_unico en la URL (GET).", "dni": dni, "id_pago_unico": idp}, status=400)
 
-    qs = BaseDeDatosBia.objects.filter(id_pago_unico=idp)
+    qs = _base_bdb_qs().filter(id_pago_unico=idp)
     if dni:
         qs = qs.filter(dni=dni)
 
@@ -864,7 +859,7 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
 
     # Caso 1: id específico
     if idp:
-        qs = BaseDeDatosBia.objects.filter(id_pago_unico=idp)
+        qs = _base_bdb_qs().filter(id_pago_unico=idp)
         if dni:
             qs = qs.filter(dni=dni)
 
@@ -894,8 +889,8 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
     if not _ok_dni(dni):
         return JsonResponse({"error": "Ingresá un DNI válido (solo números)."}, status=400)
 
-    registros = BaseDeDatosBia.objects.filter(dni=dni)
-    if not registros.exists():
+    registros = list(_base_bdb_qs().filter(dni=dni))
+    if not registros:
         return JsonResponse(
             {"estado": BUSINESS["SIN_RESULTADOS"], "mensaje": f"No hay registros para DNI {dni}.", "dni": dni},
             status=200,
@@ -942,7 +937,8 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
 # ======================================================================================
 
 class EntidadViewSet(viewsets.ModelViewSet):
-    queryset = Entidad.objects.all().order_by("id")
+    # Evitar traer blobs en listados (logo/firma). Se cargan solo cuando se pidan explícitamente.
+    queryset = Entidad.objects.defer("logo", "firma").only(*_ENTIDAD_MIN_FIELDS).order_by("id")
     serializer_class = EntidadSerializer
     permission_classes = [IsAuthenticated, CanManageEntities]
     filter_backends = [filters.OrderingFilter]
