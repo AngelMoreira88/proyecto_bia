@@ -1,23 +1,7 @@
 # certificado_ldd/views.py
 """
-Vistas para emisión de Certificados de Libre Deuda.
-
+Vistas para emisión de Certificados de Libre Deuda (ReportLab-Only, Azure-ready).
 Prefijo de app en urls.py: /api/certificado/
-
-Endpoints:
-- GET  /ping/
-- GET  /consulta/dni/?dni=<dni>[&page=1&page_size=50]    ← pública: lista por DNI (canceladas y no), un item por id_pago_unico
-- GET  /seleccionar/?dni=<dni>                            ← HTML interno (login + permiso)
-- GET  /generar/?id_pago_unico=<id>[&dni=<dni>]          ← público: PDF directo o JSON de negocio (200)
-- POST /generar/ (form-data: dni=... [id_pago_unico=...]) ← público: PDF directo o JSON de negocio (200)
-- /entidades/ (DRF, solo internos)
-
-Convenciones de negocio (nunca 404 por “no hay”):
-- {"estado":"sin_resultados"} → 200
-- {"estado":"pendiente"}      → 200 (hay deudas no canceladas)
-- {"estado":"varios_cancelados"} → 200 (hay >=1 cancelado y >1 alternativa)
-- {"estado":"solo_cancelados"} → 200 (todas canceladas)
-Errores de validación: 400; errores de servidor: 500.
 """
 
 from __future__ import annotations
@@ -29,32 +13,41 @@ from typing import Optional, Dict, Any, Tuple, List
 
 from django.conf import settings
 from django.core.files.base import ContentFile
-from django.db import connection, transaction  # ← mantenido por compatibilidad
+from django.db import connection
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import render
-from django.template.loader import render_to_string
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.contrib.staticfiles import finders  # para resolver static relativos
 
 from rest_framework import viewsets, filters, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
-from xhtml2pdf import pisa
-
+# ====== MODELOS / PERMISOS PROPIOS ======
 from carga_datos.models import BaseDeDatosBia
 from carga_datos.permissions import CanManageEntities  # permisos internos
 from .models import Certificate, Entidad
 from .serializers import EntidadSerializer
 
+# ====== REPORTLAB ======
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.units import cm
+from reportlab.lib import colors
+from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Table, TableStyle, Image, Spacer, HRFlowable
+)
+from reportlab.pdfgen import canvas as canvas_module
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
 logger = logging.getLogger(__name__)
 
 # ======================================================================================
-# Constantes y helpers
+# Constantes y helpers básicos
 # ======================================================================================
 
 BUSINESS = {
@@ -67,27 +60,22 @@ BUSINESS = {
 MAX_PAGE_SIZE = 200
 DEFAULT_PAGE_SIZE = 50
 
-
 def _is_ajax(request: HttpRequest) -> bool:
     return (request.headers.get("X-Requested-With") == "XMLHttpRequest") or (
         request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest"
     )
 
-
 def allow_public(view_func):
     """Marcador no-op: vista pública (no exige login)."""
     return view_func
 
-
 def _norm_dni(s: str) -> str:
     return "".join(ch for ch in (s or "") if ch.isdigit())
-
 
 def _ok_dni(s: str) -> bool:
     return s.isdigit() and 6 <= len(s) <= 12  # rango defensivo
 
-
-# ==== FieldFile helpers (sin tocar .path) ====
+# ==== FieldFile helpers (abstractos de storage) ====
 def _fieldfile_exists(ff) -> bool:
     if not ff or not getattr(ff, "name", ""):
         return False
@@ -96,11 +84,10 @@ def _fieldfile_exists(ff) -> bool:
     except Exception:
         return False
 
-
 def _open_fieldfile(ff, mode="rb"):
     return ff.storage.open(ff.name, mode)
 
-
+# ==== Timestamps y mtimes de storage (para invalidar caché del PDF) ====
 def _get_storage_mtime(ff) -> Optional[object]:
     """
     Intenta obtener la fecha de modificación del archivo en el storage.
@@ -116,11 +103,10 @@ def _get_storage_mtime(ff) -> Optional[object]:
         logger.debug("[_get_storage_mtime] No se pudo leer mtime del storage: %s", e)
     return None
 
-
 def _get_timestamp_like(obj) -> Optional[object]:
     """
     Devuelve el primer atributo de timestamp disponible, o None.
-    Prioridad: updated_at, modified, last_modified, created_at.
+    Prioridad típica: updated_at, modified, last_modified, created_at, created.
     """
     for attr in ("updated_at", "modified", "last_modified", "created_at", "created"):
         val = getattr(obj, attr, None)
@@ -128,99 +114,376 @@ def _get_timestamp_like(obj) -> Optional[object]:
             return val
     return None
 
+def _max_ts(*vals) -> Optional[object]:
+    """Máximo ignorando None."""
+    vals = [v for v in vals if v is not None]
+    return max(vals) if vals else None
 
 # ======================================================================================
-# PDF helpers
+# ReportLab — Fuentes, imágenes y layout
 # ======================================================================================
 
-def link_callback(uri: str, rel: str | None = None) -> str:
+_FONTS_REGISTERED = False
+
+def _register_fonts_for_azure():
     """
-    Convierte URIs de <img src> y <link rel="stylesheet"> a rutas locales
-    para que xhtml2pdf pueda leer CSS/imagenes desde disco.
-
-    Maneja:
-      - STATIC_URL  -> finders (DEBUG) y/o STATIC_ROOT (post-collectstatic)
-      - MEDIA_URL   -> MEDIA_ROOT
-      - Rutas relativas como 'css/pdf_template.css'
-      - data:...    -> retorna tal cual
-      - http(s)://  -> retorna tal cual (si el renderer puede acceder)
+    Registra DejaVuSans / DejaVuSans-Bold si existen; si no, usa Helvetica.
+    Colocá los .ttf en <BASE_DIR>/fonts o definí settings.FONT_DIR.
     """
-    if not uri:
-        raise Exception("[link_callback] URI vacío")
+    global _FONTS_REGISTERED
+    if _FONTS_REGISTERED:
+        return
 
-    # Data URLs
-    if uri.startswith("data:"):
-        return uri
+    font_dir = getattr(settings, "FONT_DIR", os.path.join(getattr(settings, "BASE_DIR", ""), "fonts"))
+    regular_ttf = os.path.join(font_dir, "DejaVuSans.ttf")
+    bold_ttf = os.path.join(font_dir, "DejaVuSans-Bold.ttf")
 
-    # Absolutas http(s)
-    if uri.startswith("http://") or uri.startswith("https://"):
-        return uri
-
-    # Normaliza separadores (Windows/Linux)
-    def _n(path: str) -> str:
-        return os.path.normpath(path)
-
-    static_url = getattr(settings, "STATIC_URL", "/static/")
-    media_url = getattr(settings, "MEDIA_URL", "/media/")
-    static_root = getattr(settings, "STATIC_ROOT", "")
-    media_root = getattr(settings, "MEDIA_ROOT", "")
-
-    # Caso /static/...
-    if static_url and uri.startswith(static_url):
-        relative_path = uri[len(static_url):]
-        # finders primero (DEBUG)
-        abs_path = finders.find(relative_path)
-        if not abs_path and static_root:
-            abs_path = _n(os.path.join(static_root, relative_path))
-        if abs_path and os.path.exists(abs_path):
-            return abs_path
-        raise Exception(f"[link_callback] STATIC no encontrado: {uri} -> {relative_path}")
-
-    # Caso /media/...
-    if media_url and uri.startswith(media_url):
-        relative_path = uri[len(media_url):]
-        abs_path = _n(os.path.join(media_root, relative_path))
-        if os.path.exists(abs_path):
-            return abs_path
-        raise Exception(f"[link_callback] MEDIA no encontrado: {uri} -> {relative_path}")
-
-    # Caso ruta relativa (p. ej. 'css/pdf_template.css' o 'images/...' etc.)
-    abs_path = finders.find(uri)
-    if abs_path and os.path.exists(abs_path):
-        return abs_path
-    if static_root:
-        candidate = _n(os.path.join(static_root, uri))
-        if os.path.exists(candidate):
-            return candidate
-    candidate = _n(os.path.join(media_root, uri))
-    if os.path.exists(candidate):
-        return candidate
-
-    logger.warning("[link_callback] No se pudo resolver '%s' (rel=%s); devolviendo literal", uri, rel)
-    return uri
-
-
-def generate_pdf(html: str) -> Optional[bytes]:
-    logger.debug("[generate_pdf] Render HTML->PDF (len=%s)", len(html))
-    buf = BytesIO()
     try:
-        result = pisa.CreatePDF(html, dest=buf, link_callback=link_callback, encoding="utf-8")
+        if os.path.exists(regular_ttf) and os.path.exists(bold_ttf):
+            pdfmetrics.registerFont(TTFont("DejaVuSans", regular_ttf))
+            pdfmetrics.registerFont(TTFont("DejaVuSans-Bold", bold_ttf))
+            logger.info("[PDF] DejaVuSans fonts registered")
+        else:
+            logger.warning("[PDF] DejaVuSans*.ttf no encontrados; se usará Helvetica por defecto")
+        _FONTS_REGISTERED = True
     except Exception as e:
-        logger.exception("[generate_pdf] Excepción en CreatePDF: %s", e)
+        logger.exception("[PDF] No se pudieron registrar fuentes TTF: %s", e)
+        _FONTS_REGISTERED = True  # evitamos retry infinito
+
+def _img_flowable_from_fieldfile(ff, width_cm: float, height_cm: float) -> Optional[Image]:
+    """
+    Lee bytes de una imagen desde el storage configurado (local, Azure, S3, etc.)
+    y devuelve un Flowable Image.
+    """
+    if not _fieldfile_exists(ff):
         return None
-    if result.err:
-        logger.error("[generate_pdf] xhtml2pdf err=%s", result.err)
+    try:
+        with _open_fieldfile(ff, "rb") as fh:
+            data = fh.read()
+        bio = BytesIO(data)
+        img = Image(bio, width=width_cm * cm, height=height_cm * cm)
+        img.hAlign = "CENTER"
+        return img
+    except Exception as e:
+        logger.exception("[PDF] No se pudo leer imagen desde storage: %s", e)
         return None
+
+def _safe_text(value, default="-"):
+    return str(value) if value not in (None, "") else default
+
+def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
+    """
+    Encabezado del certificado:
+      - Si hay entidad externa y BIA: ENTIDAD (izq) + BIA (der)
+      - Si solo hay BIA: BIA centrado
+      - Si solo hay entidad externa (poco común): centrado
+    """
+    from reportlab.lib.utils import ImageReader
+    canvas.saveState()
+
+    page_w, page_h = A4
+    ml = doc.leftMargin
+    mr = doc.rightMargin
+
+    # Ajustes de tamaño y posición (fiel al modelo)
+    header_box_h = 3.0 * cm
+    logo_size   = 2.6 * cm
+    gap_below   = 0.35 * cm
+    top_y = page_h - doc.topMargin + 8
+
+    def _draw_ff(ff, x, y):
+        if not _fieldfile_exists(ff):
+            return False
+        try:
+            with _open_fieldfile(ff, "rb") as fh:
+                bio = BytesIO(fh.read())
+            img = ImageReader(bio)
+            canvas.drawImage(
+                img, x, y,
+                width=logo_size, height=logo_size,
+                preserveAspectRatio=True, mask="auto"
+            )
+            return True
+        except Exception as e:
+            logger.warning("[PDF] No se pudo dibujar imagen de header: %s", e)
+            return False
+
+    has_bia  = _fieldfile_exists(logo_bia_ff)
+    has_ent  = _fieldfile_exists(logo_ent_ff)
+
+    if has_ent and has_bia:
+        _draw_ff(logo_ent_ff, ml, top_y - header_box_h)  # ENTIDAD IZQ
+        _draw_ff(logo_bia_ff, page_w - mr - logo_size, top_y - header_box_h)  # BIA DER
+    elif has_bia and not has_ent:
+        x = (page_w - logo_size) / 2.0
+        _draw_ff(logo_bia_ff, x, top_y - header_box_h)
+    elif has_ent and not has_bia:
+        x = (page_w - logo_size) / 2.0
+        _draw_ff(logo_ent_ff, x, top_y - header_box_h)
+
+    # Línea fina debajo del header
+    canvas.setStrokeColor(colors.HexColor("#DDDDDD"))
+    canvas.setLineWidth(0.8)
+    y_line = top_y - (header_box_h + gap_below)
+    canvas.line(ml, y_line, page_w - mr, y_line)
+
+    canvas.restoreState()
+
+def _draw_footer(canvas: canvas_module.Canvas, doc, footer_text: str = ""):
+    canvas.saveState()
+    page_width, _ = A4
+    margin_h = doc.leftMargin
+    y = doc.bottomMargin - 0.8 * cm
+
+    canvas.setStrokeColor(colors.HexColor("#DDDDDD"))
+    canvas.setLineWidth(0.6)
+    canvas.line(margin_h, y + 0.5 * cm, page_width - margin_h, y + 0.5 * cm)
+
+    canvas.setFont("Helvetica", 8)
+    if footer_text:
+        canvas.setFillColor(colors.HexColor("#666666"))
+        canvas.drawString(margin_h, y, footer_text)
+
+    page_str = f"Página {canvas.getPageNumber()}"
+    w = canvas.stringWidth(page_str, "Helvetica", 8)
+    canvas.drawString(page_width - margin_h - w, y, page_str)
+    canvas.restoreState()
+
+def _page_template(logo_bia_ff, logo_ent_ff, footer_text: str):
+    def _page(canvas, doc):
+        _draw_header(canvas, doc, logo_bia_ff, logo_ent_ff)
+        _draw_footer(canvas, doc, footer_text)
+    return _page, _page  # misma para first y later
+
+# ======================================================================================
+# Copy por entidad (texto profesional fiel a modelo)
+# ======================================================================================
+
+def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool) -> dict:
+    """
+    Devuelve el copy (texto) y defaults de firma según la entidad emisora.
+    - entidad_nombre: nombre normalizado de la entidad emisora (str o None)
+    - has_ent_externa: True si hay entidad externa además de BIA (para “administrado por BIA S.R.L.”)
+    """
+    nombre = (entidad_nombre or "").strip().lower()
+
+    # Base común (con coletilla “administrado por BIA S.R.L.” si aplica)
+    base_parrafo1 = (
+        "Por medio de la presente se deja constancia que <b>{nombre}</b>, con DNI <b>{dni}</b>, "
+        "ha cancelado la deuda que mantenía con <b>{propietario}</b>{admin_bia}, "
+        "por el crédito originado en <b>{entidad_original}</b> "
+        "(ID de operación <b>{id_operacion}</b>), conforme a los registros internos y comprobantes archivados."
+    )
+    empresa_parrafo1 = (
+        "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI <b>{dni}</b>, "
+        "ha cancelado la deuda que mantenía con la empresa <b>{propietario}</b>{admin_bia}, "
+        "por el crédito originado en <b>{entidad_original}</b>."
+    )
+    parrafo2 = (
+        "Este certificado se expide a solicitud del interesado para los fines que estime convenientes, "
+        "sin que implique responsabilidad adicional por parte de la entidad emisora respecto de la veracidad futura de esta información."
+    )
+
+    firma_por_entidad = [
+        {
+            "match": ["azur", "fp azur"],
+            "firma": {"nombre": "Administrador / Fiduciario", "cargo": "FP Azur Investment / BIA S.R.L.", "entidad": ""},
+            "parrafo1_fmt": empresa_parrafo1,
+        },
+        {
+            "match": ["bia"],
+            "firma": {"nombre": "Administrador/Apoderado", "cargo": "", "entidad": "BIA S.R.L."},
+            "parrafo1_fmt": base_parrafo1,
+        },
+        {
+            "match": ["cpsa", "carnes pampeanas"],
+            "firma": {"nombre": "Federico Lequio", "cargo": "Apoderado", "entidad": "Sociedad Anónima Carnes Pampeanas SA"},
+            "parrafo1_fmt": empresa_parrafo1,
+        },
+        {
+            "match": ["egeo"],
+            "firma": {"nombre": "Administrador/Apoderado", "cargo": "", "entidad": "EGEO S.A.C.I Y A"},
+            "parrafo1_fmt": empresa_parrafo1,
+        },
+        {
+            "match": ["fb líneas aéreas", "fblasa", "fb lineas aereas"],
+            "firma": {"nombre": "Hernán Morosuk", "cargo": "Apoderado", "entidad": "FB Líneas Aéreas S.A."},
+            "parrafo1_fmt": empresa_parrafo1,
+        },
+    ]
+
+    selected = None
+    for item in firma_por_entidad:
+        if any(key in nombre for key in item["match"]):
+            selected = item
+            break
+
+    if not selected:
+        selected = {
+            "firma": {"nombre": "Administrador/Apoderado", "cargo": "", "entidad": (entidad_nombre or "BIA")},
+            "parrafo1_fmt": base_parrafo1,
+        }
+
+    return {
+        "ciudad": "Buenos Aires",
+        "parrafo1_fmt": selected["parrafo1_fmt"],
+        "parrafo2": parrafo2,
+        "firma_defaults": selected["firma"],
+        "agregar_admin_bia": not has_ent_externa,  # agrega “(administrado por BIA S.R.L.)” si no hay entidad externa
+    }
+
+# ======================================================================================
+# Builder principal del PDF (homogéneo, formal, profesional)
+# ======================================================================================
+
+def _build_pdf_bytes_azure(
+    datos: dict,
+    *,
+    logo_bia_ff,
+    logo_ent_ff,
+    firma_1: dict | None,
+    firma_2: dict | None,
+    titulo: str,
+    subtitulo: str | None,
+    footer_text: str | None
+) -> bytes:
+    """
+    ReportLab (Azure-ready). Reproduce tu HTML/Word:
+      - Header: logos (entidad izq. + BIA der; o BIA centrado si único)
+      - “Ciudad, Fecha”
+      - Cuerpo formal (según entidad; puede incluir “administrado por BIA S.R.L.”)
+      - Parrafo de cierre
+      - Vigencia (opcional)
+      - Firmas (1 o 2) con defaults por entidad si faltan datos en DB
+      - Footer con paginación
+    """
+    _register_fonts_for_azure()
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(
+        buf,
+        pagesize=A4,
+        leftMargin=2.0 * cm,
+        rightMargin=2.0 * cm,
+        topMargin=4.0 * cm,      # espacio para encabezado con logos
+        bottomMargin=2.2 * cm,
+        title=titulo,
+        author="BIA",
+    )
+
+    # Estilos
+    styles = getSampleStyleSheet()
+    base_font = "DejaVuSans" if "DejaVuSans" in pdfmetrics.getRegisteredFontNames() else "Helvetica"
+    base_bold = "DejaVuSans-Bold" if "DejaVuSans-Bold" in pdfmetrics.getRegisteredFontNames() else "Helvetica-Bold"
+
+    styles.add(ParagraphStyle(name="Titulo", parent=styles["Heading1"], fontName=base_bold,
+                              fontSize=16, alignment=1, spaceAfter=10))
+    styles.add(ParagraphStyle(name="Fecha", parent=styles["BodyText"], fontName=base_font,
+                              fontSize=10.5, textColor=colors.HexColor("#333333"), alignment=1, spaceAfter=12))
+    styles.add(ParagraphStyle(name="Cuerpo", parent=styles["BodyText"], fontName=base_font,
+                              fontSize=11, leading=15.5, textColor=colors.HexColor("#111111"), alignment=4, spaceAfter=10))
+    styles.add(ParagraphStyle(name="Nota", parent=styles["BodyText"], fontName=base_font,
+                              fontSize=10, leading=14, textColor=colors.HexColor("#111111"), alignment=4, spaceBefore=2, spaceAfter=8))
+    styles.add(ParagraphStyle(name="FirmaTxt", parent=styles["BodyText"], fontName=base_font,
+                              fontSize=9, alignment=1, leading=12))
+
+    elements = []
+
+    # ===== Título =====
+    elements.append(Paragraph(_safe_text(titulo), styles["Titulo"]))
+
+    # ===== Ciudad y fecha =====
+    from datetime import datetime
+    # Preferimos “Fecha de Emisión” (seteada en _render...), fallback a hoy
+    fecha_emision = _safe_text(datos.get("Fecha de Emisión")) or datetime.now().strftime("%d/%m/%Y")
+
+    # Nombre de la emisora para ajustar copy/firma y si hay “administrado por BIA”
+    ent_nombre = datos.get("Entidad Emisora") or datos.get("Razón Social") or ""
+    has_ent_externa = _fieldfile_exists(logo_ent_ff)  # si hay logo externo, no agregamos “administrado por BIA...”
+    copy = _select_copy_for_entity(entidad_nombre=ent_nombre, has_ent_externa=has_ent_externa)
+
+    elements.append(Paragraph(f'{copy["ciudad"]}, <b>{fecha_emision}</b>', styles["Fecha"]))
+
+    # ===== Cuerpo (coherente con tu BD) =====
+    nombre_apellido = _safe_text(datos.get("Nombre y Apellido"), default="(sin dato)")
+    dni_txt = _safe_text(datos.get("DNI"), default="(sin dato)")
+    propietario_txt = _safe_text(datos.get("Razón Social"), default="(sin dato)")
+    # Prioriza entidadoriginal (fallback entidadinterna ya resuelto en _render_pdf_for_registro)
+    entidad_original_txt = _safe_text(datos.get("Entidad Original"), default="(sin dato)")
+    id_operacion = _safe_text(datos.get("Número"), default="(sin dato)")
+
+    admin_bia = " (administrado por BIA S.R.L.)" if copy["agregar_admin_bia"] else ""
+    parrafo_1 = copy["parrafo1_fmt"].format(
+        nombre=nombre_apellido,
+        dni=dni_txt,
+        propietario=propietario_txt,
+        entidad_original=entidad_original_txt,
+        id_operacion=id_operacion,
+        admin_bia=admin_bia,
+    )
+    elements.append(Paragraph(parrafo_1, styles["Cuerpo"]))
+    elements.append(Paragraph(copy["parrafo2"], styles["Nota"]))
+
+    # ===== Vigencia (opcional) =====
+    if datos.get("Vigencia Hasta") or datos.get("vigencia_hasta"):
+        vig = datos.get("Vigencia Hasta") or datos.get("vigencia_hasta")
+        nota_vig = (
+            f"Este certificado es válido hasta <b>{_safe_text(vig)}</b>. "
+            "Ante cualquier duda, verificar autenticidad con el área de Administración BIA."
+        )
+        elements.append(Paragraph(nota_vig, styles["Nota"]))
+
+    # ===== Firmas =====
+    def _firma_block(f, defaults):
+        if not f:
+            f = {}
+        blocks = []
+        ff = f.get("firma_ff")
+        if ff:
+            img = _img_flowable_from_fieldfile(ff, 4.8, 2.1)
+            if img:
+                blocks.append(img)
+                blocks.append(Spacer(1, 0.12 * cm))
+        # Línea + texto
+        blocks.append(HRFlowable(width="75%", color=colors.HexColor("#CCCCCC"), thickness=1))
+        blocks.append(Spacer(1, 0.08 * cm))
+        texto = "<b>{}</b><br/>{}<br/>{}".format(
+            _safe_text(f.get("responsable") or defaults.get("nombre")),
+            _safe_text(f.get("cargo") or defaults.get("cargo")),
+            _safe_text(f.get("entidad") or defaults.get("entidad")),
+        )
+        blocks.append(Paragraph(texto, styles["FirmaTxt"]))
+        return blocks
+
+    firma_defaults = copy["firma_defaults"]
+    f1 = _firma_block(firma_1, firma_defaults)
+    f2 = _firma_block(firma_2, {"nombre": "", "cargo": "", "entidad": ""}) if firma_2 else None
+
+    firmas_cells = [cell for cell in (f1, f2) if cell]
+    if firmas_cells:
+        cols = len(firmas_cells)
+        firmas_table = Table(
+            [firmas_cells],
+            colWidths=[(doc.width / cols) for _ in range(cols)],
+            hAlign="CENTER",
+            style=TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]),
+        )
+        elements.append(Spacer(1, 0.6 * cm))
+        elements.append(firmas_table)
+
+    # ===== Build con header/footer =====
+    footer_text = footer_text or "BIA • Certificados de Libre Deuda"
+    first, later = _page_template(logo_bia_ff, logo_ent_ff, footer_text)
+    doc.build(elements, onFirstPage=first, onLaterPages=later)
+
     return buf.getvalue()
 
-
 # ======================================================================================
-# Negocio
+# Negocio y render
 # ======================================================================================
 
 def _is_cancelado(reg: BaseDeDatosBia) -> bool:
     return (reg.estado or "").strip().lower() == "cancelado"
-
 
 def _row_minimal(reg: BaseDeDatosBia) -> Dict[str, Any]:
     return {
@@ -231,22 +494,18 @@ def _row_minimal(reg: BaseDeDatosBia) -> Dict[str, Any]:
         "estado": reg.estado,
     }
 
-
 def get_entidad_emisora(registro: BaseDeDatosBia) -> Optional[Entidad]:
     """
     Resolución de entidad emisora:
     1) Si hay FK 'entidad' en registro, usarla.
-    2) Si no, fallback al comportamiento histórico por nombre (propietario / entidadinterna).
+    2) Si no, fallback por nombre (propietario / entidadinterna).
     """
-    # Preferencia por FK si existe
     try:
         if hasattr(registro, "entidad_id") and registro.entidad_id:
-            # Si el objeto no viene con select_related, accedemos igual:
             return getattr(registro, "entidad", None) or Entidad.objects.filter(pk=registro.entidad_id).first()
     except Exception:
         pass
 
-    # Fallback por nombres (comportamiento original)
     propietario = (registro.propietario or "").strip()
     interna = (registro.entidadinterna or "").strip()
     ent = None
@@ -256,130 +515,158 @@ def get_entidad_emisora(registro: BaseDeDatosBia) -> Optional[Entidad]:
         ent = Entidad.objects.filter(nombre__iexact=interna).first()
     return ent
 
-
-# ---------- NUEVO helper lógico para logos válidos ----------
-def _has_valid_logo(ent: Optional[Entidad]) -> bool:
-    """Devuelve True si la entidad tiene ImageField y el archivo existe en el storage."""
-    try:
-        return bool(ent and _fieldfile_exists(getattr(ent, "logo", None)))
-    except Exception:
-        return False
-
-
 def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate], Optional[bytes], Optional[str]]:
-    logger.info("[_render_pdf_for_registro] id_pago_unico=%s", reg.id_pago_unico)
+    """
+    Genera y cachea PDF para un registro cancelado (ReportLab; Azure-ready).
+    Con invalidación de caché basada en timestamps del modelo y mtimes de archivos en storage.
+    """
+    logger.info("[PDF] Generación para id_pago_unico=%s", reg.id_pago_unico)
 
-    # Reobtención defensiva con select_related para tener la FK lista si existe
+    # Reobtención defensiva con select_related si tu modelo tiene FK -> Entidad
     try:
         reg = BaseDeDatosBia.objects.select_related("entidad").get(pk=reg.pk)
     except Exception:
-        # si falla, seguimos con 'reg' tal cual
         pass
 
     cert, _created = Certificate.objects.get_or_create(client=reg)
 
-    # ===== Resolución de emisora (ahora prioriza FK) =====
+    # Resolver entidades
     emisora = get_entidad_emisora(reg)
+    entidad_bia = Entidad.objects.filter(nombre__iexact="BIA").first()
+    entidad_otras = None
+    if emisora:
+        if "bia" in (emisora.nombre or "").lower():
+            entidad_bia = emisora
+        else:
+            entidad_otras = emisora
 
-    # ===== Decidir si el PDF cacheado está vigente =====
+    # Firmas extendidas (FieldFile para leer desde storage)
+    firma_bia = {
+        "firma_ff": getattr(entidad_bia, "firma", None),
+        "responsable": getattr(entidad_bia, "responsable", "") or "Responsable",
+        "cargo": getattr(entidad_bia, "cargo", "") or "Responsable",
+        "entidad": getattr(entidad_bia, "razon_social", "") or "BIA",
+    }
+    firma_ext = None
+    if entidad_otras:
+        firma_ext = {
+            "firma_ff": getattr(entidad_otras, "firma", None),
+            "responsable": getattr(entidad_otras, "responsable", "") or "",
+            "cargo": getattr(entidad_otras, "cargo", "") or "",
+            "entidad": getattr(entidad_otras, "razon_social", "") or "",
+        }
+
+    # Logos para header
+    logo_bia_ff = getattr(entidad_bia, "logo", None) if entidad_bia else None
+    logo_ent_ff = getattr(entidad_otras, "logo", None) if entidad_otras else None
+
+    # ===== Invalidación de caché por timestamps/mtimes =====
     reuse_cached = False
     if _fieldfile_exists(cert.pdf_file):
         pdf_mtime = _get_storage_mtime(cert.pdf_file)
 
-        # Timestamps relevantes (si el modelo los tiene)
-        reg_ts = _get_timestamp_like(reg)
-        ent_ts = _get_timestamp_like(emisora) if emisora else None
+        ts_reg   = _get_timestamp_like(reg)
+        ts_bia   = _get_timestamp_like(entidad_bia) if entidad_bia else None
+        ts_otras = _get_timestamp_like(entidad_otras) if entidad_otras else None
 
-        if pdf_mtime and (reg_ts or ent_ts):
-            newest_data_ts = max([t for t in (reg_ts, ent_ts) if t is not None], default=None)
-            if newest_data_ts is not None and newest_data_ts <= pdf_mtime:
-                reuse_cached = True
-        else:
-            reuse_cached = False
+        mt_bia_logo   = _get_storage_mtime(logo_bia_ff) if logo_bia_ff else None
+        mt_bia_firma  = _get_storage_mtime(getattr(entidad_bia, "firma", None)) if entidad_bia else None
+        mt_ent_logo   = _get_storage_mtime(logo_ent_ff) if logo_ent_ff else None
+        mt_ent_firma  = _get_storage_mtime(getattr(entidad_otras, "firma", None)) if entidad_otras else None
+
+        newest_data_ts = _max_ts(ts_reg, ts_bia, ts_otras, mt_bia_logo, mt_bia_firma, mt_ent_logo, mt_ent_firma)
+
+        if pdf_mtime and newest_data_ts and newest_data_ts <= pdf_mtime:
+            reuse_cached = True
 
         if reuse_cached:
             try:
                 with _open_fieldfile(cert.pdf_file, "rb") as fh:
                     return cert, fh.read(), None
             except Exception as e:
-                logger.exception("[_render_pdf_for_registro] Error leyendo PDF cacheado: %s", e)
+                logger.exception("[PDF] Error leyendo PDF cacheado: %s", e)
                 reuse_cached = False
         else:
             try:
                 cert.pdf_file.delete(save=False)
             except Exception as e:
-                logger.debug("[_render_pdf_for_registro] No se pudo borrar PDF viejo: %s", e)
+                logger.debug("[PDF] No se pudo borrar PDF viejo: %s", e)
     else:
         if getattr(cert.pdf_file, "name", ""):
-            logger.warning("[_render_pdf_for_registro] pdf_file apunta a %s pero no existe; se limpia.", cert.pdf_file.name)
+            logger.warning("[PDF] pdf_file apunta a %s pero no existe; se limpia.", cert.pdf_file.name)
             cert.pdf_file.delete(save=False)
 
-    # ===== Contexto del PDF (emisora + branding) =====
-    firma_url = emisora.firma.url if (emisora and getattr(emisora, "firma", None)) else None
-    responsable = emisora.responsable if (emisora and emisora.responsable) else "Socio/Gerente"
-    cargo = emisora.cargo if (emisora and emisora.cargo) else ""
-    razon_social = (emisora.razon_social or emisora.nombre) if emisora else (reg.propietario or reg.entidadinterna or "")
+    # ===== Datos del certificado (coherentes con la BD) =====
+    from datetime import datetime
+    hoy_str = datetime.now().strftime("%d/%m/%Y")
 
-    entidad_bia = Entidad.objects.filter(nombre__iexact="BIA").first()
-    entidad_otras = None
-    if emisora and "bia" not in emisora.nombre.lower():
-        # Solo asignar si NO es BIA y tiene logo real
-        if _has_valid_logo(getattr(emisora, "logo", None)):
-            entidad_otras = emisora
+    # “Entidad Original” prioriza entidadoriginal; fallback a entidadinterna
+    entidad_original_val = (
+        (reg.entidadoriginal or "").strip()
+        or (reg.entidadinterna or "").strip()
+    )
 
-    # ---------- FLAG para layout de logos ----------
-    # Solo usamos layout "dual" si hay otra entidad y su LOGO físico existe en storage.
-    mostrar_dual = bool(entidad_otras and _has_valid_logo(entidad_otras))
+    # Auditoría (no impresa por defecto)
+    emitido = getattr(reg, "ultima_fecha_pago", None) or getattr(reg, "fecha_plan", None) or getattr(reg, "fecha_apertura", None)
+    try:
+        emitido_str = emitido.strftime("%d/%m/%Y") if hasattr(emitido, "strftime") else _safe_text(emitido)
+    except Exception:
+        emitido_str = _safe_text(emitido)
 
-    context = {
-        "client": reg,
-        "firma_url": firma_url,
-        "responsable": responsable,
-        "cargo": cargo,
-        "entidad_firma": razon_social,        # tu clave original
-        "entidad_firma_text": razon_social,   # clave que usa el template actual
-        "entidad_bia": entidad_bia,
-        "entidad_otras": entidad_otras,
-        "mostrar_dual": mostrar_dual,         # <-- NUEVO: decide centrado o dos logos
+    # Nombre/razón de la emisora (para copy/firma)
+    ent_emisora_nombre = (entidad_otras or entidad_bia).nombre if (entidad_otras or entidad_bia) else ""
+
+    datos = {
+        # Claves consumidas por _build_pdf_bytes_azure
+        "Número": reg.id_pago_unico,
+        "DNI": reg.dni,
+        "Nombre y Apellido": reg.nombre_apellido,
+        "Razón Social": reg.propietario or "",
+        "Entidad Original": entidad_original_val,
+        "Entidad Emisora": ent_emisora_nombre,
+
+        # Metadatos útiles:
+        "Emitido": emitido_str,        # última fecha de pago/plan/apertura (opcional)
+        "Estado": reg.estado or "",
+        "Fecha de Emisión": hoy_str,   # lo que se muestra en “Buenos Aires, …”
     }
 
-    try:
-        html = render_to_string("pdf_template.html", context)
-    except Exception as e:
-        logger.exception("[_render_pdf_for_registro] Error renderizando template: %s", e)
-        return cert, None, "No se pudo renderizar el HTML del certificado."
+    footer_text = getattr(entidad_bia, "pie_pdf", None) or "BIA • Certificados de Libre Deuda"
 
-    pdf_bytes = generate_pdf(html)
-    if not pdf_bytes:
+    try:
+        pdf_bytes = _build_pdf_bytes_azure(
+            datos,
+            logo_bia_ff=logo_bia_ff,
+            logo_ent_ff=logo_ent_ff,
+            firma_1=firma_bia,
+            firma_2=firma_ext,
+            titulo="Certificado de Libre Deuda",
+            subtitulo=None,
+            footer_text=footer_text,
+        )
+    except Exception as e:
+        logger.exception("[PDF] Error generando PDF: %s", e)
         return cert, None, "Falló la generación del PDF para el certificado."
 
+    # Persistir en storage
     try:
         filename = f"certificado_{reg.id_pago_unico}.pdf"
         cert.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
     except Exception as e:
-        logger.exception("[_render_pdf_for_registro] Error guardando PDF: %s", e)
-        # devolvemos igual los bytes
+        logger.exception("[PDF] Error guardando PDF: %s", e)
         return cert, pdf_bytes, "No se pudo persistir el PDF, pero se generó en memoria."
 
     return cert, pdf_bytes, None
-
 
 # ======================================================================================
 # Consulta unificada por DNI (pública)
 # ======================================================================================
 
 def _supports_distinct_on() -> bool:
-    # Si NO es PostgreSQL, evitamos .distinct("campo")
     return connection.vendor == "postgresql"
 
-
 def _query_unicas_por_id(dni: str):
-    """
-    Devuelve queryset de filas representativas únicas por id_pago_unico.
-    En PostgreSQL usa DISTINCT ON; si no, hace fallback a una subquery.
-    """
     order_fields = ("id_pago_unico", "-ultima_fecha_pago", "-fecha_plan", "-fecha_apertura")
-
     if _supports_distinct_on():
         return (
             BaseDeDatosBia.objects
@@ -387,8 +674,6 @@ def _query_unicas_por_id(dni: str):
             .order_by(*order_fields)
             .distinct("id_pago_unico")
         )
-
-    # Fallback genérico (no-Postgres): elegir la última por fechas.
     ids = (
         BaseDeDatosBia.objects
         .filter(dni=dni)
@@ -408,19 +693,14 @@ def _query_unicas_por_id(dni: str):
         out.append(r)
     return out
 
-
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def api_consulta_dni_unificada(request: HttpRequest):
-    """
-    GET /api/certificado/consulta/dni/?dni=<DNI>[&page=1&page_size=50]
-    """
     raw = request.GET.get("dni") or ""
     dni = _norm_dni(raw)
     if not _ok_dni(dni):
         return Response({"error": "dni inválido"}, status=status.HTTP_400_BAD_REQUEST)
 
-    # Paginación defensiva
     try:
         page = max(1, int(request.GET.get("page", "1")))
     except Exception:
@@ -431,19 +711,19 @@ def api_consulta_dni_unificada(request: HttpRequest):
     except Exception:
         page_size = DEFAULT_PAGE_SIZE
 
-    # Query “única por id_pago_unico”
     base = _query_unicas_por_id(dni)
     total = (base.count() if hasattr(base, "count") else len(base))
-
-    # Slice
     start = (page - 1) * page_size
     end = start + page_size
     subset = (base[start:end] if hasattr(base, "__getitem__") else list(base)[start:end])
 
     deudas = []
-    canceladas = 0
+    total_canceladas_unicas = 0
     for r in subset:
-        item = {
+        cancelado = _is_cancelado(r)
+        if cancelado:
+            total_canceladas_unicas += 1
+        deudas.append({
             "id": r.id,
             "id_pago_unico": r.id_pago_unico,
             "dni": r.dni,
@@ -452,34 +732,10 @@ def api_consulta_dni_unificada(request: HttpRequest):
             "entidadinterna": r.entidadinterna,
             "entidadoriginal": r.entidadoriginal,
             "estado": r.estado,
-            "saldo_actualizado": getattr(r, "saldo_actualizado", None),
-            "saldo_exigible": getattr(r, "saldo_exigible", None),
-            "cancel_min": getattr(r, "cancel_min", None),
-            "ultima_fecha_pago": getattr(r, "ultima_fecha_pago", None),
-            "fecha_plan": getattr(r, "fecha_plan", None),
-            "fecha_apertura": getattr(r, "fecha_apertura", None),
-            "cancelado": _is_cancelado(r),
-        }
-        if item["cancelado"]:
-            canceladas += 1
-        deudas.append(item)
+            "cancelado": cancelado,
+        })
 
-    # Resumen global
     total_en_bd = BaseDeDatosBia.objects.filter(dni=dni).count()
-    if total > 0:
-        if _supports_distinct_on():
-            total_canceladas_unicas = (
-                BaseDeDatosBia.objects.filter(dni=dni, estado__iexact="cancelado")
-                .order_by("id_pago_unico", "-ultima_fecha_pago", "-fecha_plan", "-fecha_apertura")
-                .distinct("id_pago_unico")
-                .count()
-            )
-        else:
-            base_all = _query_unicas_por_id(dni)
-            total_canceladas_unicas = sum(1 for r in (base_all if isinstance(base_all, list) else list(base_all)) if _is_cancelado(r))
-    else:
-        total_canceladas_unicas = 0
-
     total_no_canceladas_unicas = total - total_canceladas_unicas
 
     if total == 0:
@@ -500,15 +756,10 @@ def api_consulta_dni_unificada(request: HttpRequest):
             "canceladas": total_canceladas_unicas,
             "no_canceladas": total_no_canceladas_unicas,
         },
-        "paginacion": {
-            "page": page,
-            "page_size": page_size,
-            "total": total,
-        },
+        "paginacion": {"page": page, "page_size": page_size, "total": total},
         "deudas": deudas,
     }
     return Response(payload, status=200)
-
 
 # ======================================================================================
 # Selección HTML (interna)
@@ -555,7 +806,6 @@ def seleccionar_certificado(request: HttpRequest) -> HttpResponse:
         status=200,
     )
 
-
 # ======================================================================================
 # Generar certificado (PDF/JSON) – público
 # ======================================================================================
@@ -563,7 +813,7 @@ def seleccionar_certificado(request: HttpRequest) -> HttpResponse:
 @csrf_exempt
 @allow_public
 def api_generar_certificado(request: HttpRequest) -> HttpResponse:
-    # Si está autenticado, exigimos permiso interno de lectura (no rompe público anónimo)
+    # Si está autenticado, exigimos permiso interno de lectura (sin romper público anónimo)
     if request.user.is_authenticated:
         if not (request.user.is_superuser or request.user.has_perm("carga_datos.can_view_clients")):
             raise PermissionDenied("No autorizado")
@@ -574,7 +824,6 @@ def api_generar_certificado(request: HttpRequest) -> HttpResponse:
     if method == "POST":
         return _handle_post_generar(request)
     return JsonResponse({"error": "Método no permitido. Use GET o POST."}, status=405)
-
 
 def _handle_get_generar(request: HttpRequest) -> HttpResponse:
     dni = _norm_dni(request.GET.get("dni") or "")
@@ -606,15 +855,12 @@ def _handle_get_generar(request: HttpRequest) -> HttpResponse:
         return JsonResponse({"estado": "error", "mensaje": err or "No se pudo generar el PDF."}, status=500)
 
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-    resp["Content-Disposition"] = f'attachment; filename=\"certificado_{reg.id_pago_unico}.pdf\"'
+    resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
     return resp
-
 
 def _handle_post_generar(request: HttpRequest) -> HttpResponse:
     dni = _norm_dni(request.POST.get("dni") or "")
     idp = (request.POST.get("id_pago_unico") or request.POST.get("idp") or "").strip()
-    prefer_html = (request.POST.get("prefer_html") or "").strip().lower() in ("1", "true")
-    is_ajax = _is_ajax(request)
 
     # Caso 1: id específico
     if idp:
@@ -641,7 +887,7 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
             return JsonResponse({"estado": "error", "mensaje": err or "No se pudo generar el PDF."}, status=500)
 
         resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-        resp["Content-Disposition"] = f'attachment; filename=\"certificado_{reg.id_pago_unico}.pdf\"'
+        resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
         return resp
 
     # Caso 2: solo DNI
@@ -679,7 +925,6 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
             "certificados": certificados_meta,
             "seleccionar_url": seleccionar_url,
         }
-        # seguimos devolviendo JSON (el front lo espera), ignoramos prefer_html para simplificar
         return JsonResponse(payload, status=200)
 
     # Exactamente 1 cancelado → PDF directo
@@ -689,9 +934,8 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
         return JsonResponse({"estado": "error", "mensaje": err or "No se pudo generar el PDF."}, status=500)
 
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-    resp["Content-Disposition"] = f'attachment; filename=\"certificado_{reg.id_pago_unico}.pdf\"'
+    resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
     return resp
-
 
 # ======================================================================================
 # Entidades (CRUD) – interno
@@ -704,7 +948,6 @@ class EntidadViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ["id", "nombre", "responsable"]
     ordering = ["id"]
-
 
 # ======================================================================================
 # Health check
