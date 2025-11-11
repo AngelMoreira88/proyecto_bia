@@ -1,48 +1,81 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# === variables base ===
 APP_DIR="/home/site/wwwroot"
 VENV_DIR="$APP_DIR/venvBIA"
 PORT="${PORT:-8000}"
+PIP_CACHE_DIR="/home/site/.pipcache"
+REQ_FILE="$APP_DIR/requirements.txt"
+REQ_HASH_FILE="$VENV_DIR/.req_hash"
 
-echo "[startup] cd $APP_DIR"
-cd "$APP_DIR"
+export PYTHONUNBUFFERED=1
+export PYTHONPATH="$APP_DIR:${PYTHONPATH:-}"
+export TZ="America/Argentina/Buenos_Aires"
 
-# === crear/activar venv ===
+echo "[startup] whoami: $(whoami)"
+echo "[startup] python3: $(command -v python3 || true)"; python3 -V || true
+echo "[startup] cd $APP_DIR"; cd "$APP_DIR"
+echo "[startup] ls -la:"
+ls -la
+
+# Normalizar EOL por si subió CRLF
+if file startup.sh | grep -qi 'CRLF'; then
+  echo "[startup] corrigiendo CRLF -> LF"
+  sed -i 's/\r$//' startup.sh || true
+fi
+
+# 0) Cache de pip
+mkdir -p "$PIP_CACHE_DIR"
+export PIP_CACHE_DIR
+
+# 1) Crear venv si no existe
 if [ ! -d "$VENV_DIR" ]; then
   echo "[startup] creando venv en $VENV_DIR"
   python3 -m venv "$VENV_DIR"
 fi
 
-echo "[startup] activando venv"
+# 2) Activar venv
 # shellcheck source=/dev/null
 source "$VENV_DIR/bin/activate"
 
-# === pip y dependencias ===
-echo "[startup] pip install -U pip wheel setuptools"
+# 3) Asegurar toolchain
+echo "[startup] upgrade pip/wheel/setuptools"
 python -m pip install -U pip wheel setuptools
 
-if [ -f requirements.txt ]; then
-  echo "[startup] instalando requirements"
-  pip install -r requirements.txt
-else
-  echo "[startup] ¡No existe requirements.txt!"; exit 1
+# 4) Instalar requirements SOLO si cambiaron
+if [ ! -f "$REQ_FILE" ]; then
+  echo "[startup] ¡Falta requirements.txt!"
+  exit 1
 fi
 
-# === entorno django ===
-export PYTHONUNBUFFERED=1
-export PYTHONPATH="$APP_DIR:${PYTHONPATH:-}"
+REQ_HASH_NOW="$(sha256sum "$REQ_FILE" | awk '{print $1}')"
+REQ_HASH_OLD="$(cat "$REQ_HASH_FILE" 2>/dev/null || echo '')"
 
-echo "[startup] aplicando migraciones"
+if [ "$REQ_HASH_NOW" != "$REQ_HASH_OLD" ]; then
+  echo "[startup] requirements cambiaron (old=$REQ_HASH_OLD new=$REQ_HASH_NOW). Instalando..."
+  # Usar cache (rápido). Si preferís sin cache: agregar --no-cache-dir
+  pip install -r "$REQ_FILE"
+  echo "$REQ_HASH_NOW" > "$REQ_HASH_FILE"
+else
+  echo "[startup] requirements sin cambios. No reinstalo."
+fi
+
+# 5) Migraciones (rápidas) y collectstatic (opcional)
+echo "[startup] migrate"
 python manage.py migrate --noinput
 
-echo "[startup] collectstatic"
-python manage.py collectstatic --noinput
+# Si tu static ya está en /home/site/wwwroot/static y no cambia seguido, podés saltearlo:
+if [ -d "$APP_DIR/static" ]; then
+  echo "[startup] collectstatic"
+  python manage.py collectstatic --noinput
+else
+  echo "[startup] no hay carpeta static en el repo, omito collectstatic"
+fi
 
-# === gunicorn ===
-echo "[startup] lanzando gunicorn en :$PORT"
-exec gunicorn proyecto_bia.wsgi:application \
+# 6) Arrancar gunicorn desde el venv (explícito)
+GUNICORN="$VENV_DIR/bin/gunicorn"
+echo "[startup] gunicorn en :$PORT"
+exec "$GUNICORN" proyecto_bia.wsgi:application \
   --bind "0.0.0.0:$PORT" \
   --workers 2 \
   --timeout 120
