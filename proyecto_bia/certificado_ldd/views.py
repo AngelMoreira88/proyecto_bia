@@ -189,10 +189,16 @@ def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
     ml = doc.leftMargin
     mr = doc.rightMargin
 
-    header_box_h = 3.0 * cm
-    logo_size   = 2.6 * cm
-    gap_below   = 0.35 * cm
-    top_y = page_h - doc.topMargin + 8
+    # Punto de referencia: borde superior del área de contenido
+    top_frame_y = page_h - doc.topMargin
+
+    # Ajustes de proporción del header
+    logo_size   = 2.0 * cm       # más chico y proporcionado
+    gap_arriba  = 0.4 * cm       # espacio encima de los logos
+    gap_linea   = 0.25 * cm      # espacio entre logos y línea
+
+    # Y donde se dibujan los logos
+    logo_y = top_frame_y + gap_arriba
 
     def _draw_ff(ff, x, y):
         if not _fieldfile_exists(ff):
@@ -203,30 +209,34 @@ def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
             img = ImageReader(bio)
             canvas.drawImage(
                 img, x, y,
-                width=logo_size, height=logo_size,
-                preserveAspectRatio=True, mask="auto"
+                width=logo_size,
+                height=logo_size,
+                preserveAspectRatio=True,
+                mask="auto",
             )
             return True
         except Exception as e:
             logger.warning("[PDF] No se pudo dibujar imagen de header: %s", e)
             return False
 
-    has_bia  = _fieldfile_exists(logo_bia_ff)
-    has_ent  = _fieldfile_exists(logo_ent_ff)
+    has_bia = _fieldfile_exists(logo_bia_ff)
+    has_ent = _fieldfile_exists(logo_ent_ff)
 
+    # Si hay 2 entidades → ENTIDAD IZQ, BIA DER
     if has_ent and has_bia:
-        _draw_ff(logo_ent_ff, ml, top_y - header_box_h)  # ENTIDAD IZQ
-        _draw_ff(logo_bia_ff, page_w - mr - logo_size, top_y - header_box_h)  # BIA DER
+        _draw_ff(logo_ent_ff, ml, logo_y)
+        _draw_ff(logo_bia_ff, page_w - mr - logo_size, logo_y)
     elif has_bia and not has_ent:
         x = (page_w - logo_size) / 2.0
-        _draw_ff(logo_bia_ff, x, top_y - header_box_h)
+        _draw_ff(logo_bia_ff, x, logo_y)
     elif has_ent and not has_bia:
         x = (page_w - logo_size) / 2.0
-        _draw_ff(logo_ent_ff, x, top_y - header_box_h)
+        _draw_ff(logo_ent_ff, x, logo_y)
 
+    # Línea separadora del header justo encima del contenido
+    y_line = top_frame_y - gap_linea
     canvas.setStrokeColor(colors.HexColor("#DDDDDD"))
     canvas.setLineWidth(0.8)
-    y_line = top_y - (header_box_h + gap_below)
     canvas.line(ml, y_line, page_w - mr, y_line)
 
     canvas.restoreState()
@@ -351,8 +361,8 @@ def _build_pdf_bytes_azure(
         pagesize=A4,
         leftMargin=2.0 * cm,
         rightMargin=2.0 * cm,
-        topMargin=4.0 * cm,
-        bottomMargin=2.2 * cm,
+        topMargin=3.0 * cm,     # un poco más chico para que suba el contenido
+        bottomMargin=2.5 * cm,  # un poco más amplio para que el pie no se vea “pegado”
         title=titulo,
         author="BIA",
     )
@@ -361,21 +371,71 @@ def _build_pdf_bytes_azure(
     base_font = "DejaVuSans" if "DejaVuSans" in pdfmetrics.getRegisteredFontNames() else "Helvetica"
     base_bold = "DejaVuSans-Bold" if "DejaVuSans-Bold" in pdfmetrics.getRegisteredFontNames() else "Helvetica-Bold"
 
-    styles.add(ParagraphStyle(name="Titulo", parent=styles["Heading1"], fontName=base_bold,
-                              fontSize=16, alignment=1, spaceAfter=10))
-    styles.add(ParagraphStyle(name="Fecha", parent=styles["BodyText"], fontName=base_font,
-                              fontSize=10.5, textColor=colors.HexColor("#333333"), alignment=1, spaceAfter=12))
-    styles.add(ParagraphStyle(name="Cuerpo", parent=styles["BodyText"], fontName=base_font,
-                              fontSize=11, leading=15.5, textColor=colors.HexColor("#111111"), alignment=4, spaceAfter=10))
-    styles.add(ParagraphStyle(name="Nota", parent=styles["BodyText"], fontName=base_font,
-                              fontSize=10, leading=14, textColor=colors.HexColor("#111111"), alignment=4, spaceBefore=2, spaceAfter=8))
-    styles.add(ParagraphStyle(name="FirmaTxt", parent=styles["BodyText"], fontName=base_font,
-                              fontSize=9, alignment=1, leading=12))
+    # Título más proporcionado
+    styles.add(ParagraphStyle(
+        name="Titulo",
+        parent=styles["Heading1"],
+        fontName=base_bold,
+        fontSize=14,       # antes 16
+        leading=18,
+        alignment=1,       # centrado
+        spaceAfter=8,
+        spaceBefore=4,
+    ))
+
+    # Fecha alineada a la derecha
+    styles.add(ParagraphStyle(
+        name="Fecha",
+        parent=styles["BodyText"],
+        fontName=base_font,
+        fontSize=10.5,
+        leading=13,
+        textColor=colors.HexColor("#333333"),
+        alignment=2,       # 0=izq, 1=centro, 2=derecha
+        spaceAfter=10,
+    ))
+
+    # Cuerpo principal, justificado pero con proporciones razonables
+    styles.add(ParagraphStyle(
+        name="Cuerpo",
+        parent=styles["BodyText"],
+        fontName=base_font,
+        fontSize=11,
+        leading=15,
+        textColor=colors.HexColor("#111111"),
+        alignment=4,       # justificado
+        spaceAfter=8,
+    ))
+
+    # Notas (segunda línea y vigencia)
+    styles.add(ParagraphStyle(
+        name="Nota",
+        parent=styles["BodyText"],
+        fontName=base_font,
+        fontSize=10,
+        leading=13,
+        textColor=colors.HexColor("#111111"),
+        alignment=4,
+        spaceBefore=4,
+        spaceAfter=8,
+    ))
+
+    # Texto bajo firmas
+    styles.add(ParagraphStyle(
+        name="FirmaTxt",
+        parent=styles["BodyText"],
+        fontName=base_font,
+        fontSize=9,
+        leading=11,
+        alignment=1,   # centrado
+    ))
 
     elements = []
 
+    # Título
     elements.append(Paragraph(_safe_text(titulo), styles["Titulo"]))
 
+    # Fecha
     from datetime import datetime
     fecha_emision = _safe_text(datos.get("Fecha de Emisión")) or datetime.now().strftime("%d/%m/%Y")
 
@@ -385,13 +445,14 @@ def _build_pdf_bytes_azure(
 
     elements.append(Paragraph(f'{copy["ciudad"]}, <b>{fecha_emision}</b>', styles["Fecha"]))
 
+    # Datos para el cuerpo
     nombre_apellido = _safe_text(datos.get("Nombre y Apellido"), default="(sin dato)")
     dni_txt = _safe_text(datos.get("DNI"), default="(sin dato)")
     propietario_txt = _safe_text(datos.get("Razón Social"), default="(sin dato)")
     entidad_original_txt = _safe_text(datos.get("Entidad Original"), default="(sin dato)")
     id_operacion = _safe_text(datos.get("Número"), default="(sin dato)")
 
-    admin_bia = " (administrado por BIA S.R.L.)" if copy["agregar_admin_bia"] else ""
+    admin_bia = " (administrado por BIA S.R.L.)" if copy.get("agregar_admin_bia") else ""
     parrafo_1 = copy["parrafo1_fmt"].format(
         nombre=nombre_apellido,
         dni=dni_txt,
@@ -403,6 +464,7 @@ def _build_pdf_bytes_azure(
     elements.append(Paragraph(parrafo_1, styles["Cuerpo"]))
     elements.append(Paragraph(copy["parrafo2"], styles["Nota"]))
 
+    # Vigencia (si existe)
     if datos.get("Vigencia Hasta") or datos.get("vigencia_hasta"):
         vig = datos.get("Vigencia Hasta") or datos.get("vigencia_hasta")
         nota_vig = (
@@ -411,18 +473,21 @@ def _build_pdf_bytes_azure(
         )
         elements.append(Paragraph(nota_vig, styles["Nota"]))
 
+    # ==== BLOQUE DE FIRMAS ====
+
     def _firma_block(f, defaults):
         if not f:
             f = {}
         blocks = []
         ff = f.get("firma_ff")
         if ff:
-            img = _img_flowable_from_fieldfile(ff, 4.8, 2.1)
+            img = _img_flowable_from_fieldfile(ff, 4.0, 1.8)  # un poquito más chico
             if img:
                 blocks.append(img)
-                blocks.append(Spacer(1, 0.12 * cm))
-        blocks.append(HRFlowable(width="75%", color=colors.HexColor("#CCCCCC"), thickness=1))
-        blocks.append(Spacer(1, 0.08 * cm))
+                blocks.append(Spacer(1, 0.10 * cm))
+        # línea y texto de firma
+        blocks.append(HRFlowable(width="70%", color=colors.HexColor("#CCCCCC"), thickness=1))
+        blocks.append(Spacer(1, 0.06 * cm))
         texto = "<b>{}</b><br/>{}<br/>{}".format(
             _safe_text(f.get("responsable") or defaults.get("nombre")),
             _safe_text(f.get("cargo") or defaults.get("cargo")),
@@ -444,7 +509,7 @@ def _build_pdf_bytes_azure(
             hAlign="CENTER",
             style=TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]),
         )
-        elements.append(Spacer(1, 0.6 * cm))
+        elements.append(Spacer(1, 0.8 * cm))
         elements.append(firmas_table)
 
     footer_text = footer_text or "BIA • Certificados de Libre Deuda"
