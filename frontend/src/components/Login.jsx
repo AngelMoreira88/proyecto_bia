@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import axios from 'axios';
+import { login as doLogin } from '../services/auth';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -17,35 +18,56 @@ export default function Login() {
   const intended = location.state?.from?.pathname;
   const defaultRedirect = '/portal';
 
+  // const handleLogin = async (e) => {
+  //   e.preventDefault();
+  //   setError('');
+  //   setLoading(true);
+
+  //   try {
+  //     const { data } = await axios.post('/api/token/', { username, password });
+  //     const { access, refresh } = data;
+
+  //     localStorage.setItem('access_token', access);
+  //     if (remember) localStorage.setItem('refresh_token', refresh);
+  //     axios.defaults.headers.common['Authorization'] = `Bearer ${access}`;
+
+  //     // notificar a la app (misma pestaña)
+  //     window.dispatchEvent(new Event('auth-changed'));
+  //     // compat opcional
+  //     window.dispatchEvent(new Event('storage'));
+
+  //     const saved = localStorage.getItem('redirectAfterLogin');
+  //     let target = intended || saved || defaultRedirect;
+  //     if (target === '/' || target === '/login') target = defaultRedirect;
+  //     localStorage.removeItem('redirectAfterLogin');
+  //     navigate(target, { replace: true });
+  //   } catch {
+  //     setError('Credenciales inválidas. Intenta nuevamente.');
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
+
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
+  e.preventDefault();
+  setError('');
+  setLoading(true);
 
-    try {
-      const { data } = await axios.post('/api/token/', { username, password });
-      const { access, refresh } = data;
+  try {
+    await doLogin(username, password);
 
-      localStorage.setItem('access_token', access);
-      if (remember) localStorage.setItem('refresh_token', refresh);
-      axios.defaults.headers.common['Authorization'] = `Bearer ${access}`;
-
-      // notificar a la app (misma pestaña)
-      window.dispatchEvent(new Event('auth-changed'));
-      // compat opcional
-      window.dispatchEvent(new Event('storage'));
-
-      const saved = localStorage.getItem('redirectAfterLogin');
-      let target = intended || saved || defaultRedirect;
-      if (target === '/' || target === '/login') target = defaultRedirect;
-      localStorage.removeItem('redirectAfterLogin');
-      navigate(target, { replace: true });
-    } catch {
-      setError('Credenciales inválidas. Intenta nuevamente.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    // Redirección como ya tenías
+    const saved = localStorage.getItem('redirectAfterLogin');
+    let target = intended || saved || defaultRedirect;
+    if (target === '/' || target === '/login') target = defaultRedirect;
+    localStorage.removeItem('redirectAfterLogin');
+    navigate(target, { replace: true });
+  } catch (err) {
+    setError('Credenciales inválidas. Intenta nuevamente.');
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     // Full-bleed: sin container, sin gutters; ocupa todo el alto útil bajo el header

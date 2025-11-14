@@ -131,14 +131,15 @@ export async function login(username, password) {
 
   try { localStorage.setItem('refresh_token', refresh); } catch {}
 
-  // Aplicar access y rol/grupos ya mismo
+  // Aplicar access y rol/grupos YA
   setAuthFromAccess(access);
 
-  // Limpiar caches del módulo API (por si había otra sesión)
-  try {
-    const mod = await import('./api');
-    if (typeof mod.clearAdminCaches === 'function') mod.clearAdminCaches();
-  } catch {}
+  // 🔹 Lanzar la limpieza en segundo plano, SIN await
+  import('./api')
+    .then((mod) => {
+      if (typeof mod.clearAdminCaches === 'function') mod.clearAdminCaches();
+    })
+    .catch(() => {});
 }
 
 export function logout() {
