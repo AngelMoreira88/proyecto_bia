@@ -189,15 +189,14 @@ def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
     ml = doc.leftMargin
     mr = doc.rightMargin
 
-    # Punto de referencia: borde superior del área de contenido
+    # Borde superior del área de contenido (donde empieza el título)
     top_frame_y = page_h - doc.topMargin
 
-    # Ajustes de proporción del header
-    logo_size   = 2.0 * cm       # más chico y proporcionado
-    gap_arriba  = 0.4 * cm       # espacio encima de los logos
-    gap_linea   = 0.25 * cm      # espacio entre logos y línea
+    # Parámetros del header
+    logo_size  = 2.0 * cm       # tamaño de logo
+    gap_arriba = 0.6 * cm       # separación del contenido hacia arriba
 
-    # Y donde se dibujan los logos
+    # Y donde se dibujan los logos (ligeramente por encima del área de contenido)
     logo_y = top_frame_y + gap_arriba
 
     def _draw_ff(ff, x, y):
@@ -233,13 +232,16 @@ def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
         x = (page_w - logo_size) / 2.0
         _draw_ff(logo_ent_ff, x, logo_y)
 
-    # Línea separadora del header justo encima del contenido
-    y_line = top_frame_y - gap_linea
+    # Línea a la mitad entre el logo (parte inferior) y el inicio del contenido (título)
+    logo_bottom_y = logo_y  # parte inferior del logo
+    y_line = (logo_bottom_y + top_frame_y) / 2.0
+
     canvas.setStrokeColor(colors.HexColor("#DDDDDD"))
     canvas.setLineWidth(0.8)
     canvas.line(ml, y_line, page_w - mr, y_line)
 
     canvas.restoreState()
+
 
 def _draw_footer(canvas: canvas_module.Canvas, doc, footer_text: str = ""):
     canvas.saveState()
@@ -473,7 +475,7 @@ def _build_pdf_bytes_azure(
         )
         elements.append(Paragraph(nota_vig, styles["Nota"]))
 
-    # ==== BLOQUE DE FIRMAS ====
+        # ==== BLOQUE DE FIRMAS ====
 
     def _firma_block(f, defaults):
         if not f:
@@ -481,12 +483,16 @@ def _build_pdf_bytes_azure(
         blocks = []
         ff = f.get("firma_ff")
         if ff:
-            img = _img_flowable_from_fieldfile(ff, 4.0, 1.8)  # un poquito más chico
+            img = _img_flowable_from_fieldfile(ff, 4.0, 1.8)  # tamaño firma
             if img:
                 blocks.append(img)
                 blocks.append(Spacer(1, 0.10 * cm))
-        # línea y texto de firma
-        blocks.append(HRFlowable(width="70%", color=colors.HexColor("#CCCCCC"), thickness=1))
+        # línea de firma: ancho completo del contenedor
+        blocks.append(HRFlowable(
+            width="100%",                     # ocupa todo el ancho de la celda (y si es una sola firma, todo el doc)
+            color=colors.HexColor("#CCCCCC"),
+            thickness=1,
+        ))
         blocks.append(Spacer(1, 0.06 * cm))
         texto = "<b>{}</b><br/>{}<br/>{}".format(
             _safe_text(f.get("responsable") or defaults.get("nombre")),
@@ -503,20 +509,24 @@ def _build_pdf_bytes_azure(
     firmas_cells = [cell for cell in (f1, f2) if cell]
     if firmas_cells:
         cols = len(firmas_cells)
+
+        # Si hay una sola firma → celda de ancho completo pero contenido centrado
+        if cols == 1:
+            col_widths = [doc.width]      # la tabla ocupa todo el ancho
+        else:
+            col_widths = [(doc.width / cols) for _ in range(cols)]
+
         firmas_table = Table(
             [firmas_cells],
-            colWidths=[(doc.width / cols) for _ in range(cols)],
+            colWidths=col_widths,
             hAlign="CENTER",
-            style=TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]),
+            style=TableStyle([
+                ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ]),
         )
         elements.append(Spacer(1, 0.8 * cm))
         elements.append(firmas_table)
 
-    footer_text = footer_text or "BIA • Certificados de Libre Deuda"
-    first, later = _page_template(logo_bia_ff, logo_ent_ff, footer_text)
-    doc.build(elements, onFirstPage=first, onLaterPages=later)
-
-    return buf.getvalue()
 
 # ======================================================================================
 # Negocio y render
