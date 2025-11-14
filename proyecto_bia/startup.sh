@@ -18,8 +18,8 @@ echo "[startup] cd $APP_DIR"; cd "$APP_DIR"
 echo "[startup] ls -la:"
 ls -la
 
-# Normalizar EOL por si subió CRLF
-if file startup.sh | grep -qi 'CRLF'; then
+# Normalizar CRLF si hiciera falta (sin usar 'file')
+if grep -q $'\r' startup.sh 2>/dev/null; then
   echo "[startup] corrigiendo CRLF -> LF"
   sed -i 's/\r$//' startup.sh || true
 fi
@@ -28,14 +28,16 @@ fi
 mkdir -p "$PIP_CACHE_DIR"
 export PIP_CACHE_DIR
 
-# 1) Crear venv si no existe
-if [ ! -d "$VENV_DIR" ]; then
-  echo "[startup] creando venv en $VENV_DIR"
+# 1) Crear venv si no existe o está corrupto
+if [ ! -d "$VENV_DIR" ] || [ ! -f "$VENV_DIR/bin/activate" ]; then
+  echo "[startup] creando venv limpia en $VENV_DIR"
+  rm -rf "$VENV_DIR"
   python3 -m venv "$VENV_DIR"
 fi
 
 # 2) Activar venv
 # shellcheck source=/dev/null
+echo "[startup] activando venv..."
 source "$VENV_DIR/bin/activate"
 
 # 3) Asegurar toolchain
@@ -53,18 +55,16 @@ REQ_HASH_OLD="$(cat "$REQ_HASH_FILE" 2>/dev/null || echo '')"
 
 if [ "$REQ_HASH_NOW" != "$REQ_HASH_OLD" ]; then
   echo "[startup] requirements cambiaron (old=$REQ_HASH_OLD new=$REQ_HASH_NOW). Instalando..."
-  # Usar cache (rápido). Si preferís sin cache: agregar --no-cache-dir
   pip install -r "$REQ_FILE"
   echo "$REQ_HASH_NOW" > "$REQ_HASH_FILE"
 else
   echo "[startup] requirements sin cambios. No reinstalo."
 fi
 
-# 5) Migraciones (rápidas) y collectstatic (opcional)
+# 5) Migraciones y collectstatic
 echo "[startup] migrate"
 python manage.py migrate --noinput
 
-# Si tu static ya está en /home/site/wwwroot/static y no cambia seguido, podés saltearlo:
 if [ -d "$APP_DIR/static" ]; then
   echo "[startup] collectstatic"
   python manage.py collectstatic --noinput
@@ -72,7 +72,7 @@ else
   echo "[startup] no hay carpeta static en el repo, omito collectstatic"
 fi
 
-# 6) Arrancar gunicorn desde el venv (explícito)
+# 6) Arrancar gunicorn
 GUNICORN="$VENV_DIR/bin/gunicorn"
 echo "[startup] gunicorn en :$PORT"
 exec "$GUNICORN" proyecto_bia.wsgi:application \
