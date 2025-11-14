@@ -70,20 +70,25 @@ _BDB_MIN_FIELDS = (
 _ENTIDAD_MIN_FIELDS = ("id", "nombre", "razon_social", "responsable", "cargo")
 _ENTIDAD_MEDIA_FIELDS = _ENTIDAD_MIN_FIELDS + ("logo", "firma")  # solo cuando haga falta (PDF)
 
+
 def _is_ajax(request: HttpRequest) -> bool:
     return (request.headers.get("X-Requested-With") == "XMLHttpRequest") or (
         request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest"
     )
 
+
 def allow_public(view_func):
     """Marcador no-op: vista pública (no exige login)."""
     return view_func
 
+
 def _norm_dni(s: str) -> str:
     return "".join(ch for ch in (s or "") if ch.isdigit())
 
+
 def _ok_dni(s: str) -> bool:
     return s.isdigit() and 6 <= len(s) <= 12  # rango defensivo
+
 
 # ==== FieldFile helpers (abstractos de storage) ====
 def _fieldfile_exists(ff) -> bool:
@@ -94,8 +99,10 @@ def _fieldfile_exists(ff) -> bool:
     except Exception:
         return False
 
+
 def _open_fieldfile(ff, mode="rb"):
     return ff.storage.open(ff.name, mode)
+
 
 # ==== Timestamps y mtimes de storage (para invalidar caché del PDF) ====
 def _get_storage_mtime(ff) -> Optional[object]:
@@ -109,6 +116,7 @@ def _get_storage_mtime(ff) -> Optional[object]:
         logger.debug("[_get_storage_mtime] No se pudo leer mtime del storage: %s", e)
     return None
 
+
 def _get_timestamp_like(obj) -> Optional[object]:
     for attr in ("updated_at", "modified", "last_modified", "created_at", "created"):
         val = getattr(obj, attr, None)
@@ -116,9 +124,11 @@ def _get_timestamp_like(obj) -> Optional[object]:
             return val
     return None
 
+
 def _max_ts(*vals) -> Optional[object]:
     vals = [v for v in vals if v is not None]
     return max(vals) if vals else None
+
 
 # ======================================================================================
 # Caches ligeras de entidades
@@ -128,20 +138,24 @@ def _max_ts(*vals) -> Optional[object]:
 def _cached_entidad_bia_name() -> str:
     return "BIA"
 
+
 @lru_cache(maxsize=64)
 def _cached_entidad_by_name(nombre: str) -> Optional[Entidad]:
     # Solo los campos de texto necesarios para copy/firma; logo/firma se piden aparte si hace falta
     return Entidad.objects.only(*_ENTIDAD_MIN_FIELDS).filter(nombre__iexact=nombre).first()
 
+
 @lru_cache(maxsize=1)
 def _cached_entidad_bia() -> Optional[Entidad]:
     return _cached_entidad_by_name(_cached_entidad_bia_name())
+
 
 # ======================================================================================
 # ReportLab — Fuentes, imágenes y layout
 # ======================================================================================
 
 _FONTS_REGISTERED = False
+
 
 def _register_fonts_for_azure():
     global _FONTS_REGISTERED
@@ -164,6 +178,7 @@ def _register_fonts_for_azure():
         logger.exception("[PDF] No se pudieron registrar fuentes TTF: %s", e)
         _FONTS_REGISTERED = True  # evitamos retry infinito
 
+
 def _img_flowable_from_fieldfile(ff, width_cm: float, height_cm: float) -> Optional[Image]:
     if not _fieldfile_exists(ff):
         return None
@@ -178,10 +193,16 @@ def _img_flowable_from_fieldfile(ff, width_cm: float, height_cm: float) -> Optio
         logger.exception("[PDF] No se pudo leer imagen desde storage: %s", e)
         return None
 
+
 def _safe_text(value, default="-"):
     return str(value) if value not in (None, "") else default
 
+
 def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
+    """
+    Header: logos arriba (entidad externa izq, BIA der) y una línea
+    posicionada a mitad de camino entre la base de los logos y el inicio del contenido.
+    """
     from reportlab.lib.utils import ImageReader
     canvas.saveState()
 
@@ -189,15 +210,16 @@ def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
     ml = doc.leftMargin
     mr = doc.rightMargin
 
-    # Borde superior del área de contenido (donde empieza el título)
+    # Y del inicio del frame de contenido (donde arranca el título)
     top_frame_y = page_h - doc.topMargin
 
-    # Parámetros del header
-    logo_size  = 2.0 * cm       # tamaño de logo
-    gap_arriba = 0.6 * cm       # separación del contenido hacia arriba
+    # Parámetros de header
+    logo_size = 2.0 * cm
+    gap_logo_contenido = 1.0 * cm  # distancia vertical entre base del logo y comienzo de contenido
 
-    # Y donde se dibujan los logos (ligeramente por encima del área de contenido)
-    logo_y = top_frame_y + gap_arriba
+    # Dibujamos los logos de forma que su base quede gap_logo_contenido por encima del contenido
+    logo_bottom_y = top_frame_y + gap_logo_contenido
+    logo_y = logo_bottom_y  # el drawImage usa y como esquina inferior
 
     def _draw_ff(ff, x, y):
         if not _fieldfile_exists(ff):
@@ -221,7 +243,6 @@ def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
     has_bia = _fieldfile_exists(logo_bia_ff)
     has_ent = _fieldfile_exists(logo_ent_ff)
 
-    # Si hay 2 entidades → ENTIDAD IZQ, BIA DER
     if has_ent and has_bia:
         _draw_ff(logo_ent_ff, ml, logo_y)
         _draw_ff(logo_bia_ff, page_w - mr - logo_size, logo_y)
@@ -232,9 +253,8 @@ def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
         x = (page_w - logo_size) / 2.0
         _draw_ff(logo_ent_ff, x, logo_y)
 
-    # Línea a la mitad entre el logo (parte inferior) y el inicio del contenido (título)
-    logo_bottom_y = logo_y  # parte inferior del logo
-    y_line = (logo_bottom_y + top_frame_y) / 2.0
+    # Línea a mitad de camino entre la base del logo y el inicio del contenido
+    y_line = top_frame_y + (gap_logo_contenido / 2.0)
 
     canvas.setStrokeColor(colors.HexColor("#DDDDDD"))
     canvas.setLineWidth(0.8)
@@ -263,11 +283,14 @@ def _draw_footer(canvas: canvas_module.Canvas, doc, footer_text: str = ""):
     canvas.drawString(page_width - margin_h - w, y, page_str)
     canvas.restoreState()
 
+
 def _page_template(logo_bia_ff, logo_ent_ff, footer_text: str):
     def _page(canvas, doc):
         _draw_header(canvas, doc, logo_bia_ff, logo_ent_ff)
         _draw_footer(canvas, doc, footer_text)
+
     return _page, _page
+
 
 # ======================================================================================
 # Copy por entidad (texto profesional fiel a modelo)
@@ -340,6 +363,7 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
         "agregar_admin_bia": not has_ent_externa,
     }
 
+
 # ======================================================================================
 # Builder principal del PDF (homogéneo, formal, profesional)
 # ======================================================================================
@@ -363,8 +387,8 @@ def _build_pdf_bytes_azure(
         pagesize=A4,
         leftMargin=2.0 * cm,
         rightMargin=2.0 * cm,
-        topMargin=3.0 * cm,     # un poco más chico para que suba el contenido
-        bottomMargin=2.5 * cm,  # un poco más amplio para que el pie no se vea “pegado”
+        topMargin=3.0 * cm,
+        bottomMargin=2.5 * cm,
         title=titulo,
         author="BIA",
     )
@@ -373,19 +397,17 @@ def _build_pdf_bytes_azure(
     base_font = "DejaVuSans" if "DejaVuSans" in pdfmetrics.getRegisteredFontNames() else "Helvetica"
     base_bold = "DejaVuSans-Bold" if "DejaVuSans-Bold" in pdfmetrics.getRegisteredFontNames() else "Helvetica-Bold"
 
-    # Título más proporcionado
     styles.add(ParagraphStyle(
         name="Titulo",
         parent=styles["Heading1"],
         fontName=base_bold,
-        fontSize=14,       # antes 16
+        fontSize=14,
         leading=18,
-        alignment=1,       # centrado
+        alignment=1,
         spaceAfter=8,
         spaceBefore=4,
     ))
 
-    # Fecha alineada a la derecha
     styles.add(ParagraphStyle(
         name="Fecha",
         parent=styles["BodyText"],
@@ -393,11 +415,10 @@ def _build_pdf_bytes_azure(
         fontSize=10.5,
         leading=13,
         textColor=colors.HexColor("#333333"),
-        alignment=2,       # 0=izq, 1=centro, 2=derecha
+        alignment=2,  # derecha
         spaceAfter=10,
     ))
 
-    # Cuerpo principal, justificado pero con proporciones razonables
     styles.add(ParagraphStyle(
         name="Cuerpo",
         parent=styles["BodyText"],
@@ -405,11 +426,10 @@ def _build_pdf_bytes_azure(
         fontSize=11,
         leading=15,
         textColor=colors.HexColor("#111111"),
-        alignment=4,       # justificado
+        alignment=4,  # justificado
         spaceAfter=8,
     ))
 
-    # Notas (segunda línea y vigencia)
     styles.add(ParagraphStyle(
         name="Nota",
         parent=styles["BodyText"],
@@ -422,14 +442,13 @@ def _build_pdf_bytes_azure(
         spaceAfter=8,
     ))
 
-    # Texto bajo firmas
     styles.add(ParagraphStyle(
         name="FirmaTxt",
         parent=styles["BodyText"],
         fontName=base_font,
         fontSize=9,
         leading=11,
-        alignment=1,   # centrado
+        alignment=1,  # centrado
     ))
 
     elements = []
@@ -475,7 +494,7 @@ def _build_pdf_bytes_azure(
         )
         elements.append(Paragraph(nota_vig, styles["Nota"]))
 
-        # ==== BLOQUE DE FIRMAS ====
+    # ==== BLOQUE DE FIRMAS ====
 
     def _firma_block(f, defaults):
         if not f:
@@ -483,13 +502,12 @@ def _build_pdf_bytes_azure(
         blocks = []
         ff = f.get("firma_ff")
         if ff:
-            img = _img_flowable_from_fieldfile(ff, 4.0, 1.8)  # tamaño firma
+            img = _img_flowable_from_fieldfile(ff, 4.0, 1.8)
             if img:
                 blocks.append(img)
                 blocks.append(Spacer(1, 0.10 * cm))
-        # línea de firma: ancho completo del contenedor
         blocks.append(HRFlowable(
-            width="100%",                     # ocupa todo el ancho de la celda (y si es una sola firma, todo el doc)
+            width="100%",
             color=colors.HexColor("#CCCCCC"),
             thickness=1,
         ))
@@ -509,10 +527,8 @@ def _build_pdf_bytes_azure(
     firmas_cells = [cell for cell in (f1, f2) if cell]
     if firmas_cells:
         cols = len(firmas_cells)
-
-        # Si hay una sola firma → celda de ancho completo pero contenido centrado
         if cols == 1:
-            col_widths = [doc.width]      # la tabla ocupa todo el ancho
+            col_widths = [doc.width]
         else:
             col_widths = [(doc.width / cols) for _ in range(cols)]
 
@@ -527,6 +543,12 @@ def _build_pdf_bytes_azure(
         elements.append(Spacer(1, 0.8 * cm))
         elements.append(firmas_table)
 
+    footer_text = footer_text or "BIA • Certificados de Libre Deuda"
+    first, later = _page_template(logo_bia_ff, logo_ent_ff, footer_text)
+    doc.build(elements, onFirstPage=first, onLaterPages=later)
+
+    return buf.getvalue()
+
 
 # ======================================================================================
 # Negocio y render
@@ -534,6 +556,7 @@ def _build_pdf_bytes_azure(
 
 def _is_cancelado(reg: BaseDeDatosBia) -> bool:
     return (reg.estado or "").strip().lower() == "cancelado"
+
 
 def _row_minimal(reg: BaseDeDatosBia) -> Dict[str, Any]:
     return {
@@ -543,6 +566,7 @@ def _row_minimal(reg: BaseDeDatosBia) -> Dict[str, Any]:
         "entidadinterna": reg.entidadinterna,
         "estado": reg.estado,
     }
+
 
 def get_entidad_emisora(registro: BaseDeDatosBia) -> Optional[Entidad]:
     """
@@ -572,6 +596,7 @@ def get_entidad_emisora(registro: BaseDeDatosBia) -> Optional[Entidad]:
         if ent:
             return ent
     return None
+
 
 def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate], Optional[bytes], Optional[str]]:
     """
@@ -638,18 +663,17 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
     logo_ent_ff = getattr(entidad_otras_m, "logo", None) if entidad_otras_m else None
 
     # ===== Invalidación de caché por timestamps/mtimes =====
-    reuse_cached = False
     if _fieldfile_exists(cert.pdf_file):
         pdf_mtime = _get_storage_mtime(cert.pdf_file)
 
-        ts_reg   = _get_timestamp_like(reg)
-        ts_bia   = _get_timestamp_like(entidad_bia_m) if entidad_bia_m else None
+        ts_reg = _get_timestamp_like(reg)
+        ts_bia = _get_timestamp_like(entidad_bia_m) if entidad_bia_m else None
         ts_otras = _get_timestamp_like(entidad_otras_m) if entidad_otras_m else None
 
-        mt_bia_logo   = _get_storage_mtime(logo_bia_ff) if logo_bia_ff else None
-        mt_bia_firma  = _get_storage_mtime(getattr(entidad_bia_m, "firma", None)) if entidad_bia_m else None
-        mt_ent_logo   = _get_storage_mtime(logo_ent_ff) if logo_ent_ff else None
-        mt_ent_firma  = _get_storage_mtime(getattr(entidad_otras_m, "firma", None)) if entidad_otras_m else None
+        mt_bia_logo = _get_storage_mtime(logo_bia_ff) if logo_bia_ff else None
+        mt_bia_firma = _get_storage_mtime(getattr(entidad_bia_m, "firma", None)) if entidad_bia_m else None
+        mt_ent_logo = _get_storage_mtime(logo_ent_ff) if logo_ent_ff else None
+        mt_ent_firma = _get_storage_mtime(getattr(entidad_otras_m, "firma", None)) if entidad_otras_m else None
 
         newest_data_ts = _max_ts(ts_reg, ts_bia, ts_otras, mt_bia_logo, mt_bia_firma, mt_ent_logo, mt_ent_firma)
 
@@ -721,6 +745,7 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
 
     return cert, pdf_bytes, None
 
+
 # ======================================================================================
 # Consulta unificada por DNI (pública)
 # ======================================================================================
@@ -728,13 +753,16 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
 def _supports_distinct_on() -> bool:
     return connection.vendor == "postgresql"
 
+
 def _order_fields_distinct():
     # Mantener consistencia de ordering con DISTINCT ON (Postgres)
     return ("id_pago_unico", "-ultima_fecha_pago", "-fecha_plan", "-fecha_apertura")
 
+
 def _base_bdb_qs():
     # QS base con solo campos necesarios
     return BaseDeDatosBia.objects.only(*_BDB_MIN_FIELDS)
+
 
 def _query_unicas_por_id(dni: str):
     order_fields = _order_fields_distinct()
@@ -759,6 +787,7 @@ def _query_unicas_por_id(dni: str):
         seen.add(r.id_pago_unico)
         out.append(r)
     return out
+
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
@@ -829,6 +858,7 @@ def api_consulta_dni_unificada(request: HttpRequest):
     }
     return Response(payload, status=200)
 
+
 # ======================================================================================
 # Selección HTML (interna)
 # ======================================================================================
@@ -876,6 +906,7 @@ def seleccionar_certificado(request: HttpRequest) -> HttpResponse:
         status=200,
     )
 
+
 # ======================================================================================
 # Generar certificado (PDF/JSON) – público
 # ======================================================================================
@@ -894,6 +925,7 @@ def api_generar_certificado(request: HttpRequest) -> HttpResponse:
     if method == "POST":
         return _handle_post_generar(request)
     return JsonResponse({"error": "Método no permitido. Use GET o POST."}, status=405)
+
 
 def _handle_get_generar(request: HttpRequest) -> HttpResponse:
     dni = _norm_dni(request.GET.get("dni") or "")
@@ -927,6 +959,7 @@ def _handle_get_generar(request: HttpRequest) -> HttpResponse:
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
     resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
     return resp
+
 
 def _handle_post_generar(request: HttpRequest) -> HttpResponse:
     dni = _norm_dni(request.POST.get("dni") or "")
@@ -1007,6 +1040,7 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
     resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
     return resp
 
+
 # ======================================================================================
 # Entidades (CRUD) – interno
 # ======================================================================================
@@ -1019,6 +1053,7 @@ class EntidadViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ["id", "nombre", "responsable"]
     ordering = ["id"]
+
 
 # ======================================================================================
 # Health check
