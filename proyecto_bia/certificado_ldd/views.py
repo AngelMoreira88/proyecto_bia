@@ -67,7 +67,7 @@ _BDB_MIN_FIELDS = (
     "entidadinterna", "entidadoriginal", "estado",
     "ultima_fecha_pago", "fecha_plan", "fecha_apertura", "entidad_id",
 )
-_ENTIDAD_MIN_FIELDS = ("id", "nombre", "razon_social", "responsable", "cargo", "pie_pdf")
+_ENTIDAD_MIN_FIELDS = ("id", "nombre", "razon_social", "responsable", "cargo")
 _ENTIDAD_MEDIA_FIELDS = _ENTIDAD_MIN_FIELDS + ("logo", "firma")  # solo cuando haga falta (PDF)
 
 def _is_ajax(request: HttpRequest) -> bool:
