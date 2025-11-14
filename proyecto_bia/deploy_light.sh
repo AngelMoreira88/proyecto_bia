@@ -56,5 +56,5 @@ az webapp deploy \
 echo "🔄 Reiniciando app..."
 az webapp restart -g "${RESOURCE_GROUP}" -n "${APP_NAME}" >/dev/null
 
-echo "📜 Tail de logs (corta con Ctrl+C cuando veas 'gunicorn en :8000')"
-az webapp log tail -g "${RESOURCE_GROUP}" -n "${APP_NAME}"
+#echo "📜 Tail de logs (corta con Ctrl+C cuando veas 'gunicorn en :8000')"
+#az webapp log tail -g "${RESOURCE_GROUP}" -n "${APP_NAME}"
