@@ -200,8 +200,10 @@ def _safe_text(value, default="-"):
 
 def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
     """
-    Header: logos arriba (entidad externa izq, BIA der) y una línea
-    posicionada a mitad de camino entre la base de los logos y el inicio del contenido.
+    Header:
+      - Si hay 2 entidades: BIA a la IZQUIERDA, entidad externa a la DERECHA.
+      - Si hay 1 sola: centrada.
+      - Línea gris a mitad de camino entre los logos y el inicio del contenido.
     """
     from reportlab.lib.utils import ImageReader
     canvas.saveState()
@@ -219,7 +221,7 @@ def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
 
     # Dibujamos los logos de forma que su base quede gap_logo_contenido por encima del contenido
     logo_bottom_y = top_frame_y + gap_logo_contenido
-    logo_y = logo_bottom_y  # el drawImage usa y como esquina inferior
+    logo_y = logo_bottom_y  # drawImage usa y como esquina inferior
 
     def _draw_ff(ff, x, y):
         if not _fieldfile_exists(ff):
@@ -229,7 +231,9 @@ def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
                 bio = BytesIO(fh.read())
             img = ImageReader(bio)
             canvas.drawImage(
-                img, x, y,
+                img,
+                x,
+                y,
                 width=logo_size,
                 height=logo_size,
                 preserveAspectRatio=True,
@@ -243,9 +247,12 @@ def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
     has_bia = _fieldfile_exists(logo_bia_ff)
     has_ent = _fieldfile_exists(logo_ent_ff)
 
+    # >>> Ajuste 1: BIA siempre a la izquierda cuando haya 2 logos <<<
     if has_ent and has_bia:
-        _draw_ff(logo_ent_ff, ml, logo_y)
-        _draw_ff(logo_bia_ff, page_w - mr - logo_size, logo_y)
+        # BIA IZQUIERDA
+        _draw_ff(logo_bia_ff, ml, logo_y)
+        # ENTIDAD EXTERNA DERECHA
+        _draw_ff(logo_ent_ff, page_w - mr - logo_size, logo_y)
     elif has_bia and not has_ent:
         x = (page_w - logo_size) / 2.0
         _draw_ff(logo_bia_ff, x, logo_y)
@@ -318,27 +325,47 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
     firma_por_entidad = [
         {
             "match": ["azur", "fp azur"],
-            "firma": {"nombre": "Administrador / Fiduciario", "cargo": "FP Azur Investment / BIA S.R.L.", "entidad": ""},
+            "firma": {
+                "nombre": "Administrador / Fiduciario",
+                "cargo": "FP Azur Investment / BIA S.R.L.",
+                "entidad": "",
+            },
             "parrafo1_fmt": empresa_parrafo1,
         },
         {
             "match": ["bia"],
-            "firma": {"nombre": "Administrador/Apoderado", "cargo": "", "entidad": "BIA S.R.L."},
+            "firma": {
+                "nombre": "Administrador/Apoderado",
+                "cargo": "",
+                "entidad": "BIA S.R.L.",
+            },
             "parrafo1_fmt": base_parrafo1,
         },
         {
             "match": ["cpsa", "carnes pampeanas"],
-            "firma": {"nombre": "Federico Lequio", "cargo": "Apoderado", "entidad": "Sociedad Anónima Carnes Pampeanas SA"},
+            "firma": {
+                "nombre": "Federico Lequio",
+                "cargo": "Apoderado",
+                "entidad": "Sociedad Anónima Carnes Pampeanas SA",
+            },
             "parrafo1_fmt": empresa_parrafo1,
         },
         {
             "match": ["egeo"],
-            "firma": {"nombre": "Administrador/Apoderado", "cargo": "", "entidad": "EGEO S.A.C.I Y A"},
+            "firma": {
+                "nombre": "Administrador/Apoderado",
+                "cargo": "",
+                "entidad": "EGEO S.A.C.I Y A",
+            },
             "parrafo1_fmt": empresa_parrafo1,
         },
         {
             "match": ["fb líneas aéreas", "fblasa", "fb lineas aereas"],
-            "firma": {"nombre": "Hernán Morosuk", "cargo": "Apoderado", "entidad": "FB Líneas Aéreas S.A."},
+            "firma": {
+                "nombre": "Hernán Morosuk",
+                "cargo": "Apoderado",
+                "entidad": "FB Líneas Aéreas S.A.",
+            },
             "parrafo1_fmt": empresa_parrafo1,
         },
     ]
@@ -351,7 +378,11 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
 
     if not selected:
         selected = {
-            "firma": {"nombre": "Administrador/Apoderado", "cargo": "", "entidad": (entidad_nombre or "BIA")},
+            "firma": {
+                "nombre": "Administrador/Apoderado",
+                "cargo": "",
+                "entidad": (entidad_nombre or "BIA"),
+            },
             "parrafo1_fmt": base_parrafo1,
         }
 
@@ -377,7 +408,7 @@ def _build_pdf_bytes_azure(
     firma_2: dict | None,
     titulo: str,
     subtitulo: str | None,
-    footer_text: str | None
+    footer_text: str | None,
 ) -> bytes:
     _register_fonts_for_azure()
 
@@ -397,59 +428,69 @@ def _build_pdf_bytes_azure(
     base_font = "DejaVuSans" if "DejaVuSans" in pdfmetrics.getRegisteredFontNames() else "Helvetica"
     base_bold = "DejaVuSans-Bold" if "DejaVuSans-Bold" in pdfmetrics.getRegisteredFontNames() else "Helvetica-Bold"
 
-    styles.add(ParagraphStyle(
-        name="Titulo",
-        parent=styles["Heading1"],
-        fontName=base_bold,
-        fontSize=14,
-        leading=18,
-        alignment=1,
-        spaceAfter=8,
-        spaceBefore=4,
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="Titulo",
+            parent=styles["Heading1"],
+            fontName=base_bold,
+            fontSize=14,
+            leading=18,
+            alignment=1,
+            spaceAfter=8,
+            spaceBefore=4,
+        )
+    )
 
-    styles.add(ParagraphStyle(
-        name="Fecha",
-        parent=styles["BodyText"],
-        fontName=base_font,
-        fontSize=10.5,
-        leading=13,
-        textColor=colors.HexColor("#333333"),
-        alignment=2,  # derecha
-        spaceAfter=10,
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="Fecha",
+            parent=styles["BodyText"],
+            fontName=base_font,
+            fontSize=10.5,
+            leading=13,
+            textColor=colors.HexColor("#333333"),
+            alignment=2,  # derecha
+            spaceAfter=10,
+        )
+    )
 
-    styles.add(ParagraphStyle(
-        name="Cuerpo",
-        parent=styles["BodyText"],
-        fontName=base_font,
-        fontSize=11,
-        leading=15,
-        textColor=colors.HexColor("#111111"),
-        alignment=4,  # justificado
-        spaceAfter=8,
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="Cuerpo",
+            parent=styles["BodyText"],
+            fontName=base_font,
+            fontSize=11,
+            leading=15,
+            textColor=colors.HexColor("#111111"),
+            alignment=4,  # justificado
+            spaceAfter=8,
+        )
+    )
 
-    styles.add(ParagraphStyle(
-        name="Nota",
-        parent=styles["BodyText"],
-        fontName=base_font,
-        fontSize=10,
-        leading=13,
-        textColor=colors.HexColor("#111111"),
-        alignment=4,
-        spaceBefore=4,
-        spaceAfter=8,
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="Nota",
+            parent=styles["BodyText"],
+            fontName=base_font,
+            fontSize=10,
+            leading=13,
+            textColor=colors.HexColor("#111111"),
+            alignment=4,
+            spaceBefore=4,
+            spaceAfter=8,
+        )
+    )
 
-    styles.add(ParagraphStyle(
-        name="FirmaTxt",
-        parent=styles["BodyText"],
-        fontName=base_font,
-        fontSize=9,
-        leading=11,
-        alignment=1,  # centrado
-    ))
+    styles.add(
+        ParagraphStyle(
+            name="FirmaTxt",
+            parent=styles["BodyText"],
+            fontName=base_font,
+            fontSize=9,
+            leading=11,
+            alignment=1,  # centrado
+        )
+    )
 
     elements = []
 
@@ -458,6 +499,7 @@ def _build_pdf_bytes_azure(
 
     # Fecha
     from datetime import datetime
+
     fecha_emision = _safe_text(datos.get("Fecha de Emisión")) or datetime.now().strftime("%d/%m/%Y")
 
     ent_nombre = datos.get("Entidad Emisora") or datos.get("Razón Social") or ""
@@ -506,12 +548,18 @@ def _build_pdf_bytes_azure(
             if img:
                 blocks.append(img)
                 blocks.append(Spacer(1, 0.10 * cm))
-        blocks.append(HRFlowable(
-            width="100%",
-            color=colors.HexColor("#CCCCCC"),
-            thickness=1,
-        ))
+
+        # >>> Ajuste 3: línea gris más angosta y centrada <<<
+        blocks.append(
+            HRFlowable(
+                width="65%",
+                color=colors.HexColor("#CCCCCC"),
+                thickness=1,
+                hAlign="CENTER",
+            )
+        )
         blocks.append(Spacer(1, 0.06 * cm))
+
         texto = "<b>{}</b><br/>{}<br/>{}".format(
             _safe_text(f.get("responsable") or defaults.get("nombre")),
             _safe_text(f.get("cargo") or defaults.get("cargo")),
@@ -536,11 +584,15 @@ def _build_pdf_bytes_azure(
             [firmas_cells],
             colWidths=col_widths,
             hAlign="CENTER",
-            style=TableStyle([
-                ("VALIGN", (0, 0), (-1, -1), "TOP"),
-            ]),
+            style=TableStyle(
+                [
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ]
+            ),
         )
-        elements.append(Spacer(1, 0.8 * cm))
+
+        # >>> Ajuste 4: bajamos el bloque de firmas hacia la mitad inferior de la hoja <<<
+        elements.append(Spacer(1, 2.5 * cm))
         elements.append(firmas_table)
 
     footer_text = footer_text or "BIA • Certificados de Libre Deuda"
@@ -608,8 +660,7 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
     # Reobtención defensiva, pero solo campos necesarios + entidad
     try:
         reg = (
-            BaseDeDatosBia.objects
-            .select_related("entidad")
+            BaseDeDatosBia.objects.select_related("entidad")
             .only(*_BDB_MIN_FIELDS)
             .get(pk=reg.pk)
         )
@@ -675,7 +726,15 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
         mt_ent_logo = _get_storage_mtime(logo_ent_ff) if logo_ent_ff else None
         mt_ent_firma = _get_storage_mtime(getattr(entidad_otras_m, "firma", None)) if entidad_otras_m else None
 
-        newest_data_ts = _max_ts(ts_reg, ts_bia, ts_otras, mt_bia_logo, mt_bia_firma, mt_ent_logo, mt_ent_firma)
+        newest_data_ts = _max_ts(
+            ts_reg,
+            ts_bia,
+            ts_otras,
+            mt_bia_logo,
+            mt_bia_firma,
+            mt_ent_logo,
+            mt_ent_firma,
+        )
 
         if pdf_mtime and newest_data_ts and newest_data_ts <= pdf_mtime:
             try:
@@ -695,11 +754,14 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
 
     # ===== Datos del certificado =====
     from datetime import datetime
+
     hoy_str = datetime.now().strftime("%d/%m/%Y")
 
     entidad_original_val = (reg.entidadoriginal or "").strip() or (reg.entidadinterna or "").strip()
 
-    emitido = getattr(reg, "ultima_fecha_pago", None) or getattr(reg, "fecha_plan", None) or getattr(reg, "fecha_apertura", None)
+    emitido = getattr(reg, "ultima_fecha_pago", None) or getattr(reg, "fecha_plan", None) or getattr(
+        reg, "fecha_apertura", None
+    )
     try:
         emitido_str = emitido.strftime("%d/%m/%Y") if hasattr(emitido, "strftime") else _safe_text(emitido)
     except Exception:
@@ -771,13 +833,11 @@ def _query_unicas_por_id(dni: str):
         return qs.order_by(*order_fields).distinct("id_pago_unico")
 
     # Fallback no-Postgres: dos queries eficientes y dedupe en Python sin cargar demás columnas
-    ids = (
-        qs.values_list("id_pago_unico", flat=True)
-          .distinct()
-    )
+    ids = qs.values_list("id_pago_unico", flat=True).distinct()
     todas = list(
-        _base_bdb_qs().filter(dni=dni, id_pago_unico__in=list(ids))
-                      .order_by(*order_fields)
+        _base_bdb_qs()
+        .filter(dni=dni, id_pago_unico__in=list(ids))
+        .order_by(*order_fields)
     )
     seen = set()
     out: List[BaseDeDatosBia] = []
@@ -808,10 +868,10 @@ def api_consulta_dni_unificada(request: HttpRequest):
         page_size = DEFAULT_PAGE_SIZE
 
     base = _query_unicas_por_id(dni)
-    total = (base.count() if hasattr(base, "count") else len(base))
+    total = base.count() if hasattr(base, "count") else len(base)
     start = (page - 1) * page_size
     end = start + page_size
-    subset = (base[start:end] if hasattr(base, "__getitem__") else list(base)[start:end])
+    subset = base[start:end] if hasattr(base, "__getitem__") else list(base)[start:end]
 
     # Construimos payload con campos ya cargados; evitamos acceder a relaciones
     deudas = []
@@ -820,17 +880,19 @@ def api_consulta_dni_unificada(request: HttpRequest):
         cancelado = _is_cancelado(r)
         if cancelado:
             total_canceladas_unicas += 1
-        deudas.append({
-            "id": r.id,
-            "id_pago_unico": r.id_pago_unico,
-            "dni": r.dni,
-            "nombre_apellido": r.nombre_apellido,
-            "propietario": r.propietario,
-            "entidadinterna": r.entidadinterna,
-            "entidadoriginal": r.entidadoriginal,
-            "estado": r.estado,
-            "cancelado": cancelado,
-        })
+        deudas.append(
+            {
+                "id": r.id,
+                "id_pago_unico": r.id_pago_unico,
+                "dni": r.dni,
+                "nombre_apellido": r.nombre_apellido,
+                "propietario": r.propietario,
+                "entidadinterna": r.entidadinterna,
+                "entidadoriginal": r.entidadoriginal,
+                "estado": r.estado,
+                "cancelado": cancelado,
+            }
+        )
 
     total_en_bd = _base_bdb_qs().filter(dni=dni).count()
     total_no_canceladas_unicas = total - total_canceladas_unicas
@@ -884,7 +946,12 @@ def seleccionar_certificado(request: HttpRequest) -> HttpResponse:
         return render(
             request,
             "certificado_seleccionar.html",
-            {"dni": dni, "cancelados": [], "pendientes": [], "mensaje": "No se encontraron registros para el DNI ingresado."},
+            {
+                "dni": dni,
+                "cancelados": [],
+                "pendientes": [],
+                "mensaje": "No se encontraron registros para el DNI ingresado.",
+            },
             status=200,
         )
 
@@ -895,7 +962,12 @@ def seleccionar_certificado(request: HttpRequest) -> HttpResponse:
         return render(
             request,
             "certificado_seleccionar.html",
-            {"dni": dni, "cancelados": [], "pendientes": pendientes, "mensaje": "No hay obligaciones canceladas para imprimir."},
+            {
+                "dni": dni,
+                "cancelados": [],
+                "pendientes": pendientes,
+                "mensaje": "No hay obligaciones canceladas para imprimir.",
+            },
             status=200,
         )
 
@@ -932,7 +1004,10 @@ def _handle_get_generar(request: HttpRequest) -> HttpResponse:
     idp = (request.GET.get("id_pago_unico") or request.GET.get("idp") or "").strip()
 
     if not idp:
-        return JsonResponse({"error": "Debe indicar id_pago_unico en la URL (GET).", "dni": dni, "id_pago_unico": idp}, status=400)
+        return JsonResponse(
+            {"error": "Debe indicar id_pago_unico en la URL (GET).", "dni": dni, "id_pago_unico": idp},
+            status=400,
+        )
 
     qs = _base_bdb_qs().filter(id_pago_unico=idp)
     if dni:
@@ -941,23 +1016,36 @@ def _handle_get_generar(request: HttpRequest) -> HttpResponse:
     reg = qs.first()
     if not reg:
         return JsonResponse(
-            {"estado": BUSINESS["SIN_RESULTADOS"], "mensaje": "Registro no encontrado para los parámetros indicados.", "dni": dni, "id_pago_unico": idp},
+            {
+                "estado": BUSINESS["SIN_RESULTADOS"],
+                "mensaje": "Registro no encontrado para los parámetros indicados.",
+                "dni": dni,
+                "id_pago_unico": idp,
+            },
             status=200,
         )
 
     if not _is_cancelado(reg):
         return JsonResponse(
-            {"estado": BUSINESS["PENDIENTE"], "mensaje": "La obligación seleccionada no está cancelada y no puede emitirse certificado.",
-             "dni": dni, "id_pago_unico": idp, "deuda": _row_minimal(reg)},
+            {
+                "estado": BUSINESS["PENDIENTE"],
+                "mensaje": "La obligación seleccionada no está cancelada y no puede emitirse certificado.",
+                "dni": dni,
+                "id_pago_unico": idp,
+                "deuda": _row_minimal(reg),
+            },
             status=200,
         )
 
     cert, pdf_bytes, err = _render_pdf_for_registro(reg)
     if not pdf_bytes:
-        return JsonResponse({"estado": "error", "mensaje": err or "No se pudo generar el PDF."}, status=500)
+        return JsonResponse(
+            {"estado": "error", "mensaje": err or "No se pudo generar el PDF."},
+            status=500,
+        )
 
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-    resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
+    resp["Content-Disposition"] = f'attachment; filename=\"certificado_{reg.id_pago_unico}.pdf\"'
     return resp
 
 
@@ -974,23 +1062,36 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
         reg = qs.first()
         if not reg:
             return JsonResponse(
-                {"estado": BUSINESS["SIN_RESULTADOS"], "mensaje": "Registro no encontrado para el id_pago_unico indicado.", "dni": dni, "id_pago_unico": idp},
+                {
+                    "estado": BUSINESS["SIN_RESULTADOS"],
+                    "mensaje": "Registro no encontrado para el id_pago_unico indicado.",
+                    "dni": dni,
+                    "id_pago_unico": idp,
+                },
                 status=200,
             )
 
         if not _is_cancelado(reg):
             return JsonResponse(
-                {"estado": BUSINESS["PENDIENTE"], "mensaje": "La obligación seleccionada no está cancelada y no puede emitirse certificado.",
-                 "dni": dni, "id_pago_unico": idp, "deuda": _row_minimal(reg)},
+                {
+                    "estado": BUSINESS["PENDIENTE"],
+                    "mensaje": "La obligación seleccionada no está cancelada y no puede emitirse certificado.",
+                    "dni": dni,
+                    "id_pago_unico": idp,
+                    "deuda": _row_minimal(reg),
+                },
                 status=200,
             )
 
         cert, pdf_bytes, err = _render_pdf_for_registro(reg)
         if not pdf_bytes:
-            return JsonResponse({"estado": "error", "mensaje": err or "No se pudo generar el PDF."}, status=500)
+            return JsonResponse(
+                {"estado": "error", "mensaje": err or "No se pudo generar el PDF."},
+                status=500,
+            )
 
         resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-        resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
+        resp["Content-Disposition"] = f'attachment; filename=\"certificado_{reg.id_pago_unico}.pdf\"'
         return resp
 
     # Caso 2: solo DNI
@@ -1000,7 +1101,11 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
     registros = list(_base_bdb_qs().filter(dni=dni))
     if not registros:
         return JsonResponse(
-            {"estado": BUSINESS["SIN_RESULTADOS"], "mensaje": f"No hay registros para DNI {dni}.", "dni": dni},
+            {
+                "estado": BUSINESS["SIN_RESULTADOS"],
+                "mensaje": f"No hay registros para DNI {dni}.",
+                "dni": dni,
+            },
             status=200,
         )
 
@@ -1009,15 +1114,25 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
 
     if not cancelados:
         return JsonResponse(
-            {"estado": BUSINESS["PENDIENTE"], "mensaje": "No se registran deudas canceladas para el DNI ingresado.",
-             "dni": dni, "deudas": [_row_minimal(r) for r in pendientes]},
+            {
+                "estado": BUSINESS["PENDIENTE"],
+                "mensaje": "No se registran deudas canceladas para el DNI ingresado.",
+                "dni": dni,
+                "deudas": [_row_minimal(r) for r in pendientes],
+            },
             status=200,
         )
 
     if len(cancelados) > 1:
-        seleccionar_url = request.build_absolute_uri(reverse("certificado_ldd:certificado_seleccionar") + f"?dni={dni}")
+        seleccionar_url = request.build_absolute_uri(
+            reverse("certificado_ldd:certificado_seleccionar") + f"?dni={dni}"
+        )
         certificados_meta = [
-            {"id_pago_unico": r.id_pago_unico, "propietario": r.propietario, "entidadinterna": r.entidadinterna}
+            {
+                "id_pago_unico": r.id_pago_unico,
+                "propietario": r.propietario,
+                "entidadinterna": r.entidadinterna,
+            }
             for r in cancelados
         ]
         payload = {
@@ -1034,10 +1149,13 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
     reg = cancelados[0]
     cert, pdf_bytes, err = _render_pdf_for_registro(reg)
     if not pdf_bytes:
-        return JsonResponse({"estado": "error", "mensaje": err or "No se pudo generar el PDF."}, status=500)
+        return JsonResponse(
+            {"estado": "error", "mensaje": err or "No se pudo generar el PDF."},
+            status=500,
+        )
 
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-    resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
+    resp["Content-Disposition"] = f'attachment; filename=\"certificado_{reg.id_pago_unico}.pdf\"'
     return resp
 
 
