@@ -217,7 +217,8 @@ def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
 
     # Parámetros de header
     logo_size = 2.0 * cm
-    gap_logo_contenido = 1.0 * cm  # distancia vertical entre base del logo y comienzo de contenido
+    # un poco más grande para bajar el contenido
+    gap_logo_contenido = 1.4 * cm
 
     # Dibujamos los logos de forma que su base quede gap_logo_contenido por encima del contenido
     logo_bottom_y = top_frame_y + gap_logo_contenido
@@ -247,7 +248,7 @@ def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
     has_bia = _fieldfile_exists(logo_bia_ff)
     has_ent = _fieldfile_exists(logo_ent_ff)
 
-    # >>> Ajuste 1: BIA siempre a la izquierda cuando haya 2 logos <<<
+    # BIA siempre a la izquierda cuando haya 2 logos
     if has_ent and has_bia:
         # BIA IZQUIERDA
         _draw_ff(logo_bia_ff, ml, logo_y)
@@ -418,7 +419,7 @@ def _build_pdf_bytes_azure(
         pagesize=A4,
         leftMargin=2.0 * cm,
         rightMargin=2.0 * cm,
-        topMargin=3.0 * cm,
+        topMargin=4.0 * cm,   # antes 3.0 → baja todo el contenido
         bottomMargin=2.5 * cm,
         title=titulo,
         author="BIA",
@@ -541,31 +542,40 @@ def _build_pdf_bytes_azure(
     def _firma_block(f, defaults):
         if not f:
             f = {}
+
         blocks = []
         ff = f.get("firma_ff")
-        if ff:
-            img = _img_flowable_from_fieldfile(ff, 4.0, 1.8)
-            if img:
-                blocks.append(img)
-                blocks.append(Spacer(1, 0.10 * cm))
 
-        # >>> Ajuste 3: línea gris más angosta y centrada <<<
+        # Ancho fijo que se aplica a imagen + línea + contenido
+        IMG_WIDTH_CM = 4.0
+
+        # Imagen de la firma
+        if ff:
+            img = _img_flowable_from_fieldfile(ff, IMG_WIDTH_CM, 1.8)
+            if img:
+                img.hAlign = "CENTER"
+                blocks.append(img)
+                blocks.append(Spacer(1, 0.05 * cm))
+
+        # Línea exactamente del mismo ancho que la imagen y centrada
         blocks.append(
             HRFlowable(
-                width="65%",
+                width=IMG_WIDTH_CM * cm,
                 color=colors.HexColor("#CCCCCC"),
                 thickness=1,
                 hAlign="CENTER",
             )
         )
-        blocks.append(Spacer(1, 0.06 * cm))
+        blocks.append(Spacer(1, 0.05 * cm))
 
+        # Texto del firmante
         texto = "<b>{}</b><br/>{}<br/>{}".format(
             _safe_text(f.get("responsable") or defaults.get("nombre")),
             _safe_text(f.get("cargo") or defaults.get("cargo")),
             _safe_text(f.get("entidad") or defaults.get("entidad")),
         )
         blocks.append(Paragraph(texto, styles["FirmaTxt"]))
+
         return blocks
 
     firma_defaults = copy["firma_defaults"]
@@ -587,11 +597,12 @@ def _build_pdf_bytes_azure(
             style=TableStyle(
                 [
                     ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),  # centra el bloque en cada celda
                 ]
             ),
         )
 
-        # >>> Ajuste 4: bajamos el bloque de firmas hacia la mitad inferior de la hoja <<<
+        # Mantener el bloque de firmas en la mitad inferior
         elements.append(Spacer(1, 2.5 * cm))
         elements.append(firmas_table)
 
