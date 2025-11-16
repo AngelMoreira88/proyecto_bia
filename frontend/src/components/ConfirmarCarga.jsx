@@ -8,12 +8,16 @@ export default function ConfirmarCarga() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Ahora esperamos que desde UploadForm vengan estos datos:
+  // { uploadId, totalRows, fileName }
+  const { uploadId, totalRows, fileName } = location.state || {};
+
   const [loading, setLoading] = useState(true);
   const [okMsg, setOkMsg] = useState('');
   const [errMsg, setErrMsg] = useState('');
   const [metrics, setMetrics] = useState({});
 
-  // ---- Idempotencia en el cliente ----
+  // ---- Idempotencia en el cliente (se mantiene) ----
   const makeUUID = () =>
     (window.crypto && window.crypto.randomUUID)
       ? window.crypto.randomUUID()
@@ -31,16 +35,21 @@ export default function ConfirmarCarga() {
     setErrMsg('');
     setMetrics({});
 
-    // Si venían records desde la vista previa, los enviamos; si no, usamos la sesión del backend
-    const records = location.state?.records;
-    const payload = Array.isArray(records) && records.length > 0 ? { records } : {};
+    if (!uploadId) {
+      setErrMsg('No se encontró información de la carga (uploadId). Volvé a la pantalla de subida.');
+      setLoading(false);
+      return;
+    }
+
+    // Nuevo flujo: se envía SOLO el upload_id, no los records
+    const payload = { upload_id: uploadId };
 
     try {
-      const res = await api.post('/carga-datos/api/confirmar/', payload, {
+      const res = await api.post('/api/carga-datos/confirmar/', payload, {
         headers: {
           'Content-Type': 'application/json',
           // Clave de idempotencia estable mientras permanezcas en esta pantalla.
-          // Si el usuario toca "Reintentar", NO duplica inserciones.
+          // El backend actual no la usa, pero no molesta y deja la puerta abierta.
           'X-Idempotency-Key': idemKeyRef.current,
         },
       });
@@ -96,12 +105,31 @@ export default function ConfirmarCarga() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const goToPortal = () => navigate('/portal');
+  const goToErrores = () => navigate('/carga-datos/errores');
+
   return (
     <>
       <Header />
       <div className="container d-flex flex-column justify-content-center align-items-center min-vh-100">
         <div className="card shadow p-4" style={{ maxWidth: 640, width: '100%' }}>
           <h2 className="text-center text-primary mb-3">Confirmar Carga</h2>
+
+          {/* Info del archivo (nueva, opcional) */}
+          {(fileName || totalRows) && (
+            <div className="text-center text-muted mb-3">
+              {fileName && (
+                <div>
+                  Archivo: <strong>{fileName}</strong>
+                </div>
+              )}
+              {typeof totalRows === 'number' && (
+                <div>
+                  Filas detectadas: <strong>{totalRows}</strong>
+                </div>
+              )}
+            </div>
+          )}
 
           {loading && (
             <div className="alert alert-info text-center" role="alert">
@@ -124,19 +152,29 @@ export default function ConfirmarCarga() {
           {!loading && !errMsg && (
             <div className="text-center text-muted mb-2">
               {typeof metrics.created_count === 'number' && (
-                <div>Creados: <strong>{metrics.created_count}</strong></div>
+                <div>
+                  Creados: <strong>{metrics.created_count}</strong>
+                </div>
               )}
               {typeof metrics.updated_count === 'number' && (
-                <div>Actualizados: <strong>{metrics.updated_count}</strong></div>
+                <div>
+                  Actualizados: <strong>{metrics.updated_count}</strong>
+                </div>
               )}
               {typeof metrics.skipped_count === 'number' && (
-                <div>Omitidos: <strong>{metrics.skipped_count}</strong></div>
+                <div>
+                  Omitidos: <strong>{metrics.skipped_count}</strong>
+                </div>
               )}
               {typeof metrics.errors_count === 'number' && (
-                <div>Errores: <strong>{metrics.errors_count}</strong></div>
+                <div>
+                  Errores: <strong>{metrics.errors_count}</strong>
+                </div>
               )}
               {metrics.idempotent_replay && (
-                <div className="small text-success">Operación idempotente: sin duplicar inserciones.</div>
+                <div className="small text-success">
+                  Operación idempotente: sin duplicar inserciones.
+                </div>
               )}
             </div>
           )}
@@ -144,7 +182,7 @@ export default function ConfirmarCarga() {
           <div className="d-flex justify-content-center gap-2 mt-2">
             {!loading && (
               <>
-                <button className="btn btn-outline-secondary" onClick={() => navigate('/portal')}>
+                <button className="btn btn-outline-secondary" onClick={goToPortal}>
                   Volver al portal
                 </button>
 
@@ -155,7 +193,7 @@ export default function ConfirmarCarga() {
 
                 <button
                   className="btn btn-success"
-                  onClick={() => navigate('/carga-datos/errores')}
+                  onClick={goToErrores}
                   title="Ver errores / resumen de validación"
                 >
                   Ver errores / resumen

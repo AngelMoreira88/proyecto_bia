@@ -69,7 +69,10 @@ export default function UploadForm() {
   };
 
   const handleUpload = async () => {
-    if (!archivo) { setError('Seleccioná un archivo primero'); return; }
+    if (!archivo) {
+      setError('Seleccioná un archivo primero');
+      return;
+    }
     const formData = new FormData();
     formData.append('archivo', archivo);
 
@@ -77,14 +80,31 @@ export default function UploadForm() {
       setSubiendo(true);
       setError('');
       const res = await subirExcel(formData);
+
       if (res.data?.success) {
-        setPreview(res.data.preview || '');
-        navigate('/carga-datos/confirmar', { state: { records: res.data.data } });
+        const preview = res.data.preview || '';
+        const uploadId = res.data.upload_id;
+        const totalRows = res.data.total_rows;
+
+        if (!uploadId) {
+          setError('Respuesta inválida del servidor: falta upload_id');
+          return;
+        }
+
+        setPreview(preview);
+        navigate('/carga-datos/confirmar', {
+          state: {
+            uploadId,
+            totalRows: totalRows || 0,
+            fileName: archivo.name || '',
+          },
+        });
       } else {
         const msg = (res.data?.errors || []).join(', ') || 'No se pudo procesar el archivo';
         setError(msg);
       }
-    } catch {
+    } catch (err) {
+      console.error('Error en subida de archivo:', err);
       setError('Error al subir el archivo');
     } finally {
       setSubiendo(false);
@@ -144,39 +164,9 @@ export default function UploadForm() {
                         </ul>
                       </li>
                       <li className="mb-2"><strong>Revisá el nombre del archivo</strong> que aparece debajo. Si te equivocaste, tocá <em>Quitar</em> y volvé a elegir.</li>
-                      <li className="mb-2"><strong>Subí y previsualizá</strong>: presioná <em>Subir y previsualizar</em>. Si todo está OK, verás un resumen y pasarás a la pantalla de <em>Confirmación</em> para aplicar los cambios.</li>
+                      <li className="mb-2"><strong>Subí y previsualizá</strong>: presioná <em>Subir y previsualizar</em>. Se mostrarán las primeras filas y pasarás a la pantalla de <em>Confirmación</em> para aplicar los cambios.</li>
                       <li className="mb-2"><strong>Confirmá cambios</strong> en la siguiente pantalla. Nada se escribe definitivamente hasta que confirmás.</li>
                     </ol>
-
-                    <div className="row g-3">
-                      <div className="col-12 col-md-6">
-                        <div className="p-3 border rounded-3 h-100 bg-white">
-                          <h6 className="fw-semibold mb-2">Atajos y tips</h6>
-                          <ul className="mb-0">
-                            <li><kbd>Ctrl/Cmd</kbd> + <kbd>V</kbd>: pegar archivos desde el portapapeles.</li>
-                            <li>Podés cambiar el archivo las veces que quieras antes de subir.</li>
-                            <li>Si el archivo es grande, esperá a que termine la carga (verás un spinner).</li>
-                          </ul>
-                        </div>
-                      </div>
-                      <div className="col-12 col-md-6">
-                        <div className="p-3 border rounded-3 h-100 bg-white">
-                          <h6 className="fw-semibold mb-2">Formatos aceptados</h6>
-                          <p className="mb-1"><code>.csv</code>, <code>.xls</code>, <code>.xlsx</code></p>
-                          <p className="small text-secondary mb-0">Evitá fórmulas complejas, celdas combinadas y hojas protegidas. En CSV usá codificación UTF-8 y separador coma o punto y coma.</p>
-                        </div>
-                      </div>
-                      <div className="col-12">
-                        <div className="p-3 border rounded-3 bg-white">
-                          <h6 className="fw-semibold mb-2">Errores frecuentes y cómo resolverlos</h6>
-                          <ul className="mb-0">
-                            <li><strong>“Formato no permitido”</strong>: convertí el archivo a CSV/XLS/XLSX y volvé a intentar.</li>
-                            <li><strong>“No se pudo procesar el archivo”</strong>: revisá encabezados, tipos de datos (por ej., DNI solo dígitos) y filas vacías.</li>
-                            <li><strong>Columnas faltantes</strong>: asegurate de incluir todas las columnas mínimas requeridas por el sistema.</li>
-                          </ul>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 )}
 

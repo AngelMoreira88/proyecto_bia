@@ -5,6 +5,8 @@ import unicodedata
 import json
 import hashlib
 from io import StringIO
+from pathlib import Path
+import uuid
 
 import pandas as pd
 from django.shortcuts import render, redirect, get_object_or_404
@@ -16,6 +18,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.core.validators import RegexValidator
 from django.apps import apps  # import perezoso de modelos de otras apps
+from django.conf import settings
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
@@ -57,7 +60,16 @@ CREATE_MISSING_ENTIDADES = True
 REQUIRE_KEY_FOR_ROW = False
 KEY_FIELDS = ('dni', 'id_pago_unico')
 
+# Cantidad de filas a mostrar en la previsualización
+PREVIEW_ROWS = 10
+
+# Directorio de uploads temporales para cargas masivas
+TEMP_UPLOAD_DIR = Path(
+    getattr(settings, "BIA_TEMP_UPLOAD_DIR", Path(getattr(settings, "BASE_DIR", ".")) / "temp_uploads")
+)
+
 # ========== UTILIDADES ==========
+
 def _strip_accents(s: str) -> str:
     if s is None:
         return ""
@@ -118,11 +130,6 @@ def df_drop_blank_rows(df: pd.DataFrame) -> pd.DataFrame:
 
     # Normalizamos NaN -> None
     df = df.where(pd.notnull(df), None)
-
-    # Drop filas con todo None/NaN
-    df = df.dropna(how='all')
-    if df.empty:
-        return df
 
     # Considerar strings vacíos/espacios como vacíos
     def _row_is_blank(row) -> bool:
@@ -204,11 +211,26 @@ def _resolver_entidad(propietario: str, entidadinterna: str, cache: dict, create
             return ent
     return None
 
+# ==============================
+# Helpers para uploads temporales
+# ==============================
+def _ensure_temp_upload_dir():
+    try:
+        TEMP_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        logger.exception(f"No se pudo crear TEMP_UPLOAD_DIR: {e}")
+        raise
+
+def _get_temp_path(upload_id: str) -> Path:
+    _ensure_temp_upload_dir()
+    return TEMP_UPLOAD_DIR / f"{upload_id}.csv"
+
 # ============== VISTAS WEB UI ==============
 @login_required
 def confirmar_carga(request):
     """
     Versión web: toma lo de sesión y aplica misma lógica que la API.
+    (OJO: el flujo React moderno usa upload_id, este flujo usa session).
     """
     # ⬇️ permiso: cargar excel
     if not (request.user.is_superuser or request.user.has_perm("carga_datos.can_upload_excel")):
@@ -218,11 +240,14 @@ def confirmar_carga(request):
     if not datos:
         return redirect('cargar_excel')
 
-    # Reutilizamos la API por simplicidad
+    # Reutilizamos la API por simplicidad (flujo legacy basado en 'records')
     from rest_framework.test import APIRequestFactory
     factory = APIRequestFactory()
     drf_request = factory.post('/carga-datos/api/confirmar/', {'records': datos}, format='json')
     drf_request.user = request.user  # forward auth
+
+    # ⚠️ Nota: esta llamada ahora solo tiene sentido si mantenés compat atrás.
+    # Con el nuevo flujo React, recomendamos usar upload_id en lugar de records.
     resp = api_confirmar_carga(drf_request)
 
     # Render liviano con el resultado
@@ -238,6 +263,7 @@ def confirmar_carga(request):
 def cargar_excel(request):
     """
     Sube y guarda DIRECTO (flujo web). Resuelve FK 'entidad' por propietario -> entidadinterna.
+    Flujo HTML "legacy": no interfiere con el flujo React nuevo.
     """
     # ⬇️ permiso: cargar excel
     if not (request.user.is_superuser or request.user.has_perm("carga_datos.can_upload_excel")):
@@ -327,12 +353,21 @@ def cargar_excel(request):
     return render(request, 'upload_form.html', {'form': ExcelUploadForm(), 'mensaje': mensaje})
 
 # ========= API REST =========
+
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, CanUploadExcel])  # ⬅️ permiso
 def api_cargar_excel(request):
     """
-    Sube y previsualiza (NO guarda). Deja los datos en sesión.
-    La FK se resuelve definitivamente en api_confirmar_carga.
+    Paso 1 (PREVIEW) para flujo React:
+    - Recibe archivo Excel/CSV.
+    - Valida columnas.
+    - Limpia filas vacías.
+    - Genera SOLO una tabla HTML de las primeras PREVIEW_ROWS filas.
+    - Guarda el DF limpio en un CSV temporal en disco.
+    - Devuelve: success, preview, upload_id, total_rows.
+
+    El flujo legacy que usaba session['datos_cargados'] sigue disponible vía
+    la vista web, pero el Portal BIA (React) se apoya en upload_id.
     """
     form = ExcelUploadForm(request.POST, request.FILES)
     if not form.is_valid():
@@ -362,7 +397,9 @@ def api_cargar_excel(request):
         # Validación de columnas
         faltantes = validar_columnas_obligatorias(list(df.columns))
         if faltantes:
-            errores = ["❌ Faltan columnas obligatorias en el archivo:"] + [f"- Faltante: {col}" for col in faltantes]
+            errores = ["❌ Faltan columnas obligatorias en el archivo:"] + [
+                f"- Faltante: {col}" for col in faltantes
+            ]
             logger.info(f"[{request.user}] Faltan columnas en archivo '{archivo.name}': {faltantes}")
             return Response({'success': False, 'errors': errores}, status=400)
 
@@ -381,128 +418,225 @@ def api_cargar_excel(request):
         df = df_drop_blank_rows(df)
         df = df.where(pd.notnull(df), None)
 
-        # Previsualización
-        preview_html = df.head(5).to_html(escape=False, index=False)
-        data = df.astype(str).where(pd.notnull(df), None).to_dict(orient='records')
+        if df.empty:
+            return Response(
+                {'success': False, 'errors': ['No hay filas válidas en el archivo.']},
+                status=400
+            )
 
-        # 🔧 NUEVO: Guardar SOLO filas no vacías en sesión
-        data = [r for r in data if not _row_is_blank_dict(r)]
-        if REQUIRE_KEY_FOR_ROW:
-            data = [r for r in data if _has_key_fields(r)]
+        total_rows = int(len(df))
 
-        if not data:
-            return Response({'success': False, 'errors': ['No hay filas válidas en el archivo.']}, status=400)
+        # PREVIEW LIMITADA: solo primeras PREVIEW_ROWS filas
+        preview_df = df.head(PREVIEW_ROWS)
+        preview_html = preview_df.to_html(escape=False, index=False)
 
-        request.session['datos_cargados'] = data
+        # Generar upload_id y guardar DF limpio en CSV temporal
+        upload_id = uuid.uuid4().hex
+        temp_path = _get_temp_path(upload_id)
+        df.to_csv(temp_path, index=False)
 
-        logger.info(f"[{request.user}] Previsualización cargada de '{archivo.name}' con {len(data)} registros (tras limpieza).")
-        return Response({'success': True, 'preview': preview_html, 'data': data})
+        logger.info(
+            f"[{request.user}] Previsualización cargada de '{archivo.name}' "
+            f"con {total_rows} filas (upload_id={upload_id})."
+        )
+
+        return Response({
+            'success': True,
+            'preview': preview_html,
+            'upload_id': upload_id,
+            'total_rows': total_rows,
+        })
 
     except Exception as e:
         logger.exception(f"[{request.user}] Error inesperado en carga: {e}")
-        return Response({'success': False, 'errors': [f"Error al procesar archivo: {str(e)}"]}, status=500)
+        return Response(
+            {'success': False, 'errors': [f"Error al procesar archivo: {str(e)}"]},
+            status=500
+        )
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated, CanUploadExcel])  # ⬅️ permiso
 def api_confirmar_carga(request):
     """
-    Guarda registros enviados por el front (o desde la sesión),
-    resolviendo FK 'entidad' y asignando id_pago_unico cuando venga vacío.
-    También valida duplicados (payload y DB) y devuelve métricas.
+    Paso 2 (CONFIRMAR) para flujo React:
+    - Recibe upload_id (identificador del archivo procesado).
+    - Reabre el CSV temporal asociado.
+    - Vuelve a limpiar/verificar.
+    - Asigna id_pago_unico cuando falten.
+    - Valida duplicados (payload y DB).
+    - Resuelve FK 'entidad'.
+    - Inserta con bulk_create.
+    - Borra el archivo temporal.
+
+    Para compatibilidad mínima con el flujo legacy, si no viene upload_id
+    se intenta leer 'records' desde request.data o session, aunque se recomienda
+    que el Portal React use SIEMPRE upload_id.
     """
-    records = request.data.get('records', []) or request.session.get('datos_cargados', [])
-    if not records:
-        return Response({'success': False, 'error': 'No hay datos para confirmar'}, status=400)
+    upload_id = (request.data.get('upload_id') or "").strip()
 
-    # 🔧 NUEVO: Filtrar dicts "vacíos"
-    records = [r for r in records if not _row_is_blank_dict(r)]
-    if REQUIRE_KEY_FOR_ROW:
-        records = [r for r in records if _has_key_fields(r)]
-    if not records:
-        return Response({'success': False, 'error': 'Todas las filas están vacías o sin claves requeridas.'}, status=400)
-
-    columnas = [f.name for f in BaseDeDatosBia._meta.fields if f.name != 'id']
-
-    # 1) Normalizar + detectar faltantes de id_pago_unico
-    normalized = []
-    missing_indexes = []
-    for idx, item in enumerate(records):
-        row = dict(item or {})
-        raw_idp = (row.get('id_pago_unico') or '').strip()
-        if raw_idp == '':
-            missing_indexes.append(idx)
+    # Compatibilidad backward mínima (legacy: records en body o sesión)
+    if not upload_id:
+        records_legacy = request.data.get('records', []) or request.session.get('datos_cargados', [])
+        if records_legacy:
+            # Reusar la lógica anterior a partir de records directamente
+            records = [r for r in (records_legacy or []) if not _row_is_blank_dict(r)]
         else:
-            if not raw_idp.isdigit():
-                return Response({'success': False, 'error': f'id_pago_unico inválido en fila {idx+1}: "{raw_idp}" (solo dígitos)'}, status=400)
-        normalized.append(row)
+            return Response({'success': False, 'error': 'Falta upload_id o datos para confirmar'}, status=400)
+        df = pd.DataFrame.from_records(records)
+    else:
+        temp_path = _get_temp_path(upload_id)
+        if not temp_path.exists():
+            return Response(
+                {'success': False, 'error': f'Upload no encontrado o expirado (upload_id={upload_id}).'},
+                status=400
+            )
+        try:
+            df = pd.read_csv(temp_path)
+        except Exception as e:
+            logger.exception(f"[{request.user}] Error leyendo CSV temporal {temp_path}: {e}")
+            return Response(
+                {'success': False, 'error': f'Error al leer el archivo temporal: {str(e)}'},
+                status=500
+            )
 
-    # 2) Asignar bloque para faltantes
-    if missing_indexes:
-        new_ids = allocate_id_pago_unico_block(len(missing_indexes))
-        for i, new_id in zip(missing_indexes, new_ids):
-            normalized[i]['id_pago_unico'] = new_id
+    try:
+        df = df_drop_blank_rows(df)
+        df = df.where(pd.notnull(df), None)
 
-    # 3) Duplicados dentro del payload
-    idps = [str(r.get('id_pago_unico')).strip() for r in normalized]
-    dup_in_payload = {x for x in idps if idps.count(x) > 1}
-    if dup_in_payload:
-        return Response(
-            {'success': False, 'error': f'id_pago_unico duplicado en el archivo: {", ".join(sorted(dup_in_payload))}'},
-            status=400
+        # Validar columnas nuevamente (defensivo)
+        faltantes = validar_columnas_obligatorias(list(df.columns))
+        if faltantes:
+            errores = ["❌ Faltan columnas obligatorias en el archivo (confirmación):"] + [
+                f"- Faltante: {col}" for col in faltantes
+            ]
+            return Response({'success': False, 'error': "; ".join(errores)}, status=400)
+
+        # Mapeo columnas Excel -> modelo (por si hiciera falta)
+        columnas_modelo = [f.name for f in BaseDeDatosBia._meta.fields if f.name != 'id']
+        columna_map = {}
+        for col in df.columns:
+            col_norm = normalizar_columna(col)
+            for campo in columnas_modelo:
+                if normalizar_columna(campo) == col_norm:
+                    columna_map[col] = campo
+                    break
+        if columna_map:
+            df.rename(columns=columna_map, inplace=True)
+            df = df_drop_blank_rows(df)
+            df = df.where(pd.notnull(df), None)
+
+        # Convertir DF en records para reutilizar lógica
+        records = df.astype(str).where(pd.notnull(df), None).to_dict(orient='records')
+
+        # 🔧 Filtrar dicts "vacíos"
+        records = [r for r in records if not _row_is_blank_dict(r)]
+        if REQUIRE_KEY_FOR_ROW:
+            records = [r for r in records if _has_key_fields(r)]
+        if not records:
+            return Response({'success': False, 'error': 'Todas las filas están vacías o sin claves requeridas.'}, status=400)
+
+        columnas = [f.name for f in BaseDeDatosBia._meta.fields if f.name != 'id']
+
+        # 1) Normalizar + detectar faltantes de id_pago_unico
+        normalized = []
+        missing_indexes = []
+        for idx, item in enumerate(records):
+            row = dict(item or {})
+            raw_idp = (row.get('id_pago_unico') or '').strip()
+            if raw_idp == '':
+                missing_indexes.append(idx)
+            else:
+                if not raw_idp.isdigit():
+                    return Response(
+                        {'success': False, 'error': f'id_pago_unico inválido en fila {idx+1}: "{raw_idp}" (solo dígitos)'},
+                        status=400
+                    )
+            normalized.append(row)
+
+        # 2) Asignar bloque para faltantes
+        if missing_indexes:
+            new_ids = allocate_id_pago_unico_block(len(missing_indexes))
+            for i, new_id in zip(missing_indexes, new_ids):
+                normalized[i]['id_pago_unico'] = new_id
+
+        # 3) Duplicados dentro del payload
+        idps = [str(r.get('id_pago_unico')).strip() for r in normalized]
+        dup_in_payload = {x for x in idps if idps.count(x) > 1}
+        if dup_in_payload:
+            return Response(
+                {'success': False, 'error': f'id_pago_unico duplicado en el archivo: {", ".join(sorted(dup_in_payload))}'},
+                status=400
+            )
+
+        # 4) Duplicados contra la DB
+        existing = set(
+            BaseDeDatosBia.objects.filter(id_pago_unico__in=idps).values_list('id_pago_unico', flat=True)
         )
+        if existing:
+            return Response(
+                {'success': False, 'error': f'id_pago_unico ya existente en base: {", ".join(sorted(existing))}'},
+                status=400
+            )
 
-    # 4) Duplicados contra la DB
-    existing = set(
-        BaseDeDatosBia.objects.filter(id_pago_unico__in=idps).values_list('id_pago_unico', flat=True)
-    )
-    if existing:
-        return Response(
-            {'success': False, 'error': f'id_pago_unico ya existente en base: {", ".join(sorted(existing))}'},
-            status=400
-        )
+        # 5) Construcción de objetos + resolución de FK
+        entidad_cache = _build_entidad_cache()
+        to_create = []
+        for row in normalized:
+            payload = {}
+            for col in columnas:
+                if col == 'entidad':
+                    continue
+                if 'limpiar_valor' in globals():
+                    payload[col] = limpiar_valor(row.get(col))
+                else:
+                    payload[col] = row.get(col)
 
-    # 5) Construcción de objetos + resolución de FK
-    entidad_cache = _build_entidad_cache()
-    to_create = []
-    for row in normalized:
-        payload = {}
-        for col in columnas:
-            if col == 'entidad':
+            # Ignorar defensivamente filas que quedaron "vacías" luego de limpiar
+            if _row_is_blank_dict(payload):
                 continue
-            payload[col] = limpiar_valor(row.get(col)) if 'limpiar_valor' in globals() else row.get(col)
 
-        # Ignorar defensivamente filas que quedaron "vacías" luego de limpiar
-        if _row_is_blank_dict(payload):
-            continue
+            # 🔧 NUEVO: garantizar fecha_apertura si falta/está vacía
+            if not payload.get('fecha_apertura'):
+                payload['fecha_apertura'] = timezone.localdate()
 
-        # 🔧 NUEVO: garantizar fecha_apertura si falta/está vacía
-        if not payload.get('fecha_apertura'):
-            payload['fecha_apertura'] = timezone.localdate()
+            ent = _resolver_entidad(payload.get('propietario'), payload.get('entidadinterna'),
+                                    entidad_cache, CREATE_MISSING_ENTIDADES)
+            obj = BaseDeDatosBia(**payload)
+            if ent:
+                obj.entidad = ent
+            to_create.append(obj)
 
-        ent = _resolver_entidad(payload.get('propietario'), payload.get('entidadinterna'),
-                                entidad_cache, CREATE_MISSING_ENTIDADES)
-        obj = BaseDeDatosBia(**payload)
-        if ent:
-            obj.entidad = ent
-        to_create.append(obj)
+        if not to_create:
+            return Response({'success': False, 'error': 'No hay filas válidas para insertar.'}, status=400)
 
-    if not to_create:
-        return Response({'success': False, 'error': 'No hay filas válidas para insertar.'}, status=400)
+        # 6) Persistencia en bloque
+        BaseDeDatosBia.objects.bulk_create(to_create, batch_size=200)
 
-    # 6) Persistencia en bloque
-    BaseDeDatosBia.objects.bulk_create(to_create, batch_size=200)
+        # 7) Limpiamos sesión si venían de ahí (legacy) y borramos archivo temporal si aplica
+        if 'datos_cargados' in request.session:
+            request.session.pop('datos_cargados', None)
 
-    # 7) Limpiamos sesión si venían de ahí
-    if 'datos_cargados' in request.session:
-        request.session.pop('datos_cargados', None)
+        if upload_id:
+            temp_path = _get_temp_path(upload_id)
+            try:
+                temp_path.unlink(missing_ok=True)
+            except Exception as e:
+                logger.warning(f"No se pudo borrar archivo temporal {temp_path}: {e}")
 
-    return Response({
-        'success': True,
-        'created_count': len(to_create),
-        'updated_count': 0,
-        'skipped_count': 0,
-        'errors_count': 0,
-    })
+        return Response({
+            'success': True,
+            'created_count': len(to_create),
+            'updated_count': 0,
+            'skipped_count': 0,
+            'errors_count': 0,
+        })
+
+    except Exception as e:
+        logger.exception(f"[{request.user}] Error inesperado en confirmación: {e}")
+        return Response(
+            {'success': False, 'error': f'Error al confirmar carga: {str(e)}'},
+            status=500
+        )
 
 # =========================
 # ERRORES VALIDACIÓN (web)
@@ -643,6 +777,8 @@ def delete_db_bia(request, pk: int):
     """
     obj = get_object_or_404(BaseDeDatosBia, pk=pk)
     business_key = str(obj.id_pago_unico or "")
+
+    from .models import AuditLog  # asegúrate de tener este modelo definido
 
     with transaction.atomic():
         # Audit del borrado (similar al bulk_commit)

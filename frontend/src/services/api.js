@@ -43,7 +43,7 @@ try { console.log('[API] baseURL =', API_BASE); } catch {}
 =============================== */
 const api = axios.create({
   baseURL: API_BASE,
-  timeout: 30000,
+  timeout: 300000,
   withCredentials: false, // JWT en headers, sin cookies
 });
 
@@ -201,14 +201,18 @@ export default api;
    Endpoints: CARGA DE DATOS  (prefijo correcto)
 ======================================================= */
 export function subirExcel(formData) {
+  // Paso 1: upload + preview (devuelve preview + upload_id + total_rows)
   return api.post('/api/carga-datos/cargar/', formData);
 }
-export function confirmarCarga(records) {
-  const payload = Array.isArray(records) && records.length > 0 ? { records } : {};
+
+export function confirmarCarga(uploadId) {
+  // Paso 2: confirmar solo con upload_id (ya no se mandan todas las filas desde el front)
+  const payload = uploadId ? { upload_id: uploadId } : {};
   return api.post('/api/carga-datos/confirmar/', payload, {
     headers: { 'Content-Type': 'application/json' },
   });
 }
+
 export function fetchErrores() {
   return api.get('/api/carga-datos/errores/');
 }
