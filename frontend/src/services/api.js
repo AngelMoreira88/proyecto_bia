@@ -210,6 +210,7 @@ export function confirmarCarga(uploadId) {
   const payload = uploadId ? { upload_id: uploadId } : {};
   return api.post('/api/carga-datos/confirmar/', payload, {
     headers: { 'Content-Type': 'application/json' },
+    timeout: 300000, // 5 min
   });
 }
 
