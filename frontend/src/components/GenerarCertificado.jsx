@@ -50,8 +50,12 @@ const norm = (s) =>
     .toLowerCase()
     .trim();
 
-const isRowCancelado = (row) =>
-  row?.cancelado === true || norm(row?.estado).startsWith("cancelado");
+/**
+ * Consideramos "cancelado" SOLO por el texto del estado,
+ * insensible a mayúsculas/minúsculas y espacios.
+ * Si la UI muestra "Con Deuda", acá NO se marca como cancelado.
+ */
+const isRowCancelado = (row) => norm(row?.estado).startsWith("cancelado");
 
 async function descargarPDF(id_pago_unico, dni) {
   const res = await api.get(GET_PDF_ENDPOINT, {
@@ -187,7 +191,7 @@ export default function GenerarCertificado() {
                   // Limpiar entidad para que no haga salto de línea
                   const entidadRaw = r.entidadinterna || "—";
                   const entidad = entidadRaw.replace(/\s+/g, " ").trim();
-                  const entidadOrig = r.entidadoriginal || "—";
+                  const entidadOrig = (r.entidadoriginal || "—").replace(/\s+/g, " ").trim();
 
                   // Mostrar valores sólo si NO está cancelado
                   const saldoAct = isCanc ? "—" : fmtMoney(r.saldo_actualizado);
@@ -202,17 +206,17 @@ export default function GenerarCertificado() {
                   return (
                     <tr key={`row-${r.id_pago_unico || r.id || i}`}>
                       <td className="text-nowrap">{entidad}</td>
-                      <td>{entidadOrig}</td>
-                      <td>
+                      <td className="text-nowrap">{entidadOrig}</td>
+                      <td className="text-nowrap">
                         <span
                           className={`badge rounded-pill px-3 py-2 fw-semibold ${estadoBadgeClass}`}
                         >
                           {estadoSimple}
                         </span>
                       </td>
-                      <td className="fw-semibold">{saldoAct}</td>
-                      <td className="fw-semibold">{cancelMin}</td>
-                      <td>
+                      <td className="fw-semibold text-nowrap">{saldoAct}</td>
+                      <td className="fw-semibold text-nowrap">{cancelMin}</td>
+                      <td className="text-nowrap">
                         {showWA ? (
                           <a
                             className="btn btn-sm btn-success rounded-pill px-3"
