@@ -134,22 +134,19 @@ export default function GenerarCertificado() {
   const dniTrim = (dni || "").replace(/\D/g, "").trim();
 
   // =======================
-  //      TABLA CENTRADA  
+  //      TABLA CENTRADA
   // =======================
   const Table = () => (
-    <div
-      className="table-responsive mt-3 mx-auto"
-      style={{ maxWidth: 900 }}
-    >
-      <table className="table table-sm align-middle mb-0">
+    <div className="table-responsive mt-3 mx-auto" style={{ maxWidth: 900 }}>
+      <table className="table table-sm align-middle mb-0 text-center">
         <thead className="table-light">
           <tr>
-            <th>Entidad actual</th>
-            <th>Entidad original</th>
-            <th className="fit-col">Estado de la deuda</th>
-            <th className="text-end fit-col">Saldo actualizado</th>
-            <th className="text-end fit-col">Cancel Min</th>
-            <th className="text-end fit-col">Acción</th>
+            <th className="text-center">Entidad actual</th>
+            <th className="text-center">Entidad original</th>
+            <th className="fit-col text-center">Estado de la deuda</th>
+            <th className="fit-col text-center">Saldo actualizado</th>
+            <th className="fit-col text-center">Cancel Min</th>
+            <th className="fit-col text-center">Acción</th>
           </tr>
         </thead>
         <tbody>
@@ -157,22 +154,27 @@ export default function GenerarCertificado() {
             const isCanc = isRowCancelado(r);
             const estadoSimple = isCanc ? "Cancelado" : "Con Deuda";
             const estadoClass = isCanc ? "text-success fw-semibold" : "text-danger fw-semibold";
+
+            // Entidad actual: limpiamos saltos de línea y espacios extra
+            const entidadRaw = r.entidadinterna || "—";
+            const entidad = String(entidadRaw).replace(/\s+/g, " ").trim();
+
+            const entidadOrig = r.entidadoriginal || "—";
             const saldoAct = fmtMoney(r.saldo_actualizado);
             const cancelMin = fmtMoney(r.cancel_min);
-            const entidad = r.entidadinterna || "—";
-            const entidadOrig = r.entidadoriginal || "—";
             const showWA = !isCanc;
             const waText = `${WA_MSG_DEFAULT} DNI: ${dniTrim} • ID pago único: ${r.id_pago_unico || "—"}`;
             const waHref = buildWAUrl(WA_PHONE, waText);
 
             return (
               <tr key={`row-${r.id_pago_unico || r.id || i}`}>
-                <td>{entidad}</td>
+                {/* una sola línea, sin cortes */}
+                <td className="text-nowrap">{entidad}</td>
                 <td>{entidadOrig}</td>
                 <td className={`fit-col ${estadoClass}`}>{estadoSimple}</td>
-                <td className="text-end fit-col">{saldoAct}</td>
-                <td className="text-end fit-col">{cancelMin}</td>
-                <td className="text-end fit-col">
+                <td className="fit-col">{saldoAct}</td>
+                <td className="fit-col">{cancelMin}</td>
+                <td className="fit-col">
                   {showWA ? (
                     <a
                       className="btn btn-sm btn-success"
@@ -242,7 +244,7 @@ export default function GenerarCertificado() {
 
   // ======== RENDER ========
   if (!logged) {
-    const waTextPublic = WA_MSG_PUBLIC;
+    const waTextPublic = WA_MSG_PUBLIC; // sin DNI ni ID
 
     return (
       <>
@@ -266,13 +268,13 @@ export default function GenerarCertificado() {
           </div>
         </div>
 
-        {/* Burbuja flotante: SOLO en público */}
+        {/* Burbuja flotante: SOLO en público con mensaje distinto */}
         <WhatsAppButton phone={WA_PHONE} text={waTextPublic} show={true} />
       </>
     );
   }
 
-  // Página privada (logueado)
+  // Página privada (logueado): SIN burbuja
   return (
     <>
       <div className="container page-fill d-flex align-items-center">
@@ -287,6 +289,7 @@ export default function GenerarCertificado() {
           </div>
         </div>
       </div>
+      {/* sin WhatsAppButton aquí */}
     </>
   );
 }
