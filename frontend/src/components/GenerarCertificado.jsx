@@ -25,8 +25,15 @@ const GET_PDF_ENDPOINT = "/api/certificado/generar/";
 /* ========= Helpers ========= */
 const fmtMoney = (v) => {
   if (v == null || v === "") return "—";
-  const n = Number(String(v).replace(/[^\d.-]/g, ""));
-  if (Number.isNaN(n)) return String(v);
+  const str = String(v);
+
+  // si ya parece texto “bonito”, lo mostramos como está
+  if (/[,$]/.test(str) && !/^\d+(\.\d+)?$/.test(str)) {
+    return str;
+  }
+
+  const n = Number(str.replace(/[^\d.-]/g, ""));
+  if (Number.isNaN(n)) return str;
 
   try {
     return n.toLocaleString("es-AR", {
@@ -38,6 +45,22 @@ const fmtMoney = (v) => {
   } catch {
     return n.toFixed(2);
   }
+};
+
+/**
+ * Devuelve el primer valor "real" (no null / no string vacía)
+ * de la lista que le pasemos.
+ */
+const pickFirstValue = (obj, keys) => {
+  for (const k of keys) {
+    if (!(k in obj)) continue;
+    const v = obj[k];
+    if (v == null) continue;
+    const s = String(v);
+    if (s.trim() === "") continue;
+    return v;
+  }
+  return null;
 };
 
 const buildWAUrl = (phone, text) =>
@@ -53,7 +76,6 @@ const norm = (s) =>
 /**
  * Consideramos "cancelado" SOLO por el texto del estado,
  * insensible a mayúsculas/minúsculas y espacios.
- * Si la UI muestra "Con Deuda", acá NO se marca como cancelado.
  */
 const isRowCancelado = (row) => norm(row?.estado).startsWith("cancelado");
 
@@ -149,7 +171,7 @@ export default function GenerarCertificado() {
     <div className="mt-4 d-flex justify-content-center">
       <div
         className="card border-0 shadow-sm rounded-4 w-100"
-        style={{ maxWidth: 900 }}
+        style={{ maxWidth: 1200 }}
       >
         {/* Encabezado del bloque de resultados */}
         <div className="px-4 pt-3 pb-2 border-bottom bg-light bg-opacity-50">
@@ -170,12 +192,12 @@ export default function GenerarCertificado() {
             <table className="table table-hover table-borderless align-middle mb-0 text-center">
               <thead className="table-light">
                 <tr>
-                  <th className="text-center">Entidad actual</th>
-                  <th className="text-center">Entidad original</th>
-                  <th className="text-center">Estado de la deuda</th>
-                  <th className="text-center">Saldo actualizado</th>
-                  <th className="text-center">Cancel Min</th>
-                  <th className="text-center">Acción</th>
+                  <th className="text-center text-nowrap">Entidad actual</th>
+                  <th className="text-center text-nowrap">Entidad original</th>
+                  <th className="text-center text-nowrap">Estado de la deuda</th>
+                  <th className="text-center text-nowrap">Saldo actualizado</th>
+                  <th className="text-center text-nowrap">Cancel Mínima</th>
+                  <th className="text-center text-nowrap">Acción</th>
                 </tr>
               </thead>
 
@@ -193,9 +215,26 @@ export default function GenerarCertificado() {
                   const entidad = entidadRaw.replace(/\s+/g, " ").trim();
                   const entidadOrig = (r.entidadoriginal || "—").replace(/\s+/g, " ").trim();
 
-                  // Mostrar valores sólo si NO está cancelado
-                  const saldoAct = isCanc ? "—" : fmtMoney(r.saldo_actualizado);
-                  const cancelMin = isCanc ? "—" : fmtMoney(r.cancel_min);
+                  // 🔥 Buscar montos en TODAS las variantes probables de nombre
+                  const rawSaldo = pickFirstValue(r, [
+                    "saldo_actualizado",
+                    "saldoactualizado",
+                    "saldo_actual",
+                    "saldoactual",
+                    "saldo_capital",
+                    "saldoCapital",
+                    "saldo",
+                  ]);
+                  const rawCancelMin = pickFirstValue(r, [
+                    "cancel_min",
+                    "cancelmin",
+                    "cancel_minimo",
+                    "cancelMinimo",
+                    "cancel_minimo_arreglo",
+                  ]);
+
+                  const saldoAct = isCanc ? "—" : fmtMoney(rawSaldo);
+                  const cancelMin = isCanc ? "—" : fmtMoney(rawCancelMin);
 
                   const showWA = !isCanc;
                   const waText = `${WA_MSG_DEFAULT} DNI: ${dniTrim} • ID pago único: ${
@@ -280,7 +319,7 @@ export default function GenerarCertificado() {
           {loading ? "Consultando..." : "Consultar"}
         </button>
         <BackHomeLink>
-          <span className="small">Volver al home.</span>
+          <span className="small">Volver al home</span>
         </BackHomeLink>
       </div>
     </form>
@@ -299,7 +338,7 @@ export default function GenerarCertificado() {
               <div className="col-12 col-lg-11 col-xl-10">
                 <div
                   className="glass-card glass-card--ultra rounded-4 shadow-lg p-4 p-md-5"
-                  style={{ maxWidth: 1100, margin: "0 auto" }}
+                  style={{ maxWidth: 1200, margin: "0 auto" }}
                 >
                   <h2 className="text-bia fw-bold text-center">
                     Portal de Consultas y Descargas
@@ -325,7 +364,7 @@ export default function GenerarCertificado() {
       <div className="w-100">
         <div
           className="card border-0 shadow-sm rounded-4 w-100 mx-auto"
-          style={{ maxWidth: 1100 }}
+          style={{ maxWidth: 1200 }}
         >
           <div className="card-body p-4 p-md-5">
             <h2 className="text-bia fw-bold text-center">
