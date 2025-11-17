@@ -140,108 +140,141 @@ export default function GenerarCertificado() {
 
   const dniTrim = dni.replace(/\D/g, "").trim();
 
-  /* ========= TABLA ========= */
+  /* ========= TABLA (moderna) ========= */
   const Table = () => (
-    <div className="table-responsive mt-3 mx-auto" style={{ maxWidth: 900 }}>
-      <table className="table table-sm align-middle mb-0 text-center">
-        <thead className="table-light">
-          <tr>
-            <th className="text-center">Entidad actual</th>
-            <th className="text-center">Entidad original</th>
-            <th className="text-center">Estado de la deuda</th>
-            <th className="text-center">Saldo actualizado</th>
-            <th className="text-center">Cancel Min</th>
-            <th className="text-center">Acción</th>
-          </tr>
-        </thead>
+    <div className="mt-4 d-flex justify-content-center">
+      <div
+        className="card border-0 shadow-sm rounded-4 w-100"
+        style={{ maxWidth: 900 }}
+      >
+        {/* Encabezado del bloque de resultados */}
+        <div className="px-4 pt-3 pb-2 border-bottom bg-light bg-opacity-50">
+          <div className="d-flex justify-content-between align-items-baseline flex-wrap gap-2">
+            <h6 className="mb-0 text-muted text-uppercase small fw-semibold">
+              Detalle de deudas
+            </h6>
+            {dniTrim && (
+              <span className="small text-muted">
+                DNI consultado: <span className="fw-semibold">{dniTrim}</span>
+              </span>
+            )}
+          </div>
+        </div>
 
-        <tbody>
-          {rows.map((r, i) => {
-            const isCanc = isRowCancelado(r);
+        <div className="card-body p-0">
+          <div className="table-responsive">
+            <table className="table table-hover table-borderless align-middle mb-0 text-center">
+              <thead className="table-light">
+                <tr>
+                  <th className="text-center">Entidad actual</th>
+                  <th className="text-center">Entidad original</th>
+                  <th className="text-center">Estado de la deuda</th>
+                  <th className="text-center">Saldo actualizado</th>
+                  <th className="text-center">Cancel Min</th>
+                  <th className="text-center">Acción</th>
+                </tr>
+              </thead>
 
-            const estadoSimple = isCanc ? "Cancelado" : "Con Deuda";
-            const estadoClass = isCanc
-              ? "text-success fw-semibold"
-              : "text-danger fw-semibold";
+              <tbody>
+                {rows.map((r, i) => {
+                  const isCanc = isRowCancelado(r);
 
-            // Limpiar entidad para que no haga salto de línea
-            const entidadRaw = r.entidadinterna || "—";
-            const entidad = entidadRaw.replace(/\s+/g, " ").trim();
+                  const estadoSimple = isCanc ? "Cancelado" : "Con Deuda";
+                  const estadoBadgeClass = isCanc
+                    ? "bg-success bg-opacity-10 text-success"
+                    : "bg-danger bg-opacity-10 text-danger";
 
-            const entidadOrig = r.entidadoriginal || "—";
+                  // Limpiar entidad para que no haga salto de línea
+                  const entidadRaw = r.entidadinterna || "—";
+                  const entidad = entidadRaw.replace(/\s+/g, " ").trim();
+                  const entidadOrig = r.entidadoriginal || "—";
 
-            // ✔ SOLO mostrar saldo si NO está cancelado
-            const saldoAct = isCanc ? "—" : fmtMoney(r.saldo_actualizado);
-            const cancelMin = isCanc ? "—" : fmtMoney(r.cancel_min);
+                  // Mostrar valores sólo si NO está cancelado
+                  const saldoAct = isCanc ? "—" : fmtMoney(r.saldo_actualizado);
+                  const cancelMin = isCanc ? "—" : fmtMoney(r.cancel_min);
 
-            const showWA = !isCanc;
-            const waText = `${WA_MSG_DEFAULT} DNI: ${dniTrim} • ID pago único: ${
-              r.id_pago_unico || "—"
-            }`;
-            const waHref = buildWAUrl(WA_PHONE, waText);
+                  const showWA = !isCanc;
+                  const waText = `${WA_MSG_DEFAULT} DNI: ${dniTrim} • ID pago único: ${
+                    r.id_pago_unico || "—"
+                  }`;
+                  const waHref = buildWAUrl(WA_PHONE, waText);
 
-            return (
-              <tr key={`row-${r.id_pago_unico || r.id || i}`}>
-                <td className="text-nowrap">{entidad}</td>
-                <td>{entidadOrig}</td>
-                <td className={estadoClass}>{estadoSimple}</td>
-                <td>{saldoAct}</td>
-                <td>{cancelMin}</td>
-
-                <td>
-                  {showWA ? (
-                    <a
-                      className="btn btn-sm btn-success"
-                      href={waHref}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Contactanos por WhatsApp
-                    </a>
-                  ) : (
-                    <button
-                      className="btn btn-sm btn-outline-primary"
-                      onClick={() => handleDescarga(r)}
-                      disabled={!r.id_pago_unico}
-                    >
-                      Descargar Libre de Deuda
-                    </button>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                  return (
+                    <tr key={`row-${r.id_pago_unico || r.id || i}`}>
+                      <td className="text-nowrap">{entidad}</td>
+                      <td>{entidadOrig}</td>
+                      <td>
+                        <span
+                          className={`badge rounded-pill px-3 py-2 fw-semibold ${estadoBadgeClass}`}
+                        >
+                          {estadoSimple}
+                        </span>
+                      </td>
+                      <td className="fw-semibold">{saldoAct}</td>
+                      <td className="fw-semibold">{cancelMin}</td>
+                      <td>
+                        {showWA ? (
+                          <a
+                            className="btn btn-sm btn-success rounded-pill px-3"
+                            href={waHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Contactanos por WhatsApp
+                          </a>
+                        ) : (
+                          <button
+                            className="btn btn-sm btn-outline-primary rounded-pill px-3"
+                            onClick={() => handleDescarga(r)}
+                            disabled={!r.id_pago_unico}
+                          >
+                            Descargar Libre de Deuda
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
     </div>
   );
 
   /* ========= FORM ========= */
   const Form = () => (
     <form onSubmit={onSubmit} className="mx-auto" style={{ maxWidth: 420 }}>
-      <input
-        type="text"
-        className="form-control"
-        value={dni}
-        onChange={(e) => {
-          const val = e.target.value.replace(/\D/g, "");
-          setDni(val);
-          if (msg) setMsg(null);
-          setRows([]);
-        }}
-        inputMode="numeric"
-        autoComplete="off"
-        placeholder="DNI (solo números)"
-        required
-      />
+      <div className="text-start">
+        <label htmlFor="dni" className="form-label visually-hidden">
+          DNI
+        </label>
+        <input
+          type="text"
+          id="dni"
+          className="form-control"
+          value={dni}
+          onChange={(e) => {
+            const val = e.target.value.replace(/\D/g, "");
+            setDni(val);
+            if (msg) setMsg(null);
+            setRows([]);
+          }}
+          inputMode="numeric"
+          autoComplete="off"
+          autoFocus
+          placeholder="DNI (solo números)"
+          required
+        />
+      </div>
 
-      {msg && <div className={`alert alert-${msg.type} mt-2`}>{msg.text}</div>}
+      {msg && <div className={`alert alert-${msg.type} mt-2 mb-0`}>{msg.text}</div>}
 
-      <div className="d-flex justify-content-center gap-2 mt-2">
-        <button type="submit" className="btn btn-bia btn-sm" disabled={loading}>
+      <div className="d-flex justify-content-center gap-2 mt-3">
+        <button type="submit" className="btn btn-bia btn-sm px-4" disabled={loading}>
           {loading ? "Consultando..." : "Consultar"}
         </button>
-
         <BackHomeLink>
           <span className="small">Volver al home.</span>
         </BackHomeLink>
@@ -267,8 +300,7 @@ export default function GenerarCertificado() {
                   <h2 className="text-bia fw-bold text-center">
                     Portal de Consultas y Descargas
                   </h2>
-
-                  <p className="text-muted text-center mb-2">Ingresá tu DNI</p>
+                  <p className="text-muted text-center mb-3">Ingresá tu DNI</p>
 
                   <Form />
                   {rows.length > 0 && <Table />}
@@ -278,11 +310,7 @@ export default function GenerarCertificado() {
           </div>
         </div>
 
-        <WhatsAppButton
-          phone={WA_PHONE}
-          text={WA_MSG_PUBLIC}
-          show={true}
-        />
+        <WhatsAppButton phone={WA_PHONE} text={WA_MSG_PUBLIC} show={true} />
       </>
     );
   }
@@ -299,8 +327,7 @@ export default function GenerarCertificado() {
             <h2 className="text-bia fw-bold text-center">
               Portal de Consultas y Descargas
             </h2>
-
-            <p className="text-muted text-center mb-2">Ingresá tu DNI</p>
+            <p className="text-muted text-center mb-3">Ingresá tu DNI</p>
 
             <Form />
             {rows.length > 0 && <Table />}
