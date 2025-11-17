@@ -133,8 +133,14 @@ export default function GenerarCertificado() {
 
   const dniTrim = (dni || "").replace(/\D/g, "").trim();
 
+  // =======================
+  //      TABLA CENTRADA  
+  // =======================
   const Table = () => (
-    <div className="table-responsive mt-2">
+    <div
+      className="table-responsive mt-3 mx-auto"
+      style={{ maxWidth: 900 }}
+    >
       <table className="table table-sm align-middle mb-0">
         <thead className="table-light">
           <tr>
@@ -236,8 +242,8 @@ export default function GenerarCertificado() {
 
   // ======== RENDER ========
   if (!logged) {
-    // Página pública: mostrar burbuja con MENSAJE PÚBLICO
-    const waTextPublic = WA_MSG_PUBLIC; // sin DNI ni ID
+    const waTextPublic = WA_MSG_PUBLIC;
+
     return (
       <>
         <div className="page-fill position-relative overflow-hidden d-flex align-items-center">
@@ -260,13 +266,13 @@ export default function GenerarCertificado() {
           </div>
         </div>
 
-        {/* Burbuja flotante: SOLO en público con mensaje distinto */}
+        {/* Burbuja flotante: SOLO en público */}
         <WhatsAppButton phone={WA_PHONE} text={waTextPublic} show={true} />
       </>
     );
   }
 
-  // Página privada (logueado): SIN burbuja
+  // Página privada (logueado)
   return (
     <>
       <div className="container page-fill d-flex align-items-center">
@@ -281,7 +287,6 @@ export default function GenerarCertificado() {
           </div>
         </div>
       </div>
-      {/* sin WhatsAppButton aquí */}
     </>
   );
 }

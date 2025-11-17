@@ -340,7 +340,8 @@ def cargar_excel(request):
                 if not registros:
                     mensaje = "⚠️ No se encontraron filas válidas para insertar."
                 else:
-                    BaseDeDatosBia.objects.bulk_create(registros, batch_size=200)
+                    # batch_size un poco más grande para rendimiento
+                    BaseDeDatosBia.objects.bulk_create(registros, batch_size=2000)
                     mensaje = f"✅ Se cargaron {len(registros)} registros."
                     logger.info(f"[{request.user}] Cargó archivo '{archivo.name}' con {len(registros)} registros (web).")
 
@@ -559,12 +560,22 @@ def api_confirmar_carga(request):
             for i, new_id in zip(missing_indexes, new_ids):
                 normalized[i]['id_pago_unico'] = new_id
 
-        # 3) Duplicados dentro del payload
+        # 3) Duplicados dentro del payload (optimizado O(n))
         idps = [str(r.get('id_pago_unico')).strip() for r in normalized]
-        dup_in_payload = {x for x in idps if idps.count(x) > 1}
+        seen = set()
+        dup_in_payload = set()
+        for x in idps:
+            if x in seen:
+                dup_in_payload.add(x)
+            else:
+                seen.add(x)
+
         if dup_in_payload:
             return Response(
-                {'success': False, 'error': f'id_pago_unico duplicado en el archivo: {", ".join(sorted(dup_in_payload))}'},
+                {
+                    'success': False,
+                    'error': f'id_pago_unico duplicado en el archivo: {", ".join(sorted(dup_in_payload))}'
+                },
                 status=400
             )
 
@@ -573,8 +584,12 @@ def api_confirmar_carga(request):
             BaseDeDatosBia.objects.filter(id_pago_unico__in=idps).values_list('id_pago_unico', flat=True)
         )
         if existing:
+            existing_str = {str(x) for x in existing}
             return Response(
-                {'success': False, 'error': f'id_pago_unico ya existente en base: {", ".join(sorted(existing))}'},
+                {
+                    'success': False,
+                    'error': f'id_pago_unico ya existente en base: {", ".join(sorted(existing_str))}'
+                },
                 status=400
             )
 
@@ -599,8 +614,12 @@ def api_confirmar_carga(request):
             if not payload.get('fecha_apertura'):
                 payload['fecha_apertura'] = timezone.localdate()
 
-            ent = _resolver_entidad(payload.get('propietario'), payload.get('entidadinterna'),
-                                    entidad_cache, CREATE_MISSING_ENTIDADES)
+            ent = _resolver_entidad(
+                payload.get('propietario'),
+                payload.get('entidadinterna'),
+                entidad_cache,
+                CREATE_MISSING_ENTIDADES
+            )
             obj = BaseDeDatosBia(**payload)
             if ent:
                 obj.entidad = ent
@@ -609,8 +628,8 @@ def api_confirmar_carga(request):
         if not to_create:
             return Response({'success': False, 'error': 'No hay filas válidas para insertar.'}, status=400)
 
-        # 6) Persistencia en bloque
-        BaseDeDatosBia.objects.bulk_create(to_create, batch_size=200)
+        # 6) Persistencia en bloque (batch grande para rendimiento)
+        BaseDeDatosBia.objects.bulk_create(to_create, batch_size=2000)
 
         # 7) Limpiamos sesión si venían de ahí (legacy) y borramos archivo temporal si aplica
         if 'datos_cargados' in request.session:
