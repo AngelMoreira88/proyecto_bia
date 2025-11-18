@@ -71,17 +71,18 @@ for _probe_ip in ("169.254.130.4", "169.254.131.3"):
 # =========================
 # CORS / CSRF (endurecido)
 # =========================
-_fronts_default = "https://portalbia.com.ar,https://www.portalbia.com.ar"
+_fronts_default = "https://portalbia.com.ar, https://www.portalbia.com.ar"
 _backend_default = "https://backend-grupobia.azurewebsites.net"
 
 # CORS
-CORS_ALLOWED_ORIGINS = list(set((CORS_ALLOWED_ORIGINS or []) + _csv("CORS_ALLOWED_ORIGINS", _fronts_default)))
+CORS_ALLOW_CREDENTIALS = True
+
+# CORS_ALLOWED_ORIGINS = list(set((CORS_ALLOWED_ORIGINS or []) + _csv("CORS_ALLOWED_ORIGINS", _fronts_default)))
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https?:\/\/localhost:\d+$",
     r"^https?:\/\/127\.0\.0\.1:\d+$",
 ]
-CORS_ALLOW_CREDENTIALS = True
-
+CORS_ALLOW_ALL_ORIGINS = True
 # CSRF - partir de defaults + env y además derivar de ALLOWED_HOSTS (https)
 CSRF_TRUSTED_ORIGINS = list(set((CSRF_TRUSTED_ORIGINS or []) + _csv(
     "CSRF_TRUSTED_ORIGINS",
