@@ -196,7 +196,7 @@ export default function GenerarCertificado() {
                   <th className="text-center text-nowrap">Entidad original</th>
                   <th className="text-center text-nowrap">Estado de la deuda</th>
                   <th className="text-center text-nowrap">Saldo actualizado</th>
-                  <th className="text-center text-nowrap">Cancel Mínima</th>
+                  <th className="text-center text-nowrap">Cancelación mínima</th>
                   <th className="text-center text-nowrap">Acción</th>
                 </tr>
               </thead>
