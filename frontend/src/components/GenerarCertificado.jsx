@@ -49,7 +49,7 @@ const fmtMoney = (v) => {
 
 /**
  * Devuelve el primer valor "real" (no null / no string vacía)
- * de la lista que le pasemos.
+ * de una lista de posibles claves del objeto.
  */
 const pickFirstValue = (obj, keys) => {
   for (const k of keys) {
@@ -166,12 +166,12 @@ export default function GenerarCertificado() {
 
   const dniTrim = dni.replace(/\D/g, "").trim();
 
-  /* ========= TABLA (moderna) ========= */
+  /* ========= TABLA (moderna, sin scroll interno) ========= */
   const Table = () => (
     <div className="mt-4 d-flex justify-content-center">
       <div
         className="card border-0 shadow-sm rounded-4 w-100"
-        style={{ maxWidth: 1200 }}
+        style={{ maxWidth: 1400 }}
       >
         {/* Encabezado del bloque de resultados */}
         <div className="px-4 pt-3 pb-2 border-bottom bg-light bg-opacity-50">
@@ -188,99 +188,101 @@ export default function GenerarCertificado() {
         </div>
 
         <div className="card-body p-0">
-          <div className="table-responsive">
-            <table className="table table-hover table-borderless align-middle mb-0 text-center">
-              <thead className="table-light">
-                <tr>
-                  <th className="text-center text-nowrap">Entidad actual</th>
-                  <th className="text-center text-nowrap">Entidad original</th>
-                  <th className="text-center text-nowrap">Estado de la deuda</th>
-                  <th className="text-center text-nowrap">Saldo actualizado</th>
-                  <th className="text-center text-nowrap">Cancelación mínima</th>
-                  <th className="text-center text-nowrap">Acción</th>
-                </tr>
-              </thead>
+          {/* SIN table-responsive → sin barra interna */}
+          <table className="table table-hover table-borderless align-middle mb-0 text-center">
+            <thead className="table-light">
+              <tr>
+                <th className="text-center text-nowrap">Entidad actual</th>
+                <th className="text-center text-nowrap">Entidad original</th>
+                <th className="text-center text-nowrap">Estado de la deuda</th>
+                <th className="text-center text-nowrap">Saldo actualizado</th>
+                <th className="text-center text-nowrap">Cancelación mínima</th>
+                <th className="text-center text-nowrap">Acción</th>
+              </tr>
+            </thead>
 
-              <tbody>
-                {rows.map((r, i) => {
-                  const isCanc = isRowCancelado(r);
+            <tbody>
+              {rows.map((r, i) => {
+                const isCanc = isRowCancelado(r);
 
-                  const estadoSimple = isCanc ? "Cancelado" : "Con Deuda";
-                  const estadoBadgeClass = isCanc
-                    ? "bg-success bg-opacity-10 text-success"
-                    : "bg-danger bg-opacity-10 text-danger";
+                const estadoSimple = isCanc ? "Cancelado" : "Con Deuda";
+                const estadoBadgeClass = isCanc
+                  ? "bg-success bg-opacity-10 text-success"
+                  : "bg-danger bg-opacity-10 text-danger";
 
-                  // Limpiar entidad para que no haga salto de línea
-                  const entidadRaw = r.entidadinterna || "—";
-                  const entidad = entidadRaw.replace(/\s+/g, " ").trim();
-                  const entidadOrig = (r.entidadoriginal || "—").replace(/\s+/g, " ").trim();
+                // Limpiar entidad para que no haga salto raro
+                const entidadRaw = r.entidadinterna || "—";
+                const entidad = entidadRaw.replace(/\s+/g, " ").trim();
+                const entidadOrig = (r.entidadoriginal || "—")
+                  .replace(/\s+/g, " ")
+                  .trim();
 
-                  // 🔥 Buscar montos en TODAS las variantes probables de nombre
-                  const rawSaldo = pickFirstValue(r, [
-                    "saldo_actualizado",
-                    "saldoactualizado",
-                    "saldo_actual",
-                    "saldoactual",
-                    "saldo_capital",
-                    "saldoCapital",
-                    "saldo",
-                  ]);
-                  const rawCancelMin = pickFirstValue(r, [
-                    "cancel_min",
-                    "cancelmin",
-                    "cancel_minimo",
-                    "cancelMinimo",
-                    "cancel_minimo_arreglo",
-                  ]);
+                // Buscamos montos en varias variantes de nombre
+                const rawSaldo = pickFirstValue(r, [
+                  "saldo_actualizado",
+                  "saldoactualizado",
+                  "saldo_actual",
+                  "saldoactual",
+                  "saldo_capital",
+                  "saldoCapital",
+                  "saldo",
+                ]);
+                const rawCancelMin = pickFirstValue(r, [
+                  "cancel_min",
+                  "cancelmin",
+                  "cancel_minimo",
+                  "cancelMinimo",
+                  "cancel_minima",
+                  "cancelacion_minima",
+                ]);
 
-                  const saldoAct = isCanc ? "—" : fmtMoney(rawSaldo);
-                  const cancelMin = isCanc ? "—" : fmtMoney(rawCancelMin);
+                const saldoAct = isCanc ? "—" : fmtMoney(rawSaldo);
+                const cancelMin = isCanc ? "—" : fmtMoney(rawCancelMin);
 
-                  const showWA = !isCanc;
-                  const waText = `${WA_MSG_DEFAULT} DNI: ${dniTrim} • ID pago único: ${
-                    r.id_pago_unico || "—"
-                  }`;
-                  const waHref = buildWAUrl(WA_PHONE, waText);
+                const showWA = !isCanc;
+                const waText = `${WA_MSG_DEFAULT} DNI: ${dniTrim} • ID pago único: ${
+                  r.id_pago_unico || "—"
+                }`;
+                const waHref = buildWAUrl(WA_PHONE, waText);
 
-                  return (
-                    <tr key={`row-${r.id_pago_unico || r.id || i}`}>
-                      <td className="text-nowrap">{entidad}</td>
-                      <td className="text-nowrap">{entidadOrig}</td>
-                      <td className="text-nowrap">
-                        <span
-                          className={`badge rounded-pill px-3 py-2 fw-semibold ${estadoBadgeClass}`}
+                return (
+                  <tr key={`row-${r.id_pago_unico || r.id || i}`}>
+                    <td className="text-nowrap">{entidad}</td>
+                    <td className="text-nowrap">{entidadOrig}</td>
+                    <td className="text-nowrap">
+                      <span
+                        className={`badge rounded-pill px-3 py-2 fw-semibold ${estadoBadgeClass}`}
+                      >
+                        {estadoSimple}
+                      </span>
+                    </td>
+                    <td className="fw-semibold text-nowrap">{saldoAct}</td>
+                    <td className="fw-semibold text-nowrap">{cancelMin}</td>
+                    <td className="text-nowrap">
+                      {showWA ? (
+                        <a
+                          className="btn btn-sm btn-success rounded-pill px-3"
+                          href={waHref}
+                          target="_blank"
+                          rel="noopener noreferrer"
                         >
-                          {estadoSimple}
-                        </span>
-                      </td>
-                      <td className="fw-semibold text-nowrap">{saldoAct}</td>
-                      <td className="fw-semibold text-nowrap">{cancelMin}</td>
-                      <td className="text-nowrap">
-                        {showWA ? (
-                          <a
-                            className="btn btn-sm btn-success rounded-pill px-3"
-                            href={waHref}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            Contactanos por WhatsApp
-                          </a>
-                        ) : (
-                          <button
-                            className="btn btn-sm btn-outline-primary rounded-pill px-3"
-                            onClick={() => handleDescarga(r)}
-                            disabled={!r.id_pago_unico}
-                          >
-                            Descargar Libre de Deuda
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                          Contactanos por WhatsApp
+                        </a>
+                      ) : (
+                        <button
+                          className="btn btn-sm btn-outline-primary rounded-pill px-3"
+                          onClick={() => handleDescarga(r)}
+                          disabled={!r.id_pago_unico}
+                        >
+                          Descargar Libre de Deuda
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -319,7 +321,7 @@ export default function GenerarCertificado() {
           {loading ? "Consultando..." : "Consultar"}
         </button>
         <BackHomeLink>
-          <span className="small">Volver al home</span>
+          <span className="small">Volver al home.</span>
         </BackHomeLink>
       </div>
     </form>
@@ -338,7 +340,7 @@ export default function GenerarCertificado() {
               <div className="col-12 col-lg-11 col-xl-10">
                 <div
                   className="glass-card glass-card--ultra rounded-4 shadow-lg p-4 p-md-5"
-                  style={{ maxWidth: 1200, margin: "0 auto" }}
+                  style={{ maxWidth: 1400, margin: "0 auto" }}
                 >
                   <h2 className="text-bia fw-bold text-center">
                     Portal de Consultas y Descargas
@@ -364,7 +366,7 @@ export default function GenerarCertificado() {
       <div className="w-100">
         <div
           className="card border-0 shadow-sm rounded-4 w-100 mx-auto"
-          style={{ maxWidth: 1200 }}
+          style={{ maxWidth: 1400 }}
         >
           <div className="card-body p-4 p-md-5">
             <h2 className="text-bia fw-bold text-center">
