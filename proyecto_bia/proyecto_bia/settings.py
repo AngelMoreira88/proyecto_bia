@@ -25,9 +25,14 @@ env = environ.Env(
     # CORS / CSRF
     CORS_ALLOWED_ORIGINS=(list, [
         "http://localhost:3000",
+        "http://127.0.0.1:3000",
         "http://localhost:3001",
         "https://portalbia.com.ar",
         "https://www.portalbia.com.ar",
+        "https://grupo-bia-react.azurewebsites.net",
+        "https://backend-grupobia.azurewebsites.net",
+
+
     ]),
     CSRF_TRUSTED_ORIGINS=(list, [
         "http://localhost:3000",
@@ -87,7 +92,7 @@ CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https?:\/\/localhost:\d+$",
     r"^https?:\/\/127\.0\.0\.1:\d+$",
 ]
-CORS_ALLOW_CREDENTIALS = False  # solo necesario True si usás cookies cross-site
+CORS_ALLOW_CREDENTIALS = True  # solo necesario True si usás cookies cross-site
 CSRF_TRUSTED_ORIGINS = env("CSRF_TRUSTED_ORIGINS")
 
 # ⚙️ Headers permitidos para preflight y API requests
@@ -96,6 +101,10 @@ CORS_ALLOW_HEADERS = list(default_headers) + [
     "x-requested-with",
     "authorization",
     "content-type",
+    "accept",
+    "origin",
+    "user-agent",
+    "cache-control",
 ]
 
 CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
