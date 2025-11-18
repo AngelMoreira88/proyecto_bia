@@ -8,7 +8,7 @@ export default function ConfirmarCarga() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Ahora esperamos que desde UploadForm vengan estos datos:
+  // Desde UploadForm:
   // { uploadId, totalRows, fileName }
   const { uploadId, totalRows, fileName } = location.state || {};
 
@@ -17,13 +17,13 @@ export default function ConfirmarCarga() {
   const [errMsg, setErrMsg] = useState('');
   const [metrics, setMetrics] = useState({});
 
-  // ---- Idempotencia en el cliente (se mantiene) ----
+  // ---- Idempotencia en el cliente ----
   const makeUUID = () =>
     (window.crypto && window.crypto.randomUUID)
       ? window.crypto.randomUUID()
       : `${Math.random().toString(36).slice(2)}-${Date.now()}`;
 
-  // Usamos UNA key por "sesión" de esta pantalla (Reintentar reutiliza la misma key)
+  // Misma key mientras permanezcas en esta pantalla
   const idemKeyRef = useRef(makeUUID());
 
   // Evita doble ejecución del efecto en React 18 + StrictMode (solo DEV)
@@ -41,21 +41,37 @@ export default function ConfirmarCarga() {
       return;
     }
 
-    // Nuevo flujo: se envía SOLO el upload_id, no los records
     const payload = { upload_id: uploadId };
 
     try {
       const res = await api.post('/api/carga-datos/confirmar/', payload, {
         headers: {
           'Content-Type': 'application/json',
-          // Clave de idempotencia estable mientras permanezcas en esta pantalla.
-          // El backend actual no la usa, pero no molesta y deja la puerta abierta.
           'X-Idempotency-Key': idemKeyRef.current,
         },
       });
 
+      const status = res?.status ?? 0;
       const data = res?.data || {};
-      if (data.success) {
+
+      const hasCounts =
+        typeof data.created_count === 'number' ||
+        typeof data.updated_count === 'number' ||
+        typeof data.skipped_count === 'number' ||
+        typeof data.errors_count === 'number';
+
+      // Consideramos "success" si:
+      // - viene success === true  OR
+      // - es un 2xx, no hay "error" explícito y trae contadores
+      const inferredSuccess =
+        data.success === true ||
+        (status >= 200 &&
+          status < 300 &&
+          !data.error &&
+          !data.errors &&
+          hasCounts);
+
+      if (inferredSuccess) {
         const parts = [];
         if (typeof data.created_count === 'number') parts.push(`creados: ${data.created_count}`);
         if (typeof data.updated_count === 'number') parts.push(`actualizados: ${data.updated_count}`);
@@ -76,23 +92,36 @@ export default function ConfirmarCarga() {
         );
       } else {
         const backendErrors =
-          Array.isArray(data.errors) ? data.errors.join(' | ')
-            : typeof data.error === 'string' ? data.error
-            : Object.entries(data.errors || {})
-                .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(' ') : String(v)}`)
-                .join(' | ');
+          Array.isArray(data.errors)
+            ? data.errors.join(' | ')
+            : typeof data.error === 'string'
+              ? data.error
+              : Object.entries(data.errors || {})
+                  .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(' ') : String(v)}`)
+                  .join(' | ');
+
         setErrMsg(backendErrors || '❌ Hubo un problema al confirmar la carga.');
       }
     } catch (err) {
       console.error('Error al confirmar carga:', err);
+      const status = err?.response?.status;
       const data = err?.response?.data;
-      const readable =
-        data && typeof data === 'object'
-          ? Object.entries(data)
-              .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(' ') : String(v)}`)
-              .join(' | ')
-          : '';
-      setErrMsg(readable || '❌ Error al confirmar la carga.');
+
+      // Caso especial: timeout del proxy de Azure (499/504)
+      if (status === 499 || status === 504 || err.code === 'ECONNABORTED') {
+        setErrMsg(
+          '⚠️ El servidor tardó demasiado en responder y la conexión se cortó. ' +
+          'Es posible que la carga se haya aplicado igual. Verificá en el portal o en el resumen.'
+        );
+      } else {
+        const readable =
+          data && typeof data === 'object'
+            ? Object.entries(data)
+                .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(' ') : String(v)}`)
+                .join(' | ')
+            : '';
+        setErrMsg(readable || '❌ Error al confirmar la carga.');
+      }
     } finally {
       setLoading(false);
     }
@@ -100,7 +129,7 @@ export default function ConfirmarCarga() {
 
   useEffect(() => {
     if (didRunRef.current) return;
-    didRunRef.current = true; // evita doble ejecución del efecto en dev
+    didRunRef.current = true;
     confirmar();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -115,7 +144,6 @@ export default function ConfirmarCarga() {
         <div className="card shadow p-4" style={{ maxWidth: 640, width: '100%' }}>
           <h2 className="text-center text-primary mb-3">Confirmar Carga</h2>
 
-          {/* Info del archivo (nueva, opcional) */}
           {(fileName || totalRows) && (
             <div className="text-center text-muted mb-3">
               {fileName && (
@@ -186,7 +214,6 @@ export default function ConfirmarCarga() {
                   Volver al portal
                 </button>
 
-                {/* Reutiliza la MISMA clave idempotente para no duplicar si reintenta */}
                 <button className="btn btn-outline-primary" onClick={confirmar}>
                   Reintentar
                 </button>
