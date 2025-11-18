@@ -23,10 +23,7 @@ export default function ConfirmarCarga() {
       ? window.crypto.randomUUID()
       : `${Math.random().toString(36).slice(2)}-${Date.now()}`;
 
-  // Misma key mientras permanezcas en esta pantalla
   const idemKeyRef = useRef(makeUUID());
-
-  // Evita doble ejecución del efecto en React 18 + StrictMode (solo DEV)
   const didRunRef = useRef(false);
 
   const confirmar = async () => {
@@ -60,9 +57,6 @@ export default function ConfirmarCarga() {
         typeof data.skipped_count === 'number' ||
         typeof data.errors_count === 'number';
 
-      // Consideramos "success" si:
-      // - viene success === true  OR
-      // - es un 2xx, no hay "error" explícito y trae contadores
       const inferredSuccess =
         data.success === true ||
         (status >= 200 &&
@@ -107,11 +101,19 @@ export default function ConfirmarCarga() {
       const status = err?.response?.status;
       const data = err?.response?.data;
 
-      // Caso especial: timeout del proxy de Azure (499/504)
-      if (status === 499 || status === 504 || err.code === 'ECONNABORTED') {
+      // Caso especial: timeout/proxy de Azure -> Network Error (sin response) o 504/499
+      const isTimeoutLike =
+        !err.response ||                      // CORS bloquea la respuesta de error
+        status === 499 ||
+        status === 504 ||
+        err.code === 'ECONNABORTED' ||
+        err.message === 'Network Error';
+
+      if (isTimeoutLike) {
         setErrMsg(
           '⚠️ El servidor tardó demasiado en responder y la conexión se cortó. ' +
-          'Es posible que la carga se haya aplicado igual. Verificá en el portal o en el resumen.'
+          'Es muy probable que la carga se haya aplicado igual. ' +
+          'Verificá en el portal o abrí "Ver errores / resumen" para confirmar.'
         );
       } else {
         const readable =
