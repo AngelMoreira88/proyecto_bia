@@ -70,18 +70,6 @@ const PREFERRED_ORDER = [
   'cuit',
 ];
 
-/* Campos que representan montos de deuda (se ocultan si está cancelado) */
-const MONTO_FIELDS = new Set([
-  'saldo_capital',
-  'interes_total',
-  'total_plan',
-  'totalplan',
-  'saldo_actualizado',
-  'saldo_exigible',
-  'comision',
-  'creditos',
-]);
-
 /* ============================
    Helpers
    ============================ */
@@ -226,19 +214,8 @@ export default function MostrarDatos() {
     return <span className={`badge rounded-pill bg-${cls}`}>{text}</span>;
   };
 
-  const Cell = ({ k, v, isCanceladoRow }) => {
-    // Pill para el estado
+  const Cell = ({ k, v }) => {
     if (k === 'estado') return <EstadoPill value={v} />;
-
-    // Si está cancelado y el campo es un monto de deuda, no mostramos el valor
-    if (isCanceladoRow && MONTO_FIELDS.has(k)) {
-      return (
-        <span className="text-muted" title="Monto oculto por deuda cancelada">
-          —
-        </span>
-      );
-    }
-
     const val = v ?? '—';
     return (
       <span className="truncate-200" title={String(val)}>
@@ -268,7 +245,7 @@ export default function MostrarDatos() {
             ...best,
             ...base,
           };
-          // normalizar flag cancelado
+            // normalizar flag cancelado
           const canc =
             (typeof base.cancelado === 'boolean' && base.cancelado) ||
             isCanceladoFlag(base.estado) ||
@@ -895,7 +872,7 @@ export default function MostrarDatos() {
                             }}
                             style={{ cursor: 'pointer' }}
                           >
-                            <Cell k={k} v={row[k]} isCanceladoRow={!!row.cancelado} />
+                            <Cell k={k} v={row[k]} />
                           </td>
                         ))}
                         <td
@@ -977,25 +954,6 @@ export default function MostrarDatos() {
               {columnas.map((k) => {
                 const editable = isFieldEditable(k);
                 const value = (formData[k] ?? '').toString();
-
-                // Si la fila está cancelada y el campo es un monto de deuda,
-                // no mostramos el valor numérico real
-                if (activeRow?.cancelado && MONTO_FIELDS.has(k)) {
-                  return (
-                    <div key={k} className="col-12 col-md-6">
-                      <div className={`form-floating ${focusKey === k ? 'flash-highlight' : ''}`}>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value="N/A por deuda cancelada"
-                          readOnly
-                          placeholder=" "
-                        />
-                        <label className="text-secondary">{pretty(k)}</label>
-                      </div>
-                    </div>
-                  );
-                }
 
                 return (
                   <div key={k} className={`col-12 col-md-6`}>
