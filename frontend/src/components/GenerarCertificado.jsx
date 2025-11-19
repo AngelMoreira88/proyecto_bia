@@ -226,33 +226,39 @@ export default function GenerarCertificado() {
                   ? "bg-success bg-opacity-10 text-success"
                   : "bg-danger bg-opacity-10 text-danger";
 
-                // Limpiar entidad para que no haga salto raro
-                const entidadRaw = r.entidadinterna || "—";
+                // Entidades (limpiamos espacios múltiples)
+                const entidadRaw = r.entidadinterna || r.entidad_interna || "—";
                 const entidad = entidadRaw.replace(/\s+/g, " ").trim();
-                const entidadOrig = (r.entidadoriginal || "—")
-                  .replace(/\s+/g, " ")
-                  .trim();
 
-                // Buscamos montos en varias variantes de nombre
+                const entidadOrigRaw = r.entidadoriginal || r.entidad_original || "—";
+                const entidadOrig = entidadOrigRaw.replace(/\s+/g, " ").trim();
+
+                // Mapeo de posibles nombres de saldo
                 const rawSaldo = pickFirstValue(r, [
                   "saldo_actualizado",
                   "saldoactualizado",
                   "saldo_actual",
                   "saldoactual",
                   "saldo_capital",
-                  "saldoCapital",
+                  "saldocapital",
                   "saldo",
+                  "saldoTotal",
+                  "saldo_total",
                 ]);
+
+                // Mapeo de posibles campos de cancelación mínima
                 const rawCancelMin = pickFirstValue(r, [
                   "cancel_min",
                   "cancelmin",
                   "cancel_minimo",
-                  "cancelMinimo",
+                  "cancelminimo",
                   "cancel_minima",
                   "cancelacion_minima",
+                  "cancelacionMinima",
+                  "cancel_minimo_requerido",
                 ]);
 
-                // 🔒 REGLA: si la fila está CANCELADA, NO mostramos montos
+                // 🔒 SI LA FILA ESTÁ CANCELADA, NO MOSTRAR MONTOS
                 const saldoAct = isCanc ? "—" : fmtMoney(rawSaldo);
                 const cancelMin = isCanc ? "—" : fmtMoney(rawCancelMin);
 
