@@ -74,10 +74,15 @@ const norm = (s) =>
     .trim();
 
 /**
- * Consideramos "cancelado" SOLO por el texto del estado,
- * insensible a mayúsculas/minúsculas y espacios.
+ * Consideramos "cancelado" por:
+ * - flag booleano row.cancelado (si viene)
+ * - o texto del estado que empiece con "cancelado"
  */
-const isRowCancelado = (row) => norm(row?.estado).startsWith("cancelado");
+const isRowCancelado = (row) => {
+  if (!row) return false;
+  if (typeof row.cancelado === "boolean") return row.cancelado;
+  return norm(row.estado).startsWith("cancelado");
+};
 
 async function descargarPDF(id_pago_unico, dni) {
   const res = await api.get(GET_PDF_ENDPOINT, {
@@ -142,10 +147,21 @@ export default function GenerarCertificado() {
       } else {
         const canceladas = arr.filter((r) => isRowCancelado(r)).length;
         const noCanc = arr.length - canceladas;
-        setMsg({
-          type: "light",
-          text: `Encontramos ${arr.length} deuda(s). Canceladas: ${canceladas} • Con deuda: ${noCanc}`,
-        });
+
+        if (noCanc === 0) {
+          // TODAS las deudas están canceladas → no se muestra ningún monto
+          setMsg({
+            type: "success",
+            text:
+              `Encontramos ${arr.length} registro(s) y todos figuran como CANCELADO. ` +
+              `No se muestra ningún monto de deuda; solo el estado y la opción de descargar tu Libre de Deuda.`,
+          });
+        } else {
+          setMsg({
+            type: "light",
+            text: `Encontramos ${arr.length} deuda(s). Canceladas: ${canceladas} • Con deuda vigente: ${noCanc}`,
+          });
+        }
       }
     } catch (err) {
       console.error(err);
@@ -236,6 +252,7 @@ export default function GenerarCertificado() {
                   "cancelacion_minima",
                 ]);
 
+                // 🔒 REGLA: si la fila está CANCELADA, NO mostramos montos
                 const saldoAct = isCanc ? "—" : fmtMoney(rawSaldo);
                 const cancelMin = isCanc ? "—" : fmtMoney(rawCancelMin);
 
