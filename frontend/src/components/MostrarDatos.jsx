@@ -105,7 +105,7 @@ const dedupeByIdPagoUnico = (arr) => {
 const classifyQuery = (q) => {
   const s = String(q || '').trim();
   const onlyDigits = /^\d+$/.test(s);
-  if (onlyDigits && s.length >= 7 && s.length <= 9) return { kind: 'dni', value: s };
+  if (onlyDigits && s.length >= 6 && s.length <= 11) return { kind: 'dni', value: s };
   return { kind: 'id_pago_unico', value: s };
 };
 
