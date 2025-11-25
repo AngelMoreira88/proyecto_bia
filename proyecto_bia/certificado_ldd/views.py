@@ -597,7 +597,7 @@ def _build_pdf_bytes_azure(
     # =========================
     # ESPACIO ANTES DE LA FIRMA
     # =========================
-    elements.append(Spacer(1, 5.0 * cm))
+    elements.append(Spacer(1, 4.5 * cm))
 
     # ==== BLOQUE DE FIRMAS – SOLO 1 FIRMA ====
 
@@ -613,11 +613,11 @@ def _build_pdf_bytes_azure(
 
         # Imagen de la firma
         if ff:
-            img = _img_flowable_from_fieldfile(ff, IMG_WIDTH_CM, 1.8)
+            img = _img_flowable_from_fieldfile(ff, IMG_WIDTH_CM, 3.0)
             if img:
                 img.hAlign = "CENTER"
                 blocks.append(img)
-                blocks.append(Spacer(1, 1.0 * cm))
+                blocks.append(Spacer(1, 0.5 * cm))
 
         # Línea exactamente del mismo ancho que la imagen y centrada
         blocks.append(
