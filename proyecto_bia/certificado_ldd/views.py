@@ -305,24 +305,47 @@ def _page_template(logo_bia_ff, logo_ent_ff, footer_text: str):
 # ======================================================================================
 
 def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool) -> dict:
+    """
+    Devuelve:
+      - ciudad fija ("Buenos Aires")
+      - parrafo1_fmt: plantilla principal según entidad (AZUR / BIA / CPSA / EGEO / FBLASA / genérico)
+      - parrafo2: texto fijo "A pedido del interesado..."
+      - firma_defaults: texto por defecto de firma (fallback)
+      - agregar_admin_bia: sólo se usa en el caso genérico BIA
+
+    El texto respeta literalmente los modelos de Word, incluyendo el campo CREDITO(S).
+    """
     nombre = (entidad_nombre or "").strip().lower()
 
-    base_parrafo1 = (
-        "Por medio de la presente se deja constancia que <b>{nombre}</b>, con DNI <b>{dni}</b>, "
-        "ha cancelado la deuda que mantenía con <b>{propietario}</b>{admin_bia}, "
-        "por el crédito originado en <b>{entidad_original}</b> "
-        "(ID de operación <b>{id_operacion}</b>), conforme a los registros internos y comprobantes archivados."
-    )
-    empresa_parrafo1 = (
-        "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI <b>{dni}</b>, "
-        "ha cancelado la deuda que mantenía con la empresa <b>{propietario}</b>{admin_bia}, "
-        "por el crédito originado en <b>{entidad_original}</b>."
-    )
-    parrafo2 = (
-        "Este certificado se expide a solicitud del interesado para los fines que estime convenientes, "
-        "sin que implique responsabilidad adicional por parte de la entidad emisora respecto de la veracidad futura de esta información."
+    # === Plantillas de texto, alineadas a los modelos ===
+
+    # AZUR
+    azur_parrafo1 = (
+        "Se deja constancia de que el/la Sr./a <b>{nombre}</b>, con DNI <b>{dni}</b>, "
+        "ha cancelado la deuda correspondiente a <b>{propietario}</b>, administrado por BIA S.R.L., "
+        "respecto al/los crédito/s N° <b>{creditos}</b>, originado/s en <b>{entidad_original}</b>."
     )
 
+    # BIA (persona física / genérico)
+    base_parrafo1 = (
+        "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI: <b>{dni}</b> "
+        "ha cancelado la deuda que mantenía con <b>{propietario}</b>{admin_bia}, "
+        "respecto al/los crédito/s N° <b>{creditos}</b>, originado en <b>{entidad_original}</b>."
+    )
+
+    # Empresas (CPSA, EGEO, FBLASA)
+    empresa_parrafo1 = (
+        "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI: <b>{dni}</b>, "
+        "ha cancelado la deuda que mantenía con la empresa <b>{propietario}</b>, "
+        "respecto al/los crédito/s N° <b>{creditos}</b>, originado en <b>{entidad_original}</b>."
+    )
+
+    # Segundo párrafo: común a todos los modelos
+    parrafo2 = (
+        "A pedido del interesado, se extiende la presente para ser presentado a quien corresponda."
+    )
+
+    # Defaults de firma por entidad (sólo como fallback si la Entidad no tiene datos cargados)
     firma_por_entidad = [
         {
             "match": ["azur", "fp azur"],
@@ -331,7 +354,7 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
                 "cargo": "FP Azur Investment / BIA S.R.L.",
                 "entidad": "",
             },
-            "parrafo1_fmt": empresa_parrafo1,
+            "parrafo1_fmt": azur_parrafo1,
         },
         {
             "match": ["bia"],
@@ -378,11 +401,12 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
             break
 
     if not selected:
+        # Caso genérico BIA
         selected = {
             "firma": {
                 "nombre": "Administrador/Apoderado",
                 "cargo": "",
-                "entidad": (entidad_nombre or "BIA"),
+                "entidad": (entidad_nombre or "BIA S.R.L."),
             },
             "parrafo1_fmt": base_parrafo1,
         }
@@ -392,6 +416,8 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
         "parrafo1_fmt": selected["parrafo1_fmt"],
         "parrafo2": parrafo2,
         "firma_defaults": selected["firma"],
+        # En el modelo BIA se puede indicar "administrado por BIA S.R.L."
+        # sólo cuando NO hay otra entidad externa.
         "agregar_admin_bia": not has_ent_externa,
     }
 
@@ -419,7 +445,7 @@ def _build_pdf_bytes_azure(
         pagesize=A4,
         leftMargin=2.0 * cm,
         rightMargin=2.0 * cm,
-        topMargin=4.0 * cm,   # antes 3.0 → baja todo el contenido
+        topMargin=4.5 * cm,   # → baja todo el contenido
         bottomMargin=2.5 * cm,
         title=titulo,
         author="BIA",
@@ -495,10 +521,16 @@ def _build_pdf_bytes_azure(
 
     elements = []
 
-    # Título
+    # =========================
+    # TÍTULO
+    # =========================
     elements.append(Paragraph(_safe_text(titulo), styles["Titulo"]))
+    # Más espacio entre título y ciudad/fecha
+    elements.append(Spacer(1, 0.7 * cm))
 
-    # Fecha
+    # =========================
+    # FECHA (ciudad + fecha)
+    # =========================
     from datetime import datetime
 
     fecha_emision = _safe_text(datos.get("Fecha de Emisión")) or datetime.now().strftime("%d/%m/%Y")
@@ -507,25 +539,49 @@ def _build_pdf_bytes_azure(
     has_ent_externa = _fieldfile_exists(logo_ent_ff)
     copy = _select_copy_for_entity(entidad_nombre=ent_nombre, has_ent_externa=has_ent_externa)
 
+    # Línea de fecha, derecha, con ciudad (fecha en negrita)
     elements.append(Paragraph(f'{copy["ciudad"]}, <b>{fecha_emision}</b>', styles["Fecha"]))
+    # Más espacio entre fecha y el primer párrafo del cuerpo
+    elements.append(Spacer(1, 0.5 * cm))
 
-    # Datos para el cuerpo
+    # =========================
+    # CUERPO DEL TEXTO
+    # =========================
     nombre_apellido = _safe_text(datos.get("Nombre y Apellido"), default="(sin dato)")
     dni_txt = _safe_text(datos.get("DNI"), default="(sin dato)")
     propietario_txt = _safe_text(datos.get("Razón Social"), default="(sin dato)")
     entidad_original_txt = _safe_text(datos.get("Entidad Original"), default="(sin dato)")
-    id_operacion = _safe_text(datos.get("Número"), default="(sin dato)")
+    # créditos, tal como figura en los modelos
+    creditos_txt = _safe_text(
+        datos.get("Creditos")
+        or datos.get("Créditos")
+        or datos.get("CREDITO")
+        or datos.get("CREDITO/S"),
+        default="(sin dato)",
+    )
 
+    # Forzar negrita en los datos que vienen de la BD
+    nombre_apellido_b = f"<b>{nombre_apellido}</b>"
+    dni_txt_b = f"<b>{dni_txt}</b>"
+    propietario_txt_b = f"<b>{propietario_txt}</b>"
+    entidad_original_txt_b = f"<b>{entidad_original_txt}</b>"
+    creditos_txt_b = f"<b>{creditos_txt}</b>"
+
+    # En el modelo BIA se agrega "administrado por BIA S.R.L." sólo en algunos casos
     admin_bia = " (administrado por BIA S.R.L.)" if copy.get("agregar_admin_bia") else ""
+
+    # Párrafo principal según plantilla por entidad (inyectando siempre valores en negrita)
     parrafo_1 = copy["parrafo1_fmt"].format(
-        nombre=nombre_apellido,
-        dni=dni_txt,
-        propietario=propietario_txt,
-        entidad_original=entidad_original_txt,
-        id_operacion=id_operacion,
+        nombre=nombre_apellido_b,
+        dni=dni_txt_b,
+        propietario=propietario_txt_b,
+        entidad_original=entidad_original_txt_b,
+        creditos=creditos_txt_b,
         admin_bia=admin_bia,
     )
     elements.append(Paragraph(parrafo_1, styles["Cuerpo"]))
+
+    # Segundo párrafo (idéntico en todos los modelos)
     elements.append(Paragraph(copy["parrafo2"], styles["Nota"]))
 
     # Vigencia (si existe)
@@ -533,11 +589,16 @@ def _build_pdf_bytes_azure(
         vig = datos.get("Vigencia Hasta") or datos.get("vigencia_hasta")
         nota_vig = (
             f"Este certificado es válido hasta <b>{_safe_text(vig)}</b>. "
-            "Ante cualquier duda, verificar autenticidad con el área de Administración BIA."
+            "<b>Ante cualquier duda</b>, verificar autenticidad con el área de Administración BIA."
         )
         elements.append(Paragraph(nota_vig, styles["Nota"]))
 
-    # ==== BLOQUE DE FIRMAS ====
+    # =========================
+    # ESPACIO ANTES DE LA FIRMA
+    # =========================
+    elements.append(Spacer(1, 5.0 * cm))
+
+    # ==== BLOQUE DE FIRMAS – SOLO 1 FIRMA ====
 
     def _firma_block(f, defaults):
         if not f:
@@ -555,13 +616,13 @@ def _build_pdf_bytes_azure(
             if img:
                 img.hAlign = "CENTER"
                 blocks.append(img)
-                blocks.append(Spacer(1, 0.05 * cm))
+                blocks.append(Spacer(1, 1.0 * cm))
 
         # Línea exactamente del mismo ancho que la imagen y centrada
         blocks.append(
             HRFlowable(
                 width=IMG_WIDTH_CM * cm,
-                color=colors.HexColor("#CCCCCC"),
+                color=colors.HexColor("#FFFFFF"),
                 thickness=1,
                 hAlign="CENTER",
             )
@@ -578,17 +639,15 @@ def _build_pdf_bytes_azure(
 
         return blocks
 
+    # Defaults basados en la entidad
     firma_defaults = copy["firma_defaults"]
-    f1 = _firma_block(firma_1, firma_defaults)
-    f2 = _firma_block(firma_2, {"nombre": "", "cargo": "", "entidad": ""}) if firma_2 else None
+    # Sólo usamos firma_1; firma_2 se ignora para cumplir el requerimiento de 1 sola firma.
+    f1 = _firma_block(firma_1, firma_defaults) if firma_1 else None
 
-    firmas_cells = [cell for cell in (f1, f2) if cell]
+    firmas_cells = [cell for cell in (f1,) if cell]
     if firmas_cells:
-        cols = len(firmas_cells)
-        if cols == 1:
-            col_widths = [doc.width]
-        else:
-            col_widths = [(doc.width / cols) for _ in range(cols)]
+        # Una sola columna, ocupa todo el ancho del frame
+        col_widths = [doc.width]
 
         firmas_table = Table(
             [firmas_cells],
@@ -597,13 +656,11 @@ def _build_pdf_bytes_azure(
             style=TableStyle(
                 [
                     ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),  # centra el bloque en cada celda
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),  # centra el bloque en la celda
                 ]
             ),
         )
 
-        # Mantener el bloque de firmas en la mitad inferior
-        elements.append(Spacer(1, 2.5 * cm))
         elements.append(firmas_table)
 
     footer_text = footer_text or "BIA • Certificados de Libre Deuda"
@@ -704,20 +761,15 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
     entidad_bia_m = _load_media(entidad_bia)
     entidad_otras_m = _load_media(entidad_otras)
 
-    # Firmas extendidas (FieldFile para leer desde storage)
-    firma_bia = {
-        "firma_ff": getattr(entidad_bia_m, "firma", None) if entidad_bia_m else None,
-        "responsable": getattr(entidad_bia_m, "responsable", "") or "Responsable",
-        "cargo": getattr(entidad_bia_m, "cargo", "") or "Responsable",
-        "entidad": getattr(entidad_bia_m, "razon_social", "") or "BIA",
-    }
-    firma_ext = None
-    if entidad_otras_m:
-        firma_ext = {
-            "firma_ff": getattr(entidad_otras_m, "firma", None),
-            "responsable": getattr(entidad_otras_m, "responsable", "") or "",
-            "cargo": getattr(entidad_otras_m, "cargo", "") or "",
-            "entidad": getattr(entidad_otras_m, "razon_social", "") or "",
+    # ===== Firmas extendidas – una sola firma, de la entidad emisora =====
+    entidad_firma = entidad_otras_m or entidad_bia_m
+    firma_principal = None
+    if entidad_firma:
+        firma_principal = {
+            "firma_ff": getattr(entidad_firma, "firma", None),
+            "responsable": getattr(entidad_firma, "responsable", "") or "",
+            "cargo": getattr(entidad_firma, "cargo", "") or "",
+            "entidad": getattr(entidad_firma, "razon_social", "") or "",
         }
 
     # Logos para header
@@ -790,6 +842,8 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
         "Emitido": emitido_str,
         "Estado": reg.estado or "",
         "Fecha de Emisión": hoy_str,
+        # NUEVO: CREDITO(S) tal como se pide en los modelos
+        "Creditos": reg.creditos or "",
     }
 
     footer_text = getattr(entidad_bia_m, "pie_pdf", None) or "BIA • Certificados de Libre Deuda"
@@ -799,8 +853,8 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
             datos,
             logo_bia_ff=logo_bia_ff,
             logo_ent_ff=logo_ent_ff,
-            firma_1=firma_bia,
-            firma_2=firma_ext,
+            firma_1=firma_principal,
+            firma_2=None,  # siempre una sola firma
             titulo="Certificado de Libre Deuda",
             subtitulo=None,
             footer_text=footer_text,
@@ -959,9 +1013,7 @@ def seleccionar_certificado(request: HttpRequest) -> HttpResponse:
             "certificado_seleccionar.html",
             {
                 "dni": dni,
-                "cancelados": [],
-                "pendientes": [],
-                "mensaje": "No se encontraron registros para el DNI ingresado.",
+                "cancelados": [], "pendientes": [], "mensaje": "No se encontraron registros para el DNI ingresado.",
             },
             status=200,
         )
@@ -975,9 +1027,7 @@ def seleccionar_certificado(request: HttpRequest) -> HttpResponse:
             "certificado_seleccionar.html",
             {
                 "dni": dni,
-                "cancelados": [],
-                "pendientes": pendientes,
-                "mensaje": "No hay obligaciones canceladas para imprimir.",
+                "cancelados": [], "pendientes": pendientes, "mensaje": "No hay obligaciones canceladas para imprimir.",
             },
             status=200,
         )

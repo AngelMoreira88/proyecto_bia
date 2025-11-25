@@ -91,14 +91,18 @@ ENFORCE_CUIT_CHECKSUM = False
 
 
 # ============ Utilidades / normalizadores ============
+
+
 def _sha256_bytes(b: bytes) -> str:
     return hashlib.sha256(b).hexdigest()
+
 
 def _is_nan(x: Any) -> bool:
     try:
         return isinstance(x, float) and math.isnan(x)
     except Exception:
         return False
+
 
 def _normalize_val(v: Any) -> Any:
     """NaN->None; str->trim (''->None); fechas->YYYY-MM-DD; demás: igual."""
@@ -115,6 +119,7 @@ def _normalize_val(v: Any) -> Any:
             return str(v)
     return v
 
+
 def _normalize_business_key(v: Any) -> str | None:
     v = _normalize_val(v)
     if v is None:
@@ -122,6 +127,7 @@ def _normalize_business_key(v: Any) -> str | None:
     if isinstance(v, float) and v.is_integer():
         v = int(v)
     return str(v)
+
 
 def _model_concrete_fields(model_cls) -> Dict[str, models.Field]:
     """{campo: Field} concretos (sin M2M/reverse)."""
@@ -131,8 +137,10 @@ def _model_concrete_fields(model_cls) -> Dict[str, models.Field]:
             res[f.name] = f
     return res
 
+
 def _get_entidad_model():
     return apps.get_model(ENTIDAD_APP_LABEL, ENTIDAD_MODEL_NAME)
+
 
 def _coerce_entidad_value(raw: Any) -> Tuple[Any, str]:
     """Resolver 'entidad' por id o por nombre (iexact)."""
@@ -150,6 +158,7 @@ def _coerce_entidad_value(raw: Any) -> Tuple[Any, str]:
         return obj.pk, ""
     return None, "entidad: no encontrada por nombre"
 
+
 def _coerce_to_field(field: models.Field, value: Any) -> Tuple[Any, str]:
     if field.name == ENTIDAD_FIELD and isinstance(field, models.ForeignKey):
         return _coerce_entidad_value(value)
@@ -158,7 +167,10 @@ def _coerce_to_field(field: models.Field, value: Any) -> Tuple[Any, str]:
     except Exception as e:
         return None, f"{field.name}: {e}"
 
+
 # ---- Normalización y validación suave de DNI/CUIT ----
+
+
 def _only_digits(val: Any) -> str | None:
     """2054685741.0 -> '2054685741'; elimina todo salvo dígitos."""
     if val is None:
@@ -174,8 +186,10 @@ def _only_digits(val: Any) -> str | None:
     digits = ''.join(ch for ch in s if ch.isdigit())
     return digits or None
 
+
 def _normalize_dni(val: Any) -> str | None:
     return _only_digits(val)
+
 
 def _cuit_is_valid(cuit: str) -> bool:
     if not cuit or not cuit.isdigit() or len(cuit) != 11:
@@ -190,6 +204,7 @@ def _cuit_is_valid(cuit: str) -> bool:
         dv = 9
     return dv == nums[10]
 
+
 def _normalize_cuit(val: Any) -> str | None:
     digits = _only_digits(val)
     if not digits:
@@ -199,7 +214,10 @@ def _normalize_cuit(val: Any) -> str | None:
             return None
     return digits
 
+
 # ======= Helpers de autoincremento seguro =======
+
+
 def _allocate_sequential_ids_from_db_max(n: int) -> list[str]:
     """Toma el mayor id en DB y el contador para asignar n ids consecutivos, de forma atómica."""
     if n <= 0:
@@ -217,7 +235,10 @@ def _allocate_sequential_ids_from_db_max(n: int) -> list[str]:
         counter.save(update_fields=['last_value', 'updated_at'])
         return [str(i) for i in range(start, start + n)]
 
+
 # ======= Validaciones de negocio =======
+
+
 def _email_is_valid(val: str) -> bool:
     if not val:
         return True
@@ -227,10 +248,12 @@ def _email_is_valid(val: str) -> bool:
     except ValidationError:
         return False
 
+
 def _phone_is_valid(val: str) -> bool:
     if not val:
         return True
     return str(val).isdigit()
+
 
 def _dates_are_valid(fecha_apertura: Any, fecha_deuda: Any, today: datetime.date) -> Tuple[bool, str]:
     """fecha_deuda < fecha_apertura (si ambas); ninguna > hoy."""
@@ -246,6 +269,7 @@ def _dates_are_valid(fecha_apertura: Any, fecha_deuda: Any, today: datetime.date
     if fa and fd and not (fd < fa):
         return False, "fecha_deuda debe ser anterior a fecha_apertura."
     return True, ""
+
 
 def _money_is_valid(payload: dict) -> Tuple[bool, str]:
     for f in DEC_POSITIVE_FIELDS:
@@ -271,8 +295,10 @@ def _money_is_valid(payload: dict) -> Tuple[bool, str]:
         return False, "Campos de saldo deben ser numéricos."
     return True, ""
 
+
 def _normalize_estado(val: Any) -> str:
     return str(val).strip().upper() if val is not None else ""
+
 
 def _estado_is_valid(estado: str, sub_estado: str) -> Tuple[bool, str]:
     est = _normalize_estado(estado) if estado else ""
@@ -289,8 +315,10 @@ def _estado_is_valid(estado: str, sub_estado: str) -> Tuple[bool, str]:
             return False, f"Sub-estado '{sub_estado}' no permitido para estado '{estado}'."
     return True, ""
 
+
 def _is_active_estado(estado: str) -> bool:
     return _normalize_estado(estado) in ACTIVE_ESTADOS_SET
+
 
 def _soft_uniqueness_ok(dni: str, entidad_id: int, estado: str) -> Tuple[bool, str]:
     if not dni or not entidad_id:
@@ -307,6 +335,8 @@ def _soft_uniqueness_ok(dni: str, entidad_id: int, estado: str) -> Tuple[bool, s
 
 
 # =========== EXPORT .XLSX ===========
+
+
 @api_view(["GET"])
 @permission_classes([IsAuthenticated, CanBulkModify])
 def bulk_export_xlsx(request):
@@ -376,7 +406,7 @@ def bulk_export_xlsx(request):
             # desde fila 2 (fila 1 es header)
             for row_idx in range(2, ws.max_row + 1):
                 cell = ws[f"{col_letter}{row_idx}"]
-                cell.number_format = "@"
+                cell.number_format = "@"  # texto
 
         # Hoja Guía
         guia_lines = [
@@ -405,6 +435,8 @@ def bulk_export_xlsx(request):
 
 
 # =========== VALIDATE ===========
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, CanBulkModify])
 def bulk_validate(request):
@@ -520,11 +552,13 @@ def bulk_validate(request):
                 # Normalización especial para dni/cuit
                 if k == "dni":
                     nd = _normalize_dni(norm_v)
-                    if nd: payload_clean[k] = nd
+                    if nd:
+                        payload_clean[k] = nd
                     continue
                 if k == "cuit":
                     nc = _normalize_cuit(norm_v)
-                    if nc: payload_clean[k] = nc
+                    if nc:
+                        payload_clean[k] = nc
                     continue
 
                 coerced, err = _coerce_to_field(fields_map[k], norm_v)
@@ -696,6 +730,8 @@ def bulk_validate(request):
 
 
 # =========== COMMIT ===========
+
+
 @api_view(["POST"])
 @permission_classes([IsAuthenticated, IsAdminOrSuperuser])
 def bulk_commit(request):
@@ -776,11 +812,13 @@ def bulk_commit(request):
 
                 if k == "dni":
                     nd = _normalize_dni(norm_v)
-                    if nd: payload_clean[k] = nd
+                    if nd:
+                        payload_clean[k] = nd
                     continue
                 if k == "cuit":
                     nc = _normalize_cuit(norm_v)
-                    if nc: payload_clean[k] = nc
+                    if nc:
+                        payload_clean[k] = nc
                     continue
 
                 coerced, err = _coerce_to_field(fields_map[k], norm_v)
@@ -890,8 +928,10 @@ def bulk_commit(request):
                     if not okuniq:
                         return Response({"errors": [f"Fila {bkey or '(auto)'}: {msguniq}"]}, status=400)
 
-                pending_inserts_payloads.append({"bkey": (bkey if (bkey and bkey not in {"(auto)", "(sin_clave)"} ) else None),
-                                                 "payload_clean": payload_clean.copy()})
+                pending_inserts_payloads.append({
+                    "bkey": (bkey if (bkey and bkey not in {"(auto)", "(sin_clave)"}) else None),
+                    "payload_clean": payload_clean.copy()
+                })
 
         # Asignar ids automáticos
         need_auto = sum(1 for it in pending_inserts_payloads if not it["bkey"])

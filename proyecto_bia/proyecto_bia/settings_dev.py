@@ -89,7 +89,7 @@ else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": _env_str("DB_LOCAL_NAME", "bia_db_local"),
+            "NAME": _env_str("DB_LOCAL_NAME", "bia_local"),
             "USER": _env_str("DB_LOCAL_USER", "postgres"),
             "PASSWORD": _env_str("DB_LOCAL_PASSWORD", "postgres"),
             "HOST": _env_str("DB_LOCAL_HOST", "127.0.0.1"),
