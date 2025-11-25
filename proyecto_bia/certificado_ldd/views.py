@@ -65,6 +65,7 @@ DEFAULT_PAGE_SIZE = 50
 _BDB_MIN_FIELDS = (
     "id", "pk", "dni", "id_pago_unico", "nombre_apellido", "propietario",
     "entidadinterna", "entidadoriginal", "estado",
+    "saldo_actualizado", "cancel_min",
     "ultima_fecha_pago", "fecha_plan", "fecha_apertura", "entidad_id",
 )
 _ENTIDAD_MIN_FIELDS = ("id", "nombre", "razon_social", "responsable", "cargo")
@@ -945,6 +946,7 @@ def api_consulta_dni_unificada(request: HttpRequest):
         cancelado = _is_cancelado(r)
         if cancelado:
             total_canceladas_unicas += 1
+
         deudas.append(
             {
                 "id": r.id,
@@ -956,8 +958,17 @@ def api_consulta_dni_unificada(request: HttpRequest):
                 "entidadoriginal": r.entidadoriginal,
                 "estado": r.estado,
                 "cancelado": cancelado,
+
+                # 👉 campos económicos que usa el frontend
+                "saldo_actualizado": (
+                    str(r.saldo_actualizado)
+                    if r.saldo_actualizado is not None
+                    else None
+                ),
+                "cancel_min": r.cancel_min,
             }
         )
+
 
     total_en_bd = _base_bdb_qs().filter(dni=dni).count()
     total_no_canceladas_unicas = total - total_canceladas_unicas

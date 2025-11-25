@@ -50,8 +50,18 @@ const fmtMoney = (v) => {
 /**
  * Devuelve el primer valor "real" (no null / no string vacía)
  * de una lista de posibles claves del objeto.
+ *
+ * 1) Intenta coincidencia EXACTA (obj[k])
+ * 2) Si no encuentra, intenta coincidencia normalizada:
+ *    - pasa a lower case
+ *    - elimina espacios y guiones bajos
+ *    Ej: "saldoActualizado", "SALDO_ACTUALIZADO", "saldo_actualizado"
+ *    todos se consideran iguales.
  */
 const pickFirstValue = (obj, keys) => {
+  if (!obj || typeof obj !== "object") return null;
+
+  // --- 1) Coincidencia exacta (como antes) ---
   for (const k of keys) {
     if (!(k in obj)) continue;
     const v = obj[k];
@@ -60,6 +70,34 @@ const pickFirstValue = (obj, keys) => {
     if (s.trim() === "") continue;
     return v;
   }
+
+  // --- 2) Coincidencia "normalizada" ---
+  const normKey = (s) =>
+    String(s || "")
+      .toLowerCase()
+      .replace(/[\s_]/g, ""); // quita espacios y underscores
+
+  // armamos un mapa de claves normalizadas -> clave real
+  const keyMap = {};
+  for (const actualKey of Object.keys(obj)) {
+    const nk = normKey(actualKey);
+    if (!keyMap[nk]) {
+      keyMap[nk] = actualKey;
+    }
+  }
+
+  // buscamos cada candidato por su versión normalizada
+  for (const candidate of keys) {
+    const nk = normKey(candidate);
+    const realKey = keyMap[nk];
+    if (!realKey) continue;
+    const v = obj[realKey];
+    if (v == null) continue;
+    const s = String(v);
+    if (s.trim() === "") continue;
+    return v;
+  }
+
   return null;
 };
 
@@ -182,6 +220,9 @@ export default function GenerarCertificado() {
 
   const dniTrim = dni.replace(/\D/g, "").trim();
 
+  // 👉 Hay al menos una deuda vigente (no cancelada)?
+  const hasDeudaVigente = rows.some((r) => !isRowCancelado(r));
+
   /* ========= TABLA (moderna, sin scroll interno) ========= */
   const Table = () => (
     <div className="mt-4 d-flex justify-content-center">
@@ -211,8 +252,13 @@ export default function GenerarCertificado() {
                 <th className="text-center text-nowrap">Entidad actual</th>
                 <th className="text-center text-nowrap">Entidad original</th>
                 <th className="text-center text-nowrap">Estado de la deuda</th>
-                <th className="text-center text-nowrap">Saldo actualizado</th>
-                <th className="text-center text-nowrap">Cancelación mínima</th>
+                {/* 👉 Solo mostramos columnas de montos si hay al menos una deuda vigente */}
+                {hasDeudaVigente && (
+                  <>
+                    <th className="text-center text-nowrap">Saldo actualizado</th>
+                    <th className="text-center text-nowrap">Cancelación mínima</th>
+                  </>
+                )}
                 <th className="text-center text-nowrap">Acción</th>
               </tr>
             </thead>
@@ -258,15 +304,19 @@ export default function GenerarCertificado() {
                   "cancel_minimo_requerido",
                 ]);
 
-                // 🔒 SI LA FILA ESTÁ CANCELADA, NO MOSTRAR MONTOS
-                const saldoAct = isCanc ? "—" : fmtMoney(rawSaldo);
-                const cancelMin = isCanc ? "—" : fmtMoney(rawCancelMin);
+                // 👉 Para filas canceladas, NO mostrar ningún valor de montos
+                const showMontos = hasDeudaVigente && !isCanc;
 
                 const showWA = !isCanc;
                 const waText = `${WA_MSG_DEFAULT} DNI: ${dniTrim} • ID pago único: ${
                   r.id_pago_unico || "—"
                 }`;
                 const waHref = buildWAUrl(WA_PHONE, waText);
+
+                // (Opcional) log por si sigue sin matchear
+                if (!isCanc && showMontos && (rawSaldo == null || rawCancelMin == null)) {
+                  console.debug("Fila sin montos detectada:", r);
+                }
 
                 return (
                   <tr key={`row-${r.id_pago_unico || r.id || i}`}>
@@ -279,8 +329,19 @@ export default function GenerarCertificado() {
                         {estadoSimple}
                       </span>
                     </td>
-                    <td className="fw-semibold text-nowrap">{saldoAct}</td>
-                    <td className="fw-semibold text-nowrap">{cancelMin}</td>
+
+                    {/* 👉 Solo renderizamos estas celdas si hay alguna deuda vigente */}
+                    {hasDeudaVigente && (
+                      <>
+                        <td className="fw-semibold text-nowrap">
+                          {showMontos ? fmtMoney(rawSaldo) : ""}
+                        </td>
+                        <td className="fw-semibold text-nowrap">
+                          {showMontos ? fmtMoney(rawCancelMin) : ""}
+                        </td>
+                      </>
+                    )}
+
                     <td className="text-nowrap">
                       {showWA ? (
                         <a
