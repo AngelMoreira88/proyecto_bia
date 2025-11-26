@@ -250,7 +250,7 @@ export default function HomePortalBia() {
                             </svg>
                           </span>
                           <div>
-                            <div className="fw-semibold text-body">Gestionar Entidades</div>
+                            <div className="fw-semibold text-body">Gestionar entidades</div>
                             <small className="text-secondary">Alta, edición y administración</small>
                           </div>
                         </div>
@@ -268,8 +268,8 @@ export default function HomePortalBia() {
                             </svg>
                           </span>
                           <div>
-                            <div className="fw-semibold text-body">Cargar Excel</div>
-                            <small className="text-secondary">Altas de registros desde archivo</small>
+                            <div className="fw-semibold text-body">Cargar excel</div>
+                            <small className="text-secondary">Altas de registros desde un archivo</small>
                           </div>
                         </div>
                       </Link>
@@ -289,8 +289,8 @@ export default function HomePortalBia() {
                             </svg>
                           </span>
                           <div>
-                            <div className="fw-semibold text-body">Modificar Masivo</div>
-                            <small className="text-secondary">Ajuste masivo de registros</small>
+                            <div className="fw-semibold text-body">Acciones masivas</div>
+                            <small className="text-secondary">Actualizar, insertar, eliminar registros de forma masiva</small>
                           </div>
                         </div>
                       </Link>
@@ -306,8 +306,8 @@ export default function HomePortalBia() {
                           </svg>
                         </span>
                         <div>
-                          <div className="fw-semibold text-body">Mostrar Datos</div>
-                          <small className="text-secondary">Consulta por DNI/ID</small>
+                          <div className="fw-semibold text-body">Acciones individuales</div>
+                          <small className="text-secondary">Consultá y editá registros individuales</small>
                         </div>
                       </div>
                     </Link>
@@ -323,8 +323,8 @@ export default function HomePortalBia() {
                           </svg>
                         </span>
                         <div>
-                          <div className="fw-semibold text-body">Portal de Consultas y Descargas</div>
-                          <small className="text-secondary">Consultá el estado de una deuda</small>
+                          <div className="fw-semibold text-body">Portal de consultas y descargas</div>
+                          <small className="text-secondary">Consultá el estado de una deuda por DNI</small>
                         </div>
                       </div>
                     </Link>

@@ -227,7 +227,7 @@ export default function Header() {
                     )}
                   </li>
 
-                  {/* Dropdown Obligaciones */}
+                  {/* Dropdown Operaciones */}
                   <li className="nav-item dropdown dropdown-hover">
                     <a
                       href="#!"
@@ -238,7 +238,7 @@ export default function Header() {
                       data-bs-display="static"
                       aria-expanded="false"
                     >
-                      Obligaciones
+                      Operaciones
                     </a>
 
                     <div
@@ -257,12 +257,12 @@ export default function Header() {
                             </svg>
                           </span>
                           <div className="flex-grow-1">
-                            <div className="modern-title">Cargar Excel</div>
-                            <small className="text-secondary">Subí un excel para actualizar los registros</small>
+                            <div className="modern-title">Cargar excel</div>
+                            <small className="text-secondary">Altas de registros desde un archivo</small>
                           </div>
                         </RenderLink>
 
-                        {/* Listar por DNI → canViewClients */}
+                        {/* Mostrar datos → canViewClients */}
                         <RenderLink to="/datos/mostrar" allowed={caps.canViewClients}>
                           <span className="modern-icon" aria-hidden="true">
                             {/* Search */}
@@ -272,8 +272,8 @@ export default function Header() {
                             </svg>
                           </span>
                           <div className="flex-grow-1">
-                            <div className="modern-title">Listar por DNI</div>
-                            <small className="text-secondary">Consultá y editá estados individuales</small>
+                            <div className="modern-title">Acciones individuales</div>
+                            <small className="text-secondary">Consultá y editá registros individuales</small>
                           </div>
                         </RenderLink>
 
@@ -289,11 +289,10 @@ export default function Header() {
                             </svg>
                           </span>
                           <div className="flex-grow-1">
-                            <div className="modern-title d-flex align-items-center gap-2">
-                              <span>Modificar Masivo</span>
-                              <span className="badge text-bg-light border">Nuevo</span>
+                            <div className="modern-title">
+                              <span>Acciones masivas</span>
                             </div>
-                            <small className="text-secondary">Ajuste masivo de columnas desde un excel</small>
+                            <small className="text-secondary">Actualizar, insertar, eliminar registros de forma masiva</small>
                           </div>
                         </RenderLink>
                       </div>
