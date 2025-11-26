@@ -74,7 +74,7 @@ _ENTIDAD_MEDIA_FIELDS = _ENTIDAD_MIN_FIELDS + ("logo", "firma")  # solo cuando h
 
 def _is_ajax(request: HttpRequest) -> bool:
     return (request.headers.get("X-Requested-With") == "XMLHttpRequest") or (
-        request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttpRequest"
+        request.META.get("HTTP_X_REQUESTED_WITH") == "XMLHttp_REQUESTED_WITH"
     )
 
 
@@ -181,18 +181,35 @@ def _register_fonts_for_azure():
 
 
 def _img_flowable_from_fieldfile(ff, width_cm: float, height_cm: float) -> Optional[Image]:
+    """
+    Devuelve un Image de ReportLab manteniendo la relación de aspecto.
+    - width_cm: ancho deseado en cm
+    - height_cm: se deja para compatibilidad pero no se usa para el cálculo.
+    """
     if not _fieldfile_exists(ff):
         return None
     try:
         with _open_fieldfile(ff, "rb") as fh:
             data = fh.read()
         bio = BytesIO(data)
-        img = Image(bio, width=width_cm * cm, height=height_cm * cm)
+
+        # Creamos la imagen sin fijar aún tamaño
+        img = Image(bio)
+
+        # Escalamos por ancho manteniendo proporción
+        target_width = width_cm * cm
+        scale = target_width / float(img.imageWidth)
+        target_height = img.imageHeight * scale
+
+        img.drawWidth = target_width
+        img.drawHeight = target_height
         img.hAlign = "CENTER"
+
         return img
     except Exception as e:
         logger.exception("[PDF] No se pudo leer imagen desde storage: %s", e)
         return None
+
 
 
 def _safe_text(value, default="-"):
@@ -597,7 +614,7 @@ def _build_pdf_bytes_azure(
     # =========================
     # ESPACIO ANTES DE LA FIRMA
     # =========================
-    elements.append(Spacer(1, 4.5 * cm))
+    elements.append(Spacer(1, 6.0 * cm))
 
     # ==== BLOQUE DE FIRMAS – SOLO 1 FIRMA ====
 
@@ -608,8 +625,8 @@ def _build_pdf_bytes_azure(
         blocks = []
         ff = f.get("firma_ff")
 
-        # Ancho fijo que se aplica a imagen + línea + contenido
-        IMG_WIDTH_CM = 4.0
+        # Ancho fijo que se aplica a imagen + línea + contenido / se agranda la imagen con relación de aspecto
+        IMG_WIDTH_CM = 6.0
 
         # Imagen de la firma
         if ff:
@@ -723,6 +740,9 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
     """
     Genera y cachea PDF para un registro cancelado (ReportLab; Azure-ready).
     Optimizaciones: select_related + only() para evitar overfetch y recargas.
+
+    🔁 AJUSTE: se fuerza la regeneración del PDF en cada llamada
+    (si existe uno previo, se borra y se genera uno nuevo).
     """
     logger.info("[PDF] Generación para id_pago_unico=%s", reg.id_pago_unico)
 
@@ -777,44 +797,25 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
     logo_bia_ff = getattr(entidad_bia_m, "logo", None) if entidad_bia_m else None
     logo_ent_ff = getattr(entidad_otras_m, "logo", None) if entidad_otras_m else None
 
-    # ===== Invalidación de caché por timestamps/mtimes =====
+    # ===== Invalidación de caché: SIEMPRE REGENERAR =====
+    # Si existe un PDF previo, lo eliminamos para forzar regeneración.
     if _fieldfile_exists(cert.pdf_file):
-        pdf_mtime = _get_storage_mtime(cert.pdf_file)
-
-        ts_reg = _get_timestamp_like(reg)
-        ts_bia = _get_timestamp_like(entidad_bia_m) if entidad_bia_m else None
-        ts_otras = _get_timestamp_like(entidad_otras_m) if entidad_otras_m else None
-
-        mt_bia_logo = _get_storage_mtime(logo_bia_ff) if logo_bia_ff else None
-        mt_bia_firma = _get_storage_mtime(getattr(entidad_bia_m, "firma", None)) if entidad_bia_m else None
-        mt_ent_logo = _get_storage_mtime(logo_ent_ff) if logo_ent_ff else None
-        mt_ent_firma = _get_storage_mtime(getattr(entidad_otras_m, "firma", None)) if entidad_otras_m else None
-
-        newest_data_ts = _max_ts(
-            ts_reg,
-            ts_bia,
-            ts_otras,
-            mt_bia_logo,
-            mt_bia_firma,
-            mt_ent_logo,
-            mt_ent_firma,
-        )
-
-        if pdf_mtime and newest_data_ts and newest_data_ts <= pdf_mtime:
-            try:
-                with _open_fieldfile(cert.pdf_file, "rb") as fh:
-                    return cert, fh.read(), None
-            except Exception as e:
-                logger.exception("[PDF] Error leyendo PDF cacheado: %s", e)
-        else:
+        try:
+            cert.pdf_file.delete(save=False)
+            logger.debug("[PDF] PDF previo eliminado para id_pago_unico=%s (se regenerará).", reg.id_pago_unico)
+        except Exception as e:
+            logger.debug("[PDF] No se pudo borrar PDF viejo (se regenerará igual): %s", e)
+    else:
+        # Si apunta a un nombre inexistente en storage, limpiamos el campo
+        if getattr(cert.pdf_file, "name", ""):
+            logger.warning(
+                "[PDF] pdf_file apunta a %s pero no existe; se limpia.",
+                cert.pdf_file.name,
+            )
             try:
                 cert.pdf_file.delete(save=False)
             except Exception as e:
-                logger.debug("[PDF] No se pudo borrar PDF viejo: %s", e)
-    else:
-        if getattr(cert.pdf_file, "name", ""):
-            logger.warning("[PDF] pdf_file apunta a %s pero no existe; se limpia.", cert.pdf_file.name)
-            cert.pdf_file.delete(save=False)
+                logger.debug("[PDF] No se pudo limpiar pdf_file inválido: %s", e)
 
     # ===== Datos del certificado =====
     from datetime import datetime
@@ -958,7 +959,6 @@ def api_consulta_dni_unificada(request: HttpRequest):
                 "entidadoriginal": r.entidadoriginal,
                 "estado": r.estado,
                 "cancelado": cancelado,
-
                 # 👉 campos económicos que usa el frontend
                 "saldo_actualizado": (
                     str(r.saldo_actualizado)
@@ -968,7 +968,6 @@ def api_consulta_dni_unificada(request: HttpRequest):
                 "cancel_min": r.cancel_min,
             }
         )
-
 
     total_en_bd = _base_bdb_qs().filter(dni=dni).count()
     total_no_canceladas_unicas = total - total_canceladas_unicas
