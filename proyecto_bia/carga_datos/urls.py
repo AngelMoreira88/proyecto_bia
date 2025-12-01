@@ -14,6 +14,10 @@ from .views import (
     mostrar_datos_bia,
     actualizar_datos_bia,
     exportar_datos_bia_csv,
+    # 🔹 NUEVOS: export async
+    exportar_datos_bia_csv_async,
+    api_export_job_status,
+    exportar_datos_bia_csv_download
 )
 
 # Endpoints de Modificar Masivo (bulk)
@@ -60,6 +64,25 @@ urlpatterns = [
     path("mostrar-datos-bia/",          mostrar_datos_bia,      name="api_mostrar_datos_bia"),
     path("mostrar-datos-bia/<int:pk>/", actualizar_datos_bia,   name="api_actualizar_datos_bia"),
     path("exportar-datos-bia.csv",      exportar_datos_bia_csv, name="api_exportar_datos_bia_csv"),
+
+    # 🔹 NUEVO: exportación async de la base completa
+    # Crea un job de exportación (POST)
+    path(
+        "export/crear-job/",
+        exportar_datos_bia_csv_async,
+        name="api_exportar_datos_bia_csv_async",
+    ),
+    # Consulta el estado del job (GET ?job_id=...)
+    path(
+        "export/job-status/",
+        api_export_job_status,
+        name="api_export_job_status",
+    ),
+        path(
+        "export/download/<int:job_id>/",
+        exportar_datos_bia_csv_download,
+        name="export_db_bia_download",
+    ),
 
     # Bulk update (Modificar Masivo)
     path("bulk-update/validate",     bulk_validate,     name="bulk_update_validate"),

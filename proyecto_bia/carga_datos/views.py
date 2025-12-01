@@ -21,13 +21,22 @@ from django.apps import apps  # import perezoso de modelos de otras apps
 from django.conf import settings
 
 from rest_framework import status
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
+from django.views.decorators.csrf import csrf_exempt
+from django.http import FileResponse
+from django.urls import reverse
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
 
 from .forms import ExcelUploadForm
-from .models import BaseDeDatosBia, allocate_id_pago_unico_block
+from .models import (
+    BaseDeDatosBia,
+    allocate_id_pago_unico_block,
+    ExportJobBia,        # ⬅️ NUEVO modelo para exportaciones asíncronas
+)
 from .serializers import BaseDeDatosBiaSerializer
 from .views_helpers import limpiar_valor  # si ya lo tenés
 
@@ -38,6 +47,9 @@ from .permissions import (
     CanBulkModify,
     CanViewClients,
 )
+
+from .tasks import exportar_db_bia_job  # ⬅️ NUEVA tarea Celery de exportación
+
 
 logger = logging.getLogger('django.request')
 digits_only = RegexValidator(r"^\d+$", "Solo dígitos.")
@@ -67,6 +79,18 @@ PREVIEW_ROWS = 10
 TEMP_UPLOAD_DIR = Path(
     getattr(settings, "BIA_TEMP_UPLOAD_DIR", Path(getattr(settings, "BASE_DIR", ".")) / "temp_uploads")
 )
+
+# Directorio para archivos de exportación masiva
+EXPORTS_DIR = Path(
+    getattr(settings, "BIA_EXPORTS_DIR", Path(getattr(settings, "MEDIA_ROOT", ".")) / "exports")
+)
+
+def _ensure_exports_dir():
+    try:
+        EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
+    except Exception as e:
+        logger.exception(f"No se pudo crear EXPORTS_DIR: {e}")
+        raise
 
 # ========== UTILIDADES ==========
 
@@ -747,12 +771,96 @@ def actualizar_datos_bia(request, pk: int):
     ser.save()
     return Response(ser.data, status=200)
 
+# =========================
+# EXPORTACIÓN ASÍNCRONA DB_BIA
+# =========================
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated, CanViewClients])  # mismo permiso que exportar CSV
+def api_crear_export_job_bia(request):
+    """
+    POST /api/export-db-bia-job/
+    Crea un trabajo asíncrono para exportar la tabla BaseDeDatosBia a CSV.
+
+    Opcionalmente acepta filtros:
+    - dni
+    - id_pago_unico
+    """
+    dni = (request.data.get("dni") or "").strip()
+    idp = (request.data.get("id_pago_unico") or "").strip()
+
+    filters = {}
+    if dni:
+        if not dni.isdigit():
+            return Response({"detail": "dni inválido. Use solo dígitos."}, status=400)
+        filters["dni"] = dni
+    if idp:
+        if not idp.isdigit():
+            return Response({"detail": "id_pago_unico inválido. Use solo dígitos."}, status=400)
+        filters["id_pago_unico"] = idp
+
+    job = ExportJobBia.objects.create(
+        status=ExportJobBia.Status.PENDING,
+        requested_by=request.user if request.user.is_authenticated else None,
+        filters=filters,
+    )
+
+    try:
+        # Encolamos la tarea Celery que generará el CSV
+        exportar_db_bia_job.delay(job.id)
+    except Exception as e:
+        logger.exception(f"No se pudo encolar exportar_db_bia_job para job_id={job.id}: {e}")
+        job.status = ExportJobBia.Status.FAILED
+        job.error_message = f"No se pudo encolar la tarea: {e}"
+        job.save(update_fields=["status", "error_message"])
+        return Response(
+            {"detail": "Error al encolar la tarea de exportación."},
+            status=500,
+        )
+
+    return Response(
+        {
+            "job_id": job.id,
+            "status": job.status,
+            "created_at": job.created_at,
+        },
+        status=201,
+    )
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, CanViewClients])
+def api_ver_export_job_bia(request, job_id: int):
+    """
+    GET /api/export-db-bia-job/<job_id>/
+    Consulta el estado de un trabajo de exportación.
+    """
+    job = get_object_or_404(ExportJobBia, pk=job_id)
+
+    data = {
+        "job_id": job.id,
+        "status": job.status,
+        "created_at": job.created_at,
+        "updated_at": job.updated_at,
+        "file_url": job.file_url,
+        "file_name": job.file_name,
+        "total_rows": job.total_rows,
+        "processed_rows": job.processed_rows,
+        "error_message": job.error_message,
+    }
+    return Response(data, status=200)
+
+# =========================
+# EXPORTACIÓN CSV SINCRÓNICA (LEGACY)
+# =========================
 @api_view(['GET'])
 @permission_classes([IsAuthenticated, CanViewClients])  # ⬅️ permiso (consulta/export)
 def exportar_datos_bia_csv(request):
     """
     GET /api/exportar-datos-bia.csv
     Exporta toda la tabla db_bia en CSV (opcionalmente filtrada por dni / id_pago_unico).
+
+    ⚠️ Para exportaciones muy grandes (635k+ filas) es preferible usar
+    el flujo asíncrono con ExportJobBia (/api/export-db-bia-job/).
     """
     dni = (request.query_params.get('dni') or '').strip()
     idp = (request.query_params.get('id_pago_unico') or '').strip()
@@ -780,6 +888,243 @@ def exportar_datos_bia_csv(request):
     response = StreamingHttpResponse(row_iter(), content_type='text/csv; charset=utf-8')
     response['Content-Disposition'] = f'attachment; filename="db_bia_{ts}.csv"'
     return response
+
+def _run_export_job(job: ExportJobBia, filtro_dni: str | None = None, filtro_idp: str | None = None) -> ExportJobBia:
+    """
+    Ejecuta la exportación de db_bia a un archivo CSV en disco.
+
+    Por ahora se ejecuta de forma síncrona (mismo request).
+    A futuro, esto se puede envolver en una tarea Celery para hacerlo realmente async.
+    """
+    from django.db import transaction as dj_transaction
+
+    _ensure_exports_dir()
+
+    # Normalizar filtros
+    filtro_dni = (filtro_dni or "").strip()
+    filtro_idp = (filtro_idp or "").strip()
+
+    # Construir queryset
+    qs = BaseDeDatosBia.objects.all().order_by("id")
+    if filtro_dni:
+        qs = qs.filter(dni=filtro_dni)
+    if filtro_idp:
+        qs = qs.filter(id_pago_unico=filtro_idp)
+
+    fields = [f.name for f in BaseDeDatosBia._meta.fields]
+
+    ts = timezone.localtime().strftime("%Y%m%d_%H%M%S")
+    base_name = "db_bia"
+    if filtro_dni:
+        base_name += f"_dni_{filtro_dni}"
+    if filtro_idp:
+        base_name += f"_idp_{filtro_idp}"
+    filename = f"{base_name}_{ts}.csv"
+
+    full_path = EXPORTS_DIR / filename
+
+    try:
+        with dj_transaction.atomic():
+            job.estado = ExportJobBia.Estado.PENDIENTE
+            job.started_at = timezone.now()
+            job.filename = filename
+            job.filtro_dni = filtro_dni
+            job.filtro_id_pago_unico = filtro_idp
+            job.save(update_fields=[
+                "estado", "started_at", "filename",
+                "filtro_dni", "filtro_id_pago_unico", "updated_at",
+            ])
+
+        total = 0
+
+        # Escritura a CSV en disco
+        with full_path.open("w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(fields)  # encabezado
+
+            for row in qs.values_list(*fields).iterator(chunk_size=2000):
+                writer.writerow(['' if v is None else str(v) for v in row])
+                total += 1
+
+        rel_path = str(full_path.relative_to(getattr(settings, "MEDIA_ROOT", EXPORTS_DIR.parent)))
+
+        with dj_transaction.atomic():
+            job.estado = ExportJobBia.Estado.COMPLETADO
+            job.finished_at = timezone.now()
+            job.total_rows = total
+            job.file_path = rel_path
+            job.error_message = ""
+            job.save(update_fields=[
+                "estado", "finished_at", "total_rows",
+                "file_path", "error_message", "updated_at",
+            ])
+
+        return job
+
+    except Exception as e:
+        logger.exception(f"[ExportJobBia #{job.pk}] Error al generar export CSV: {e}")
+        with dj_transaction.atomic():
+            job.estado = ExportJobBia.Estado.ERROR
+            job.finished_at = timezone.now()
+            job.error_message = str(e)
+            job.save(update_fields=["estado", "finished_at", "error_message", "updated_at"])
+        return job
+
+@csrf_exempt
+@api_view(['GET', 'POST'])
+@permission_classes([IsAuthenticated, CanViewClients])
+@authentication_classes([JWTAuthentication])     # Solo JWT
+def exportar_datos_bia_csv_async(request):
+    """
+    /carga-datos/export/crear-job/
+    - GET  (recomendado desde front) → filtros por querystring
+    - POST (opcional)                → filtros por body JSON
+
+    Devuelve:
+    {
+        "success": true,
+        "job_id": ...,
+        "estado": "COMPLETADO" | "PENDIENTE" | ...,
+        "total_rows": 123,
+        "download_url": "/api/carga-datos/export/download/<job_id>/"
+    }
+    """
+
+    # --- leer filtros según método ---
+    if request.method == "GET":
+        fuente = request.query_params
+    else:  # POST
+        fuente = request.data
+
+    filtro_dni = (fuente.get("dni") or "").strip()
+    filtro_idp = (fuente.get("id_pago_unico") or "").strip()
+
+    # Validaciones mínimas
+    if filtro_dni and not filtro_dni.isdigit():
+        return Response(
+            {"success": False, "error": "dni inválido. Use solo dígitos."},
+            status=400,
+        )
+
+    if filtro_idp and not filtro_idp.isdigit():
+        return Response(
+            {"success": False, "error": "id_pago_unico inválido. Use solo dígitos."},
+            status=400,
+        )
+
+    # Crear job
+    job = ExportJobBia.objects.create(
+        requested_by=request.user if request.user.is_authenticated else None,
+        estado=ExportJobBia.Estado.PENDIENTE,
+        filtro_dni=filtro_dni,
+        filtro_id_pago_unico=filtro_idp,
+    )
+
+    # Ejecutar export sincrónicamente (como ya venías haciendo)
+    job = _run_export_job(job, filtro_dni=filtro_dni, filtro_idp=filtro_idp)
+
+    # Armar URL de descarga si ya está listo
+    download_url = None
+    if job.estado == ExportJobBia.Estado.COMPLETADO and job.file_path:
+        download_url = reverse("carga_datos:export_db_bia_download", args=[job.pk])
+
+    return Response(
+        {
+            "success": True,
+            "job_id": job.pk,
+            "estado": job.estado,
+            "total_rows": job.total_rows,
+            "download_url": download_url,
+        },
+        status=200,
+    )
+
+
+@csrf_exempt
+@api_view(['GET'])
+@permission_classes([IsAuthenticated, CanViewClients])
+def api_export_job_status(request):
+    """
+    GET /api/carga-datos/export/job-status/?job_id=...
+
+    Devuelve el estado de un job de exportación y, si ya está listo,
+    la URL de descarga (endpoint DRF, no /media/...).
+    """
+    job_id = (request.query_params.get("job_id") or "").strip()
+    if not job_id.isdigit():
+        return Response(
+            {"success": False, "error": "job_id inválido."},
+            status=400,
+        )
+
+    job = get_object_or_404(ExportJobBia, pk=int(job_id))
+
+   # 🔐 Igual lógica: sólo bloqueo si hay requested_by distinto y no sos superuser
+    if job.requested_by and job.requested_by != request.user and not request.user.is_superuser:
+        return Response(
+            {"success": False, "error": "No estás autorizado para ver este job."},
+            status=403,
+        )
+
+    download_url = None
+    if job.estado == ExportJobBia.Estado.COMPLETADO and job.file_path:
+        # 🔹 ahora usamos el endpoint de descarga
+        download_url = reverse("carga_datos:export_db_bia_download", args=[job.pk])
+
+    return Response(
+        {
+            "success": True,
+            "job_id": job.pk,
+            "estado": job.estado,
+            "total_rows": job.total_rows,
+            "created_at": job.created_at,
+            "started_at": job.started_at,
+            "finished_at": job.finished_at,
+            "error_message": job.error_message,
+            "download_url": download_url,
+        },
+        status=200,
+    )
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated, CanBulkModify])  # o CanViewClients si querés
+def exportar_datos_bia_csv_download(request, job_id: int):
+    """
+    GET /api/carga-datos/export/download/<job_id>/
+    Devuelve el CSV generado para ese job como archivo descargable.
+    """
+    job = get_object_or_404(ExportJobBia, pk=job_id)
+
+    # 🔐 Seguridad: si el job tiene dueño y NO sos vos ni superuser, bloquear.
+    if job.requested_by and job.requested_by != request.user and not request.user.is_superuser:
+        return Response(
+            {"success": False, "error": "No estás autorizado para descargar este archivo."},
+            status=403,
+        )
+
+    if job.estado != ExportJobBia.Estado.COMPLETADO or not (job.file_path or getattr(job, "media_relative_url", None)):
+        return Response(
+            {"success": False, "error": "La exportación aún no está lista o falló."},
+            status=400,
+        )
+
+    rel_path = getattr(job, "media_relative_url", None) or job.file_path
+    media_root = Path(getattr(settings, "MEDIA_ROOT", EXPORTS_DIR.parent))
+    file_path = (media_root / rel_path).resolve()
+
+    if not file_path.exists():
+        return Response(
+            {"success": False, "error": "Archivo de exportación no encontrado en el servidor."},
+            status=404,
+        )
+
+    return FileResponse(
+        open(file_path, "rb"),
+        as_attachment=True,
+        filename=file_path.name,
+        content_type="text/csv; charset=utf-8",
+    )
+
 
 # =========================
 # DELETE DB_BIA (por PK)

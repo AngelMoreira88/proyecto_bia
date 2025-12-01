@@ -3,7 +3,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import api, {
   listarDatosBia,
   actualizarDatoBia,
-  exportarDatosBiaCSV,
   eliminarDatoBia,
   consultarPorDni,
 } from '../services/api';
@@ -74,7 +73,11 @@ const PREFERRED_ORDER = [
    Helpers
    ============================ */
 const norm = (s) =>
-  String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  String(s || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
 
 const isCanceladoFlag = (v) => {
   const x = norm(v);
@@ -82,13 +85,16 @@ const isCanceladoFlag = (v) => {
 };
 const isCancelado = (v) => isCanceladoFlag(v);
 const estadoBucket = (v) => (isCancelado(v) ? 'cancelado' : 'no_cancelado');
-const readIdPagoUnico = (r) => String(r.id_pago_unico ?? r.idpago_unico ?? '').trim();
+const readIdPagoUnico = (r) =>
+  String(r.id_pago_unico ?? r.idpago_unico ?? '').trim();
 
 const scoreRow = (r) => {
   // prioriza cancelado y luego recencia si hubiera fechas
   const cancelScore = isCanceladoFlag(r.estado) ? 1 : 0;
   const ts =
-    new Date(r.ultima_fecha_pago || r.fecha_plan || r.fecha_apertura || 0).getTime() || 0;
+    new Date(
+      r.ultima_fecha_pago || r.fecha_plan || r.fecha_apertura || 0
+    ).getTime() || 0;
   return cancelScore * 1e15 + ts;
 };
 
@@ -105,7 +111,8 @@ const dedupeByIdPagoUnico = (arr) => {
 const classifyQuery = (q) => {
   const s = String(q || '').trim();
   const onlyDigits = /^\d+$/.test(s);
-  if (onlyDigits && s.length >= 6 && s.length <= 11) return { kind: 'dni', value: s };
+  if (onlyDigits && s.length >= 6 && s.length <= 11)
+    return { kind: 'dni', value: s };
   return { kind: 'id_pago_unico', value: s };
 };
 
@@ -168,7 +175,8 @@ export default function MostrarDatos() {
   const roleRaw = getUserRole?.() ?? '';
   const role = String(roleRaw).toLowerCase();
   const isAdmin = role === 'admin';
-  const isSupervisor = role === 'supervisor' || role === 'sup' || role === 'super';
+  const isSupervisor =
+    role === 'supervisor' || role === 'sup' || role === 'super';
   const canEdit = isAdmin || isSupervisor || role === 'write';
   const canDelete = false;
   const canWrite = canEdit;
@@ -177,7 +185,8 @@ export default function MostrarDatos() {
   useEffect(() => {
     const detect = () => {
       const ua = navigator.userAgent.toLowerCase();
-      const isMobileUA = /android|iphone|ipod|iemobile|blackberry|opera mini/.test(ua);
+      const isMobileUA =
+        /android|iphone|ipod|iemobile|blackberry|opera mini/.test(ua);
       const w = window.innerWidth;
       const isMobileW = w < 576;
       const isTabletW = w >= 576 && w < 992;
@@ -202,7 +211,9 @@ export default function MostrarDatos() {
     if (!columnas.length) return [];
     const setCols = new Set(columnas);
     const ordered = PREFERRED_ORDER.filter((k) => setCols.has(k));
-    const extras = Array.from(setCols).filter((k) => !PREFERRED_ORDER.includes(k));
+    const extras = Array.from(setCols).filter(
+      (k) => !PREFERRED_ORDER.includes(k)
+    );
     return [...ordered, ...extras];
   }, [columnas]);
 
@@ -237,7 +248,9 @@ export default function MostrarDatos() {
         const res = await listarDatosBia({ id_pago_unico: idp, page: 1 });
         const results = normalizeResults(res?.data || {});
         // Elegimos el mejor match si hay varios
-        const best = results.length ? results.sort((a, b) => scoreRow(b) - scoreRow(a))[0] : null;
+        const best = results.length
+          ? results.sort((a, b) => scoreRow(b) - scoreRow(a))[0]
+          : null;
         if (best) {
           // Merge: los datos del admin suelen traer más campos.
           // Priorizamos el estado "cancelado" si cualquiera de los dos lo indica.
@@ -245,7 +258,7 @@ export default function MostrarDatos() {
             ...best,
             ...base,
           };
-            // normalizar flag cancelado
+          // normalizar flag cancelado
           const canc =
             (typeof base.cancelado === 'boolean' && base.cancelado) ||
             isCanceladoFlag(base.estado) ||
@@ -302,7 +315,9 @@ export default function MostrarDatos() {
             `${r.dni || ''}-${r.id_pago_unico || ''}`,
           ...r,
           cancelado:
-            typeof r.cancelado === 'boolean' ? r.cancelado : isCanceladoFlag(r.estado),
+            typeof r.cancelado === 'boolean'
+              ? r.cancelado
+              : isCanceladoFlag(r.estado),
         }));
 
         // 3) Enriquecer con datos del admin por id_pago_unico
@@ -430,7 +445,11 @@ export default function MostrarDatos() {
     if (!canDelete) return;
     const row = datos.find((d) => d.id === id);
     const refText = row?.id_pago_unico || id;
-    if (!window.confirm(`¿Eliminar el registro ${refText}? Esta acción no se puede deshacer.`))
+    if (
+      !window.confirm(
+        `¿Eliminar el registro ${refText}? Esta acción no se puede deshacer.`
+      )
+    )
       return;
 
     setDeletingId(id);
@@ -454,11 +473,14 @@ export default function MostrarDatos() {
 
   const rows = useMemo(() => {
     const arr = filtered.map((r, idx) => ({ r, idx }));
-    const weight = (x) => (estadoBucket(x.r.estado) === 'no_cancelado' ? 0 : 1);
+    const weight = (x) =>
+      estadoBucket(x.r.estado) === 'no_cancelado' ? 0 : 1;
     arr.sort((a, b) => {
       const w = weight(a) - weight(b);
       if (w !== 0) return w;
-      const na = String(a.r.nombre_apellido ?? a.r.nombre_y_apellido ?? '').localeCompare(
+      const na = String(
+        a.r.nombre_apellido ?? a.r.nombre_y_apellido ?? ''
+      ).localeCompare(
         String(b.r.nombre_apellido ?? b.r.nombre_y_apellido ?? ''),
         'es',
         { sensitivity: 'base' }
@@ -467,51 +489,6 @@ export default function MostrarDatos() {
     });
     return arr.map((x) => x.r);
   }, [filtered]);
-
-  /* ====== CSV ====== */
-  const toCsvValue = (val) => {
-    const s = val == null ? '' : String(val);
-    const needs = /[",\n\r]/.test(s);
-    const esc = s.replace(/"/g, '""');
-    return needs ? `"${esc}"` : esc;
-  };
-
-  const handleExportTodo = async () => {
-    try {
-      const res = await exportarDatosBiaCSV();
-      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8;' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `bia_todo_${new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14)}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      window.URL.revokeObjectURL(url);
-    } catch {
-      alert('No se pudo exportar el CSV');
-    }
-  };
-
-  const handleExportTodoDNI = () => {
-    if (!datos.length) {
-      alert('Realizá una búsqueda primero.');
-      return;
-    }
-    const cols = visibleCols.length ? visibleCols : columnas;
-    const headers = cols.map(pretty).join(',');
-    const lines = datos.map((r) => cols.map((c) => toCsvValue(r[c])).join(','));
-    const csv = '\uFEFF' + [headers, ...lines].join('\r\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `bia_${(query || 'dni')}_${new Date().toISOString().replace(/[-:T.Z]/g, '').slice(0, 14)}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    window.URL.revokeObjectURL(url);
-  };
 
   /* ====== Bloquea móviles ====== */
   if (device === 'mobile') {
@@ -524,7 +501,8 @@ export default function MostrarDatos() {
         >
           <h5 className="mb-2">No disponible en celulares</h5>
           <p className="mb-0 text-secondary">
-            Este portal solo puede usarse desde <strong>PC</strong> o <strong>tablet</strong>.
+            Este portal solo puede usarse desde <strong>PC</strong> o{' '}
+            <strong>tablet</strong>.
           </p>
         </div>
       </div>
@@ -544,7 +522,9 @@ export default function MostrarDatos() {
       </button>
       <button
         type="button"
-        className={`btn btn-chip chip-cancelado ${estadoTab === 'cancelado' ? 'active' : ''}`}
+        className={`btn btn-chip chip-cancelado ${
+          estadoTab === 'cancelado' ? 'active' : ''
+        }`}
         onClick={() => setEstadoTab('cancelado')}
         title="Solo cancelados"
       >
@@ -552,7 +532,9 @@ export default function MostrarDatos() {
       </button>
       <button
         type="button"
-        className={`btn btn-chip chip-no-cancelado ${estadoTab === 'no_cancelado' ? 'active' : ''}`}
+        className={`btn btn-chip chip-no-cancelado ${
+          estadoTab === 'no_cancelado' ? 'active' : ''
+        }`}
         onClick={() => setEstadoTab('no_cancelado')}
         title="No cancelados"
       >
@@ -575,7 +557,7 @@ export default function MostrarDatos() {
           <div className="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-2">
             <div className="d-flex align-items-center gap-3">
               <h2 className="text-bia fw-bold mb-0 d-flex align-items-center gap-2">
-                Mostrar datos
+                Acciones individuales
               </h2>
               {rows.length > 0 && (
                 <span className="badge text-bg-light border">
@@ -584,43 +566,6 @@ export default function MostrarDatos() {
               )}
             </div>
             <div className="d-flex align-items-center gap-2">
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-secondary"
-                onClick={handleExportTodo}
-                title="Exportar todo (toda la base)"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" className="me-1" aria-hidden="true">
-                  <path
-                    d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                Exportar Todo
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-sm btn-outline-secondary"
-                onClick={handleExportTodoDNI}
-                disabled={!datos.length}
-                title="Exportar lo visible del DNI/ID actual"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" className="me-1" aria-hidden="true">
-                  <path
-                    d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h8"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                Exportar Todo DNI
-              </button>
-
               <BackToHomeButton>Volver a home</BackToHomeButton>
             </div>
           </div>
@@ -650,18 +595,30 @@ export default function MostrarDatos() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                 />
-                <button className="btn btn-bia" type="submit" disabled={loading}>
-                  {loading && <span className="spinner-border spinner-border-sm me-2" />}
+                <button
+                  className="btn btn-bia"
+                  type="submit"
+                  disabled={loading}
+                >
+                  {loading && (
+                    <span className="spinner-border spinner-border-sm me-2" />
+                  )}
                   {loading ? 'Buscando…' : 'Buscar'}
                 </button>
               </div>
             </div>
 
             {/* Botones de vista */}
-            <div className="btn-group btn-group-sm" role="group" aria-label="Vista">
+            <div
+              className="btn-group btn-group-sm"
+              role="group"
+              aria-label="Vista"
+            >
               <button
                 type="button"
-                className={`btn ${view === 'table' ? 'btn-bia' : 'btn-outline-bia'}`}
+                className={`btn ${
+                  view === 'table' ? 'btn-bia' : 'btn-outline-bia'
+                }`}
                 onClick={() => setView('table')}
                 title="Vista tabla"
               >
@@ -669,7 +626,9 @@ export default function MostrarDatos() {
               </button>
               <button
                 type="button"
-                className={`btn ${view === 'cards' ? 'btn-bia' : 'btn-outline-bia'}`}
+                className={`btn ${
+                  view === 'cards' ? 'btn-bia' : 'btn-outline-bia'
+                }`}
                 onClick={() => setView('cards')}
                 title="Vista tarjetas"
               >
@@ -684,7 +643,9 @@ export default function MostrarDatos() {
       </div>
 
       {/* Mensajes */}
-      {error && hasSearched && <div className="alert alert-danger">{error}</div>}
+      {error && hasSearched && (
+        <div className="alert alert-danger">{error}</div>
+      )}
       {!loading && !error && hasSearched && rows.length === 0 && (
         <div className="alert alert-light border d-flex align-items-center gap-2">
           <span></span> No hay resultados para “{query}”.
@@ -717,9 +678,13 @@ export default function MostrarDatos() {
                     <div className="d-flex align-items-start justify-content-between gap-2">
                       <div>
                         <div className="fw-semibold">
-                          {row.nombre_apellido ?? row.nombre_y_apellido ?? '—'}
+                          {row.nombre_apellido ??
+                            row.nombre_y_apellido ??
+                            '—'}
                         </div>
-                        <div className="text-secondary small">DNI: {row.dni ?? '—'}</div>
+                        <div className="text-secondary small">
+                          DNI: {row.dni ?? '—'}
+                        </div>
                       </div>
                       <EstadoPill value={row.estado} />
                     </div>
@@ -777,7 +742,10 @@ export default function MostrarDatos() {
                       onKeyDown={(e) => e.stopPropagation()}
                     >
                       {canEdit ? (
-                        <button className="btn btn-sm btn-outline-bia" onClick={() => openRow(row)}>
+                        <button
+                          className="btn btn-sm btn-outline-bia"
+                          onClick={() => openRow(row)}
+                        >
                           Editar
                         </button>
                       ) : (
@@ -793,7 +761,9 @@ export default function MostrarDatos() {
                           <button
                             className="btn btn-sm btn-outline-primary"
                             title="Descargar Libre de Deuda (PDF)"
-                            onClick={() => descargarPDF(row.id_pago_unico, row.dni)}
+                            onClick={() =>
+                              descargarPDF(row.id_pago_unico, row.dni)
+                            }
                           >
                             PDF
                           </button>
@@ -804,7 +774,9 @@ export default function MostrarDatos() {
                             onClick={() => handleDelete(row.id)}
                             disabled={deletingId === row.id}
                           >
-                            {deletingId === row.id ? 'Eliminando…' : 'Eliminar'}
+                            {deletingId === row.id
+                              ? 'Eliminando…'
+                              : 'Eliminar'}
                           </button>
                         )}
                       </div>
@@ -826,11 +798,16 @@ export default function MostrarDatos() {
                 <thead className="thead-sticky">
                   <tr>
                     {visibleCols.map((k, idx) => (
-                      <th key={k} className={idx === 0 ? 'sticky-first bg-white' : ''}>
+                      <th
+                        key={k}
+                        className={idx === 0 ? 'sticky-first bg-white' : ''}
+                      >
                         {pretty(k)}
                       </th>
                     ))}
-                    <th className="text-end sticky-actions bg-white">Acciones</th>
+                    <th className="text-end sticky-actions bg-white">
+                      Acciones
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -885,7 +862,9 @@ export default function MostrarDatos() {
                               <button
                                 className="btn btn-sm btn-outline-primary"
                                 title="Descargar Libre de Deuda (PDF)"
-                                onClick={() => descargarPDF(row.id_pago_unico, row.dni)}
+                                onClick={() =>
+                                  descargarPDF(row.id_pago_unico, row.dni)
+                                }
                               >
                                 PDF
                               </button>
@@ -911,7 +890,9 @@ export default function MostrarDatos() {
                                 onClick={() => handleDelete(row.id)}
                                 disabled={deletingId === row.id}
                               >
-                                {deletingId === row.id ? 'Eliminando…' : 'Eliminar'}
+                                {deletingId === row.id
+                                  ? 'Eliminando…'
+                                  : 'Eliminar'}
                               </button>
                             )}
                           </div>
@@ -931,12 +912,17 @@ export default function MostrarDatos() {
         {/* Header */}
         <div
           className="side-drawer-header"
-          style={{ background: 'linear-gradient(90deg, rgba(29,72,166,.06), rgba(29,72,166,0))' }}
+          style={{
+            background:
+              'linear-gradient(90deg, rgba(29,72,166,.06), rgba(29,72,166,0))',
+          }}
         >
           <div className="d-flex align-items-center justify-content-between">
             <div className="d-flex flex-column">
               <strong className="fs-6">
-                {activeRow?.nombre_apellido ?? activeRow?.nombre_y_apellido ?? 'Detalle'}
+                {activeRow?.nombre_apellido ??
+                  activeRow?.nombre_y_apellido ??
+                  'Detalle'}
               </strong>
               <small className="text-secondary">
                 DNI: {activeRow?.dni ?? '—'} • ID:{' '}
@@ -956,8 +942,12 @@ export default function MostrarDatos() {
                 const value = (formData[k] ?? '').toString();
 
                 return (
-                  <div key={k} className={`col-12 col-md-6`}>
-                    <div className={`form-floating ${focusKey === k ? 'flash-highlight' : ''}`}>
+                  <div key={k} className="col-12 col-md-6">
+                    <div
+                      className={`form-floating ${
+                        focusKey === k ? 'flash-highlight' : ''
+                      }`}
+                    >
                       <input
                         type="text"
                         className="form-control"
@@ -972,7 +962,9 @@ export default function MostrarDatos() {
                       <label className="text-secondary">
                         {pretty(k)}
                         {!editable &&
-                        (k === 'id' || k === 'id_pago_unico' || k === 'idpago_unico')
+                        (k === 'id' ||
+                          k === 'id_pago_unico' ||
+                          k === 'idpago_unico')
                           ? ' (no editable)'
                           : ''}
                       </label>
@@ -988,16 +980,28 @@ export default function MostrarDatos() {
           <div className="d-flex justify-content-between w-100">
             {canWrite ? (
               <>
-                <button className="btn btn-outline-bia" onClick={closeDrawer} disabled={saving}>
+                <button
+                  className="btn btn-outline-bia"
+                  onClick={closeDrawer}
+                  disabled={saving}
+                >
                   Cancelar
                 </button>
-                <button className="btn btn-bia" onClick={saveRow} disabled={saving || !hasChanges}>
-                  {saving && <span className="spinner-border spinner-border-sm me-2" />}
+                <button
+                  className="btn btn-bia"
+                  onClick={saveRow}
+                  disabled={saving || !hasChanges}
+                >
+                  {saving && (
+                    <span className="spinner-border spinner-border-sm me-2" />
+                  )}
                   Guardar cambios
                 </button>
               </>
             ) : (
-              <div className="text-secondary small">Solo lectura (tu rol no puede editar).</div>
+              <div className="text-secondary small">
+                Solo lectura (tu rol no puede editar).
+              </div>
             )}
           </div>
         </div>

@@ -77,24 +77,39 @@ export default function ModificarMasivo() {
 
   const filename = useMemo(() => file?.name || '', [file]);
 
-  // ====== Descargar la BASE desde el backend (todas las columnas + __op) ======
+    // Descarga directa de la base en CSV (SIN convertir a XLSX en el navegador)
   const downloadExportXLSX = async () => {
     try {
-      const res = await api.get('/carga-datos/api/bulk-update/export.xlsx', {
-        responseType: 'blob',
+      setUploading(true);
+      setErrors([]);
+
+      // Llamamos al endpoint síncrono que ya tenés:
+      //   GET /api/carga-datos/exportar-datos-bia.csv
+      const res = await api.get('/api/carga-datos/exportar-datos-bia.csv', {
+        responseType: 'blob',   // importante: lo tratamos como archivo, no como texto
       });
+
       const blob = new Blob([res.data], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        type: 'text/csv;charset=utf-8;',
       });
-      const url = URL.createObjectURL(blob);
+
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'db_bia_export.xlsx';
+      a.download = 'db_bia_export.csv';   // nombre del archivo
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('No se pudo descargar el Excel:', err);
-      alert('No se pudo descargar el Excel. Verificá que estés logueado.');
+      console.error('No se pudo descargar la base en CSV:', err);
+      const backendMsg =
+        err?.response?.data?.error ||
+        err?.response?.data?.detail ||
+        'No se pudo descargar la base en CSV. Intentá nuevamente.';
+      setErrors([backendMsg]);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -245,7 +260,7 @@ export default function ModificarMasivo() {
     idemKeyRef.current = makeUUID();
   };
 
-  // ====== VALIDATE ======
+  // ====== VALIDATE ======  
   const validar = async (e) => {
     e?.preventDefault?.();
     setErrors([]);
@@ -292,7 +307,7 @@ export default function ModificarMasivo() {
     }
   };
 
-  // ====== COMMIT ======
+  // ====== COMMIT ======  
   const confirmar = async () => {
     setErrors([]);
 
@@ -353,7 +368,7 @@ export default function ModificarMasivo() {
 
   return (
     <div className="container py-3">
-      <h2 className="mb-1 text-bia">Modificación masiva</h2>
+      <h2 className="mb-1 text-bia">Acciones masivas</h2>
       {jobId && (
         <div className="text-muted small mb-3">
           Job ID: <code>{jobId}</code>
@@ -368,9 +383,10 @@ export default function ModificarMasivo() {
             type="button"
             className="btn btn-sm btn-outline-primary btn-outline-bia"
             onClick={downloadExportXLSX}
-            title="Descargar la base actual en formato .xlsx"
+            disabled={uploading}
+            title="Descargar la base actual en formato CSV desde el servidor"
           >
-            Descargar base (.xlsx)
+            Descargar base (.csv)
           </button>
           <button
             type="button"

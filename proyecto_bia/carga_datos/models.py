@@ -4,6 +4,8 @@ from django.db.models import Q
 import uuid
 from django.conf import settings
 from django.utils import timezone
+from django.contrib.auth import get_user_model
+from pathlib import Path
 
 
 # ============================
@@ -258,3 +260,72 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f'Audit[{self.action}] {self.table_name}.{self.field} ({self.business_key})'
+
+class ExportJobBia(models.Model):
+    class Estado(models.TextChoices):
+        PENDIENTE   = "PENDING",  "Pendiente"
+        EN_PROCESO  = "RUNNING",  "En proceso"
+        COMPLETADO  = "DONE",     "Completado"
+        ERROR       = "FAILED",   "Error"
+
+    created_at   = models.DateTimeField(auto_now_add=True)
+    updated_at   = models.DateTimeField(auto_now=True)
+    started_at   = models.DateTimeField(null=True, blank=True)
+    finished_at  = models.DateTimeField(null=True, blank=True)
+
+    estado       = models.CharField(
+        max_length=20,
+        choices=Estado.choices,
+        default=Estado.PENDIENTE,
+        db_index=True,
+    )
+
+    # Quién pidió la exportación
+    requested_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="export_jobs_bia",
+    )
+
+    # Filtros simples (para futuro)
+    filtro_dni           = models.CharField(max_length=32, blank=True, default="")
+    filtro_id_pago_unico = models.CharField(max_length=32, blank=True, default="")
+
+    # Resultado
+    total_rows   = models.PositiveIntegerField(default=0)
+    file_path    = models.CharField(
+        max_length=500,
+        blank=True,
+        default="",
+        help_text="Ruta relativa dentro de MEDIA_ROOT, por ejemplo 'exports/db_bia_20251129.csv'",
+    )
+    filename     = models.CharField(
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Nombre del archivo descargable (ej: db_bia_20251129_120000.csv)",
+    )
+    error_message = models.TextField(blank=True, default="")
+
+    def __str__(self):
+        return f"ExportJobBia #{self.pk} [{self.estado}]"
+
+    @property
+    def is_finished(self) -> bool:
+        return self.estado in (
+            self.Estado.COMPLETADO,
+            self.Estado.ERROR,
+        )
+
+    @property
+    def media_relative_url(self) -> str | None:
+        """
+        Devuelve la URL relativa dentro de MEDIA_URL para este archivo,
+        por ejemplo: 'exports/db_bia_20251129_120000.csv'.
+        """
+        if not self.file_path:
+            return None
+        # Normalizamos separadores por si viene con backslashes en Windows
+        return self.file_path.replace("\\", "/")

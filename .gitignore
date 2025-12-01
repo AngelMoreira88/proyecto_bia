@@ -4,9 +4,9 @@ __pycache__/
 /frontend/node_modules/
 /venvGrupoBIA/
 /frontend/src/notas personales.txt
-/media
+media/
+/media/
 # .gitignore
-/media/certificados_generados/
 *.pdf
 /proyecto_bia/proyecto_bia/logs/actividad.log
 
