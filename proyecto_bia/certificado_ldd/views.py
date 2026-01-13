@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import os
 from io import BytesIO
+from shutil import copy
 from typing import Optional, Dict, Any, Tuple, List
 from functools import lru_cache
 
@@ -358,15 +359,15 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
 
     # Segundo párrafo: común a todos los modelos
     parrafo2 = (
-        "A pedido del interesado, se extiende la presente para ser presentado a quien corresponda."
+        "A pedido del interesado, se extiende la presente para ser presentado ante quien corresponda."
     )
 
     # ===== BLOQUE CON ASTERISCO: EXACTO A DOCX =====
     # Nota: en los DOCX aparece con "..." literal. Se mantiene exactamente igual.
     # El placeholder de FECHA DE CARGA en DOCX está entre paréntesis.
     asterisco_docx = (
-        "*Este documento se refiere única y exclusivamente sobre los créditos que fueron originados y cedidos a {entidad_original}., por"
-        "la entidad expresamente mencionada, de fecha anterior al {fecha_carga}."
+        "*Este documento se refiere única y exclusivamente sobre los créditos que fueron originados y cedidos a {entidad_original}, por"
+        " la entidad expresamente mencionada, de fecha anterior al {fecha_carga}."
     )
 
     # Defaults de firma por entidad (fallback)
@@ -530,12 +531,26 @@ def _build_pdf_bytes_azure(
             name="Nota",
             parent=styles["BodyText"],
             fontName=base_font,
-            fontSize=10,
-            leading=13,
+            fontSize=11,
+            leading=15,
             textColor=colors.HexColor("#111111"),
             alignment=4,
-            spaceBefore=4,
-            spaceAfter=8,
+            spaceBefore=8,
+            spaceAfter=10,
+        )
+    )
+    
+    styles.add(
+        ParagraphStyle(
+            name="Asterisco",
+            parent=styles["BodyText"],
+            fontName=base_font,
+            fontSize=8.5,
+            leading=11,
+            textColor=colors.HexColor("#111111"),
+            alignment=4,
+            spaceBefore=45,
+            spaceAfter=5,
         )
     )
 
@@ -610,18 +625,21 @@ def _build_pdf_bytes_azure(
     )
     elements.append(Paragraph(parrafo_1, styles["Cuerpo"]))
 
-    # Segundo párrafo (idéntico en todos los modelos)
+    # "A pedido..." debe ser igual al cuerpo (mismo estilo que el de arriba)
     elements.append(Paragraph(copy["parrafo2"], styles["Nota"]))
 
-    # ===== BLOQUE CON ASTERISCO (EXACTO A DOCX) =====
-    # En DOCX, el placeholder aparece como (FECHA DE CARGA), es decir, entre paréntesis.
-    # Para replicar el formato, imprimimos la fecha también entre paréntesis.
+    # ===== BLOQUE CON ASTERISCO: SOLO ESTE MÁS CHICO =====
     fecha_carga_txt = _safe_text(datos.get("Fecha de Carga"), default="(sin dato)")
     fecha_carga_parentesis = f"({fecha_carga_txt})"
 
-    asterisco_texto = copy.get("asterisco_fmt", "").format(fecha_carga=fecha_carga_parentesis)
+    asterisco_vars = {
+        "fecha_carga": fecha_carga_parentesis,
+        "entidad_original": _safe_text(datos.get("Entidad Original")),
+    }
+
+    asterisco_texto = copy.get("asterisco_fmt", "").format_map(asterisco_vars)
     if asterisco_texto:
-        elements.append(Paragraph(asterisco_texto, styles["Nota"]))
+        elements.append(Paragraph(asterisco_texto, styles["Asterisco"]))
 
     # Vigencia (si existe)
     if datos.get("Vigencia Hasta") or datos.get("vigencia_hasta"):
