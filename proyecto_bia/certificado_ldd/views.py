@@ -211,7 +211,6 @@ def _img_flowable_from_fieldfile(ff, width_cm: float, height_cm: float) -> Optio
         return None
 
 
-
 def _safe_text(value, default="-"):
     return str(value) if value not in (None, "") else default
 
@@ -328,34 +327,33 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
       - ciudad fija ("Buenos Aires")
       - parrafo1_fmt: plantilla principal según entidad (AZUR / BIA / CPSA / EGEO / FBLASA / genérico)
       - parrafo2: texto fijo "A pedido del interesado..."
+      - asterisco_fmt: bloque con asterisco EXACTO a DOCX, con placeholder de FECHA DE CARGA
       - firma_defaults: texto por defecto de firma (fallback)
       - agregar_admin_bia: sólo se usa en el caso genérico BIA
-
-    El texto respeta literalmente los modelos de Word, incluyendo el campo CREDITO(S).
     """
     nombre = (entidad_nombre or "").strip().lower()
 
-    # === Plantillas de texto, alineadas a los modelos ===
+    # === Plantillas de texto (con ID) ===
 
     # AZUR
     azur_parrafo1 = (
         "Se deja constancia de que el/la Sr./a <b>{nombre}</b>, con DNI <b>{dni}</b>, "
         "ha cancelado la deuda correspondiente a <b>{propietario}</b>, administrado por BIA S.R.L., "
-        "respecto al/los crédito/s N° <b>{creditos}</b>, originado/s en <b>{entidad_original}</b>."
+        "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado/s en <b>{entidad_original}</b>."
     )
 
     # BIA (persona física / genérico)
     base_parrafo1 = (
         "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI: <b>{dni}</b> "
         "ha cancelado la deuda que mantenía con <b>{propietario}</b>{admin_bia}, "
-        "respecto al/los crédito/s N° <b>{creditos}</b>, originado en <b>{entidad_original}</b>."
+        "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado en <b>{entidad_original}</b>."
     )
 
     # Empresas (CPSA, EGEO, FBLASA)
     empresa_parrafo1 = (
         "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI: <b>{dni}</b>, "
         "ha cancelado la deuda que mantenía con la empresa <b>{propietario}</b>, "
-        "respecto al/los crédito/s N° <b>{creditos}</b>, originado en <b>{entidad_original}</b>."
+        "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado en <b>{entidad_original}</b>."
     )
 
     # Segundo párrafo: común a todos los modelos
@@ -363,7 +361,15 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
         "A pedido del interesado, se extiende la presente para ser presentado a quien corresponda."
     )
 
-    # Defaults de firma por entidad (sólo como fallback si la Entidad no tiene datos cargados)
+    # ===== BLOQUE CON ASTERISCO: EXACTO A DOCX =====
+    # Nota: en los DOCX aparece con "..." literal. Se mantiene exactamente igual.
+    # El placeholder de FECHA DE CARGA en DOCX está entre paréntesis.
+    asterisco_docx = (
+        "*Este documento se refiere única y exclusivamente sobre los créd... expresamente mencionada, "
+        "de fecha anterior al {fecha_carga}."
+    )
+
+    # Defaults de firma por entidad (fallback)
     firma_por_entidad = [
         {
             "match": ["azur", "fp azur"],
@@ -373,6 +379,7 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
                 "entidad": "",
             },
             "parrafo1_fmt": azur_parrafo1,
+            "asterisco_fmt": asterisco_docx,
         },
         {
             "match": ["bia"],
@@ -382,6 +389,7 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
                 "entidad": "BIA S.R.L.",
             },
             "parrafo1_fmt": base_parrafo1,
+            "asterisco_fmt": asterisco_docx,
         },
         {
             "match": ["cpsa", "carnes pampeanas"],
@@ -391,6 +399,7 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
                 "entidad": "Sociedad Anónima Carnes Pampeanas SA",
             },
             "parrafo1_fmt": empresa_parrafo1,
+            "asterisco_fmt": asterisco_docx,
         },
         {
             "match": ["egeo"],
@@ -400,6 +409,7 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
                 "entidad": "EGEO S.A.C.I Y A",
             },
             "parrafo1_fmt": empresa_parrafo1,
+            "asterisco_fmt": asterisco_docx,
         },
         {
             "match": ["fb líneas aéreas", "fblasa", "fb lineas aereas"],
@@ -409,6 +419,7 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
                 "entidad": "FB Líneas Aéreas S.A.",
             },
             "parrafo1_fmt": empresa_parrafo1,
+            "asterisco_fmt": asterisco_docx,
         },
     ]
 
@@ -419,7 +430,7 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
             break
 
     if not selected:
-        # Caso genérico BIA
+        # Caso genérico (BIA-like)
         selected = {
             "firma": {
                 "nombre": "Administrador/Apoderado",
@@ -427,12 +438,14 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
                 "entidad": (entidad_nombre or "BIA S.R.L."),
             },
             "parrafo1_fmt": base_parrafo1,
+            "asterisco_fmt": asterisco_docx,
         }
 
     return {
         "ciudad": "Buenos Aires",
         "parrafo1_fmt": selected["parrafo1_fmt"],
         "parrafo2": parrafo2,
+        "asterisco_fmt": selected["asterisco_fmt"],
         "firma_defaults": selected["firma"],
         # En el modelo BIA se puede indicar "administrado por BIA S.R.L."
         # sólo cuando NO hay otra entidad externa.
@@ -569,12 +582,10 @@ def _build_pdf_bytes_azure(
     dni_txt = _safe_text(datos.get("DNI"), default="(sin dato)")
     propietario_txt = _safe_text(datos.get("Razón Social"), default="(sin dato)")
     entidad_original_txt = _safe_text(datos.get("Entidad Original"), default="(sin dato)")
-    # créditos, tal como figura en los modelos
-    creditos_txt = _safe_text(
-        datos.get("Creditos")
-        or datos.get("Créditos")
-        or datos.get("CREDITO")
-        or datos.get("CREDITO/S"),
+
+    # ID central del modelo: id_pago_unico
+    id_txt = _safe_text(
+        datos.get("ID") or datos.get("Número") or datos.get("id_pago_unico"),
         default="(sin dato)",
     )
 
@@ -583,7 +594,7 @@ def _build_pdf_bytes_azure(
     dni_txt_b = f"<b>{dni_txt}</b>"
     propietario_txt_b = f"<b>{propietario_txt}</b>"
     entidad_original_txt_b = f"<b>{entidad_original_txt}</b>"
-    creditos_txt_b = f"<b>{creditos_txt}</b>"
+    id_txt_b = f"<b>{id_txt}</b>"
 
     # En el modelo BIA se agrega "administrado por BIA S.R.L." sólo en algunos casos
     admin_bia = " (administrado por BIA S.R.L.)" if copy.get("agregar_admin_bia") else ""
@@ -594,13 +605,23 @@ def _build_pdf_bytes_azure(
         dni=dni_txt_b,
         propietario=propietario_txt_b,
         entidad_original=entidad_original_txt_b,
-        creditos=creditos_txt_b,
+        id=id_txt_b,
         admin_bia=admin_bia,
     )
     elements.append(Paragraph(parrafo_1, styles["Cuerpo"]))
 
     # Segundo párrafo (idéntico en todos los modelos)
     elements.append(Paragraph(copy["parrafo2"], styles["Nota"]))
+
+    # ===== BLOQUE CON ASTERISCO (EXACTO A DOCX) =====
+    # En DOCX, el placeholder aparece como (FECHA DE CARGA), es decir, entre paréntesis.
+    # Para replicar el formato, imprimimos la fecha también entre paréntesis.
+    fecha_carga_txt = _safe_text(datos.get("Fecha de Carga"), default="(sin dato)")
+    fecha_carga_parentesis = f"({fecha_carga_txt})"
+
+    asterisco_texto = copy.get("asterisco_fmt", "").format(fecha_carga=fecha_carga_parentesis)
+    if asterisco_texto:
+        elements.append(Paragraph(asterisco_texto, styles["Nota"]))
 
     # Vigencia (si existe)
     if datos.get("Vigencia Hasta") or datos.get("vigencia_hasta"):
@@ -832,10 +853,18 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
     except Exception:
         emitido_str = _safe_text(emitido)
 
+    # NUEVO: FECHA DE CARGA = fecha_apertura
+    fecha_carga = getattr(reg, "fecha_apertura", None)
+    try:
+        fecha_carga_str = fecha_carga.strftime("%d/%m/%Y") if hasattr(fecha_carga, "strftime") else _safe_text(fecha_carga)
+    except Exception:
+        fecha_carga_str = _safe_text(fecha_carga)
+
     ent_emisora_nombre = (entidad_otras_m or entidad_bia_m).nombre if (entidad_otras_m or entidad_bia_m) else ""
 
     datos = {
         "Número": reg.id_pago_unico,
+        "ID": reg.id_pago_unico,  # NUEVO: variable central para el texto
         "DNI": reg.dni,
         "Nombre y Apellido": reg.nombre_apellido,
         "Razón Social": reg.propietario or "",
@@ -844,8 +873,9 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
         "Emitido": emitido_str,
         "Estado": reg.estado or "",
         "Fecha de Emisión": hoy_str,
-        # NUEVO: CREDITO(S) tal como se pide en los modelos
-        "Creditos": reg.creditos or "",
+        "Fecha de Carga": fecha_carga_str,  # NUEVO: bloque de fecha de carga
+        # Se mantiene (no se elimina nada extra), aunque ya no se use en el texto central:
+        "Creditos": getattr(reg, "creditos", "") or "",
     }
 
     footer_text = getattr(entidad_bia_m, "pie_pdf", None) or "BIA • Certificados de Libre Deuda"
@@ -1116,7 +1146,7 @@ def _handle_get_generar(request: HttpRequest) -> HttpResponse:
         )
 
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-    resp["Content-Disposition"] = f'attachment; filename=\"certificado_{reg.id_pago_unico}.pdf\"'
+    resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
     return resp
 
 
@@ -1162,7 +1192,7 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
             )
 
         resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-        resp["Content-Disposition"] = f'attachment; filename=\"certificado_{reg.id_pago_unico}.pdf\"'
+        resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
         return resp
 
     # Caso 2: solo DNI
@@ -1226,7 +1256,7 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
         )
 
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-    resp["Content-Disposition"] = f'attachment; filename=\"certificado_{reg.id_pago_unico}.pdf\"'
+    resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
     return resp
 
 
