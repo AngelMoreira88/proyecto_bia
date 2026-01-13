@@ -365,8 +365,8 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
     # Nota: en los DOCX aparece con "..." literal. Se mantiene exactamente igual.
     # El placeholder de FECHA DE CARGA en DOCX está entre paréntesis.
     asterisco_docx = (
-        "*Este documento se refiere única y exclusivamente sobre los créd... expresamente mencionada, "
-        "de fecha anterior al {fecha_carga}."
+        "*Este documento se refiere única y exclusivamente sobre los créditos que fueron originados y cedidos a {entidad_original}., por"
+        "la entidad expresamente mencionada, de fecha anterior al {fecha_carga}."
     )
 
     # Defaults de firma por entidad (fallback)
