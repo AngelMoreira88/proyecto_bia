@@ -362,11 +362,11 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
         "A pedido del interesado, se extiende la presente para ser presentado ante quien corresponda."
     )
 
-    # ===== BLOQUE CON ASTERISCO: EXACTO A DOCX =====
-    # Nota: en los DOCX aparece con "..." literal. Se mantiene exactamente igual.
-    # El placeholder de FECHA DE CARGA en DOCX está entre paréntesis.
+    # ===== BLOQUE CON ASTERISCO: AJUSTE PARA TOMAR RAZON_SOCIAL DE LA ENTIDAD =====
+    # En tu requisito: el dato de la entidad en este bloque debe venir de Entidad.razon_social.
+    # Para eso, este template usa {razon_social_entidad} (no afecta el resto del PDF).
     asterisco_docx = (
-        "*Este documento se refiere única y exclusivamente sobre los créditos que fueron originados y cedidos a {entidad_original}, por"
+        "*Este documento se refiere única y exclusivamente sobre los créditos que fueron originados y cedidos a {razon_social_entidad}, por"
         " la entidad expresamente mencionada, de fecha anterior al {fecha_carga}."
     )
 
@@ -539,7 +539,7 @@ def _build_pdf_bytes_azure(
             spaceAfter=10,
         )
     )
-    
+
     styles.add(
         ParagraphStyle(
             name="Asterisco",
@@ -625,17 +625,30 @@ def _build_pdf_bytes_azure(
     )
     elements.append(Paragraph(parrafo_1, styles["Cuerpo"]))
 
-    # "A pedido..." debe ser igual al cuerpo (mismo estilo que el de arriba)
+    # "A pedido..." (mantener)
     elements.append(Paragraph(copy["parrafo2"], styles["Nota"]))
 
     # ===== BLOQUE CON ASTERISCO: SOLO ESTE MÁS CHICO =====
     fecha_carga_txt = _safe_text(datos.get("Fecha de Carga"), default="(sin dato)")
     fecha_carga_parentesis = f"({fecha_carga_txt})"
 
-    asterisco_vars = {
+    # Dict seguro: si falta una clave en el template, no rompe
+    class _SafeFormatDict(dict):
+        def __missing__(self, key):
+            return ""
+
+    asterisco_vars = _SafeFormatDict({
         "fecha_carga": fecha_carga_parentesis,
+
+        # ===== CLAVE PRINCIPAL DEL REQUERIMIENTO =====
+        # Esto viene desde Entidad.razon_social (set en _render_pdf_for_registro).
+        "razon_social_entidad": _safe_text(datos.get("Razón Social Entidad"), default="(sin dato)"),
+
+        # Compatibilidad por si algún template viejo usa otras claves
         "entidad_original": _safe_text(datos.get("Entidad Original")),
-    }
+        "razon_social": _safe_text(datos.get("Razón Social Entidad"), default=_safe_text(datos.get("Razón Social"))),
+        "entidad": _safe_text(datos.get("Razón Social Entidad"), default=_safe_text(datos.get("Razón Social"))),
+    })
 
     asterisco_texto = copy.get("asterisco_fmt", "").format_map(asterisco_vars)
     if asterisco_texto:
@@ -713,7 +726,7 @@ def _build_pdf_bytes_azure(
             style=TableStyle(
                 [
                     ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),  # centra el bloque en la celda
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
                 ]
             ),
         )
@@ -793,7 +806,6 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
             .get(pk=reg.pk)
         )
     except Exception:
-        # En caso de error, continuar con reg tal cual (ya cargado)
         pass
 
     cert, _created = Certificate.objects.get_or_create(client=reg)
@@ -814,7 +826,6 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
         if not ent:
             return None
         if hasattr(ent, "logo") and hasattr(ent, "firma"):
-            # ya podría estar, pero aseguramos carga
             return Entidad.objects.only(*_ENTIDAD_MEDIA_FIELDS).filter(pk=ent.pk).first()
         return Entidad.objects.only(*_ENTIDAD_MEDIA_FIELDS).filter(pk=ent.pk).first()
 
@@ -837,7 +848,6 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
     logo_ent_ff = getattr(entidad_otras_m, "logo", None) if entidad_otras_m else None
 
     # ===== Invalidación de caché: SIEMPRE REGENERAR =====
-    # Si existe un PDF previo, lo eliminamos para forzar regeneración.
     if _fieldfile_exists(cert.pdf_file):
         try:
             cert.pdf_file.delete(save=False)
@@ -845,12 +855,8 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
         except Exception as e:
             logger.debug("[PDF] No se pudo borrar PDF viejo (se regenerará igual): %s", e)
     else:
-        # Si apunta a un nombre inexistente en storage, limpiamos el campo
         if getattr(cert.pdf_file, "name", ""):
-            logger.warning(
-                "[PDF] pdf_file apunta a %s pero no existe; se limpia.",
-                cert.pdf_file.name,
-            )
+            logger.warning("[PDF] pdf_file apunta a %s pero no existe; se limpia.", cert.pdf_file.name)
             try:
                 cert.pdf_file.delete(save=False)
             except Exception as e:
@@ -880,19 +886,29 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
 
     ent_emisora_nombre = (entidad_otras_m or entidad_bia_m).nombre if (entidad_otras_m or entidad_bia_m) else ""
 
+    # ===== CLAVE NUEVA: RAZON SOCIAL DE LA ENTIDAD (tabla Entidad) =====
+    razon_social_entidad = ""
+    if entidad_firma:
+        razon_social_entidad = getattr(entidad_firma, "razon_social", "") or ""
+
     datos = {
         "Número": reg.id_pago_unico,
         "ID": reg.id_pago_unico,  # NUEVO: variable central para el texto
         "DNI": reg.dni,
         "Nombre y Apellido": reg.nombre_apellido,
+
+        # Se mantiene (no se elimina nada extra): el cuerpo usa esto como "propietario"
         "Razón Social": reg.propietario or "",
+
+        # NUEVO: para el texto legal del asterisco (debe venir de Entidad.razon_social)
+        "Razón Social Entidad": razon_social_entidad,
+
         "Entidad Original": entidad_original_val,
         "Entidad Emisora": ent_emisora_nombre,
         "Emitido": emitido_str,
         "Estado": reg.estado or "",
         "Fecha de Emisión": hoy_str,
         "Fecha de Carga": fecha_carga_str,  # NUEVO: bloque de fecha de carga
-        # Se mantiene (no se elimina nada extra), aunque ya no se use en el texto central:
         "Creditos": getattr(reg, "creditos", "") or "",
     }
 
@@ -932,12 +948,10 @@ def _supports_distinct_on() -> bool:
 
 
 def _order_fields_distinct():
-    # Mantener consistencia de ordering con DISTINCT ON (Postgres)
     return ("id_pago_unico", "-ultima_fecha_pago", "-fecha_plan", "-fecha_apertura")
 
 
 def _base_bdb_qs():
-    # QS base con solo campos necesarios
     return BaseDeDatosBia.objects.only(*_BDB_MIN_FIELDS)
 
 
@@ -947,7 +961,6 @@ def _query_unicas_por_id(dni: str):
     if _supports_distinct_on():
         return qs.order_by(*order_fields).distinct("id_pago_unico")
 
-    # Fallback no-Postgres: dos queries eficientes y dedupe en Python sin cargar demás columnas
     ids = qs.values_list("id_pago_unico", flat=True).distinct()
     todas = list(
         _base_bdb_qs()
@@ -988,7 +1001,6 @@ def api_consulta_dni_unificada(request: HttpRequest):
     end = start + page_size
     subset = base[start:end] if hasattr(base, "__getitem__") else list(base)[start:end]
 
-    # Construimos payload con campos ya cargados; evitamos acceder a relaciones
     deudas = []
     total_canceladas_unicas = 0
     for r in subset:
@@ -1007,7 +1019,6 @@ def api_consulta_dni_unificada(request: HttpRequest):
                 "entidadoriginal": r.entidadoriginal,
                 "estado": r.estado,
                 "cancelado": cancelado,
-                # 👉 campos económicos que usa el frontend
                 "saldo_actualizado": (
                     str(r.saldo_actualizado)
                     if r.saldo_actualizado is not None
@@ -1062,9 +1073,8 @@ def seleccionar_certificado(request: HttpRequest) -> HttpResponse:
             status=400,
         )
 
-    # Un solo query con only() (lista completa para la página de selección)
     registros_qs = _base_bdb_qs().filter(dni=dni)
-    registros = list(registros_qs)  # fuerza evaluación una vez
+    registros = list(registros_qs)
     if not registros:
         return render(
             request,
@@ -1105,7 +1115,6 @@ def seleccionar_certificado(request: HttpRequest) -> HttpResponse:
 @csrf_exempt
 @allow_public
 def api_generar_certificado(request: HttpRequest) -> HttpResponse:
-    # Si está autenticado, exigimos permiso interno de lectura (sin romper público anónimo)
     if request.user.is_authenticated:
         if not (request.user.is_superuser or request.user.has_perm("carga_datos.can_view_clients")):
             raise PermissionDenied("No autorizado")
@@ -1172,7 +1181,6 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
     dni = _norm_dni(request.POST.get("dni") or "")
     idp = (request.POST.get("id_pago_unico") or request.POST.get("idp") or "").strip()
 
-    # Caso 1: id específico
     if idp:
         qs = _base_bdb_qs().filter(id_pago_unico=idp)
         if dni:
@@ -1213,7 +1221,6 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
         resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
         return resp
 
-    # Caso 2: solo DNI
     if not _ok_dni(dni):
         return JsonResponse({"error": "Ingresá un DNI válido (solo números)."}, status=400)
 
@@ -1264,7 +1271,6 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
         }
         return JsonResponse(payload, status=200)
 
-    # Exactamente 1 cancelado → PDF directo
     reg = cancelados[0]
     cert, pdf_bytes, err = _render_pdf_for_registro(reg)
     if not pdf_bytes:
@@ -1283,7 +1289,6 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
 # ======================================================================================
 
 class EntidadViewSet(viewsets.ModelViewSet):
-    # Evitar traer blobs en listados (logo/firma). Se cargan solo cuando se pidan explícitamente.
     queryset = Entidad.objects.defer("logo", "firma").only(*_ENTIDAD_MIN_FIELDS).order_by("id")
     serializer_class = EntidadSerializer
     permission_classes = [IsAuthenticated, CanManageEntities]
