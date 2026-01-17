@@ -135,11 +135,23 @@ async function descargarPDF(id_pago_unico, dni) {
   const ct = (res.headers?.["content-type"] || "").toLowerCase();
   if (!ct.includes("application/pdf")) throw new Error("Respuesta no es PDF");
 
-  const cd = res.headers?.["content-disposition"] || "";
-  let filename = "certificado.pdf";
+    const cd = res.headers?.["content-disposition"] || "";
+  let filename = `certificado_${dni}.pdf`;
 
-  const m = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(cd);
-  if (m && m[1]) filename = decodeURIComponent(m[1]);
+  // 1) RFC 5987: filename*=UTF-8''....
+  let m = cd.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);
+  if (m?.[1]) {
+    filename = decodeURIComponent(m[1].trim());
+  } else {
+    // 2) filename="..."
+    m = cd.match(/filename\s*=\s*"([^"]+)"/i);
+    if (m?.[1]) filename = m[1].trim();
+    else {
+      // 3) filename=sin_comillas.pdf
+      m = cd.match(/filename\s*=\s*([^;]+)/i);
+      if (m?.[1]) filename = m[1].trim();
+    }
+  }
 
   const blob = new Blob([res.data], { type: "application/pdf" });
   const url = window.URL.createObjectURL(blob);
