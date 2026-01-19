@@ -339,21 +339,21 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
     # AZUR
     azur_parrafo1 = (
         "Se deja constancia de que el/la Sr./a <b>{nombre}</b>, con DNI <b>{dni}</b>, "
-        "ha cancelado la deuda correspondiente a <b>{propietario}</b>, administrado por BIA S.R.L., "
+        "ha cancelado la deuda correspondiente a <b>{razon_social_entidad}</b>, administrado por BIA S.R.L., "
         "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado/s en <b>{entidad_original}</b>."
     )
 
     # BIA (persona física / genérico)
     base_parrafo1 = (
         "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI: <b>{dni}</b> "
-        "ha cancelado la deuda que mantenía con <b>{propietario}</b>{admin_bia}, "
+        "ha cancelado la deuda que mantenía con <b>{razon_social_entidad}</b>{admin_bia}, "
         "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado en <b>{entidad_original}</b>."
     )
 
     # Empresas (CPSA, EGEO, FBLASA)
     empresa_parrafo1 = (
         "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI: <b>{dni}</b>, "
-        "ha cancelado la deuda que mantenía con la empresa <b>{propietario}</b>, "
+        "ha cancelado la deuda que mantenía con la empresa <b>{razon_social_entidad}</b>, "
         "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado en <b>{entidad_original}</b>."
     )
 
