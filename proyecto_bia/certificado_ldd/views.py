@@ -346,7 +346,7 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
     # BIA (persona física / genérico)
     base_parrafo1 = (
         "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI: <b>{dni}</b> "
-        "ha cancelado la deuda que mantenía con <b>{razon_social_entidad}</b>{admin_bia}, "
+        "ha cancelado la deuda que mantenía con <b>{razon_social_entidad}</b>, "
         "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado en <b>{entidad_original}</b>."
     )
 
@@ -786,7 +786,7 @@ def get_entidad_emisora(registro: BaseDeDatosBia) -> Optional[Entidad]:
         if ent:
             return ent
     return None
-
+    
 
 def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate], Optional[bytes], Optional[str]]:
     """
