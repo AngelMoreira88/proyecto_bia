@@ -339,21 +339,21 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
     # AZUR
     azur_parrafo1 = (
         "Se deja constancia de que el/la Sr./a <b>{nombre}</b>, con DNI <b>{dni}</b>, "
-        "ha cancelado la deuda correspondiente a <b>{razon_social_entidad}</b>, administrado por BIA S.R.L., "
+        "ha cancelado la deuda correspondiente a <b>{propietario}</b>, administrado por BIA S.R.L., "
         "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado/s en <b>{entidad_original}</b>."
     )
 
     # BIA (persona física / genérico)
     base_parrafo1 = (
         "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI: <b>{dni}</b> "
-        "ha cancelado la deuda que mantenía con <b>{razon_social_entidad}</b>, "
+        "ha cancelado la deuda que mantenía con <b>{propietario}</b>{admin_bia}, "
         "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado en <b>{entidad_original}</b>."
     )
 
     # Empresas (CPSA, EGEO, FBLASA)
     empresa_parrafo1 = (
         "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI: <b>{dni}</b>, "
-        "ha cancelado la deuda que mantenía con la empresa <b>{razon_social_entidad}</b>, "
+        "ha cancelado la deuda que mantenía con la empresa <b>{propietario}</b>, "
         "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado en <b>{entidad_original}</b>."
     )
 
@@ -786,7 +786,7 @@ def get_entidad_emisora(registro: BaseDeDatosBia) -> Optional[Entidad]:
         if ent:
             return ent
     return None
-    
+
 
 def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate], Optional[bytes], Optional[str]]:
     """
@@ -930,7 +930,7 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
         return cert, None, "Falló la generación del PDF para el certificado."
 
     try:
-        filename = f"certificado_{reg.dni}.pdf"
+        filename = f"certificado_{reg.id_pago_unico}.pdf"
         cert.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
     except Exception as e:
         logger.exception("[PDF] Error guardando PDF: %s", e)
@@ -1173,7 +1173,7 @@ def _handle_get_generar(request: HttpRequest) -> HttpResponse:
         )
 
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-    resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.dni}.pdf"'
+    resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
     return resp
 
 
@@ -1218,7 +1218,7 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
             )
 
         resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-        resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.dni}.pdf"'
+        resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
         return resp
 
     if not _ok_dni(dni):
@@ -1280,7 +1280,7 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
         )
 
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-    resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.dni}.pdf"'
+    resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
     return resp
 
 
