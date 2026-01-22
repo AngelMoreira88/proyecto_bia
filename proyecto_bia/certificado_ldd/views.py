@@ -9,7 +9,6 @@ from __future__ import annotations
 import logging
 import os
 from io import BytesIO
-from shutil import copy
 from typing import Optional, Dict, Any, Tuple, List
 from functools import lru_cache
 
@@ -236,11 +235,16 @@ def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
     # Parámetros de header
     logo_size = 2.0 * cm
     # un poco más grande para bajar el contenido
-    gap_logo_contenido = 1.4 * cm
+    #gap_logo_contenido = 1.4 * cm
+    gap_logo_contenido = 2.0 * cm
+    #HEADER_TOP_MARGIN = 1.2 * cm
 
     # Dibujamos los logos de forma que su base quede gap_logo_contenido por encima del contenido
-    logo_bottom_y = top_frame_y + gap_logo_contenido
-    logo_y = logo_bottom_y  # drawImage usa y como esquina inferior
+    #logo_bottom_y = top_frame_y + gap_logo_contenido
+    logo_y = top_frame_y + gap_logo_contenido
+    #logo_y = logo_bottom_y  # drawImage usa y como esquina inferior
+    #logo_y = logo_bottom_y + HEADER_TOP_MARGIN
+
 
     def _draw_ff(ff, x, y):
         if not _fieldfile_exists(ff):
@@ -281,6 +285,8 @@ def _draw_header(canvas: canvas_module.Canvas, doc, logo_bia_ff, logo_ent_ff):
 
     # Línea a mitad de camino entre la base del logo y el inicio del contenido
     y_line = top_frame_y + (gap_logo_contenido / 2.0)
+    #y_line = top_frame_y + (gap_logo_contenido / 2.0) + HEADER_TOP_MARGIN
+
 
     canvas.setStrokeColor(colors.HexColor("#DDDDDD"))
     canvas.setLineWidth(0.8)
@@ -339,35 +345,36 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
     # AZUR
     azur_parrafo1 = (
         "Se deja constancia de que el/la Sr./a <b>{nombre}</b>, con DNI <b>{dni}</b>, "
-        "ha cancelado la deuda correspondiente a <b>{propietario}</b>, administrado por BIA S.R.L., "
+        "ha cancelado la deuda correspondiente a <b>{razon_social}</b>, "
         "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado/s en <b>{entidad_original}</b>."
     )
 
     # BIA (persona física / genérico)
     base_parrafo1 = (
         "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI: <b>{dni}</b> "
-        "ha cancelado la deuda que mantenía con <b>{propietario}</b>{admin_bia}, "
+        "ha cancelado la deuda que mantenía con <b>{razon_social}</b>, "
         "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado en <b>{entidad_original}</b>."
     )
 
     # Empresas (CPSA, EGEO, FBLASA)
     empresa_parrafo1 = (
         "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI: <b>{dni}</b>, "
-        "ha cancelado la deuda que mantenía con la empresa <b>{propietario}</b>, "
+        "ha cancelado la deuda que mantenía con la empresa <b>{razon_social}</b>, "
         "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado en <b>{entidad_original}</b>."
     )
+   
 
     # Segundo párrafo: común a todos los modelos
     parrafo2 = (
-        "A pedido del interesado, se extiende la presente para ser presentado ante quien corresponda."
+        "A pedido del interesado, se extiende la presente para ser presentado a quien corresponda."
     )
 
-    # ===== BLOQUE CON ASTERISCO: AJUSTE PARA TOMAR RAZON_SOCIAL DE LA ENTIDAD =====
-    # En tu requisito: el dato de la entidad en este bloque debe venir de Entidad.razon_social.
-    # Para eso, este template usa {razon_social_entidad} (no afecta el resto del PDF).
+    # ===== BLOQUE CON ASTERISCO: EXACTO A DOCX =====
+    # Nota: en los DOCX aparece con "..." literal. Se mantiene exactamente igual.
+    # El placeholder de FECHA DE CARGA en DOCX está entre paréntesis.
     asterisco_docx = (
-        "*Este documento se refiere única y exclusivamente sobre los créditos que fueron originados y cedidos a {razon_social_entidad}, por"
-        " la entidad expresamente mencionada, de fecha anterior al {fecha_carga}."
+        "*Este documento se refiere única y exclusivamente sobre los créditos que fueron originados y cedidos a {razon_social}, por"
+        "la entidad expresamente mencionada, de fecha anterior al {fecha_carga}."
     )
 
     # Defaults de firma por entidad (fallback)
@@ -450,7 +457,7 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
         "firma_defaults": selected["firma"],
         # En el modelo BIA se puede indicar "administrado por BIA S.R.L."
         # sólo cuando NO hay otra entidad externa.
-        "agregar_admin_bia": not has_ent_externa,
+        #"agregar_admin_bia": not has_ent_externa,
     }
 
 
@@ -477,7 +484,8 @@ def _build_pdf_bytes_azure(
         pagesize=A4,
         leftMargin=2.0 * cm,
         rightMargin=2.0 * cm,
-        topMargin=4.5 * cm,   # → baja todo el contenido
+        #topMargin=4.5 * cm,   # → baja todo el contenido
+        topMargin=5.0 * cm,   # → baja todo el contenido
         bottomMargin=2.5 * cm,
         title=titulo,
         author="BIA",
@@ -531,26 +539,12 @@ def _build_pdf_bytes_azure(
             name="Nota",
             parent=styles["BodyText"],
             fontName=base_font,
-            fontSize=11,
-            leading=15,
+            fontSize=9,
+            leading=13,
             textColor=colors.HexColor("#111111"),
             alignment=4,
-            spaceBefore=8,
-            spaceAfter=10,
-        )
-    )
-
-    styles.add(
-        ParagraphStyle(
-            name="Asterisco",
-            parent=styles["BodyText"],
-            fontName=base_font,
-            fontSize=8.5,
-            leading=11,
-            textColor=colors.HexColor("#111111"),
-            alignment=4,
-            spaceBefore=45,
-            spaceAfter=5,
+            spaceBefore=4,
+            spaceAfter=8,
         )
     )
 
@@ -568,11 +562,11 @@ def _build_pdf_bytes_azure(
     elements = []
 
     # =========================
-    # TÍTULO
+    # TÍTULO (Eliminado por pedido)
     # =========================
-    elements.append(Paragraph(_safe_text(titulo), styles["Titulo"]))
+    #elements.append(Paragraph(_safe_text(titulo), styles["Titulo"]))
     # Más espacio entre título y ciudad/fecha
-    elements.append(Spacer(1, 0.7 * cm))
+    #elements.append(Spacer(1, 0.7 * cm))
 
     # =========================
     # FECHA (ciudad + fecha)
@@ -612,47 +606,40 @@ def _build_pdf_bytes_azure(
     id_txt_b = f"<b>{id_txt}</b>"
 
     # En el modelo BIA se agrega "administrado por BIA S.R.L." sólo en algunos casos
-    admin_bia = " (administrado por BIA S.R.L.)" if copy.get("agregar_admin_bia") else ""
+    #admin_bia = " (administrado por BIA S.R.L.)" if copy.get("agregar_admin_bia") else ""
+    
+    firma_defaults = copy["firma_defaults"]
 
     # Párrafo principal según plantilla por entidad (inyectando siempre valores en negrita)
     parrafo_1 = copy["parrafo1_fmt"].format(
         nombre=nombre_apellido_b,
         dni=dni_txt_b,
-        propietario=propietario_txt_b,
+        razon_social=_safe_text(firma_defaults.get("entidad")),
         entidad_original=entidad_original_txt_b,
         id=id_txt_b,
-        admin_bia=admin_bia,
     )
     elements.append(Paragraph(parrafo_1, styles["Cuerpo"]))
 
-    # "A pedido..." (mantener)
-    elements.append(Paragraph(copy["parrafo2"], styles["Nota"]))
+    # Segundo párrafo (idéntico en todos los modelos)
+    elements.append(Paragraph(copy["parrafo2"], styles["Cuerpo"]))
 
-    # ===== BLOQUE CON ASTERISCO: SOLO ESTE MÁS CHICO =====
+    # ===== BLOQUE CON ASTERISCO (EXACTO A DOCX) =====
+    # En DOCX, el placeholder aparece como (FECHA DE CARGA), es decir, entre paréntesis.
+    # Para replicar el formato, imprimimos la fecha también entre paréntesis.
     fecha_carga_txt = _safe_text(datos.get("Fecha de Carga"), default="(sin dato)")
     fecha_carga_parentesis = f"({fecha_carga_txt})"
 
-    # Dict seguro: si falta una clave en el template, no rompe
-    class _SafeFormatDict(dict):
-        def __missing__(self, key):
-            return ""
+    #firma_defaults = copy["firma_defaults"]
 
-    asterisco_vars = _SafeFormatDict({
-        "fecha_carga": fecha_carga_parentesis,
+    asterisco_texto = copy.get("asterisco_fmt", "").format(
+        fecha_carga=fecha_carga_parentesis,
+        razon_social=_safe_text(firma_defaults.get("entidad"))
+    )
 
-        # ===== CLAVE PRINCIPAL DEL REQUERIMIENTO =====
-        # Esto viene desde Entidad.razon_social (set en _render_pdf_for_registro).
-        "razon_social_entidad": _safe_text(datos.get("Razón Social Entidad"), default="(sin dato)"),
+    elements.append(Spacer(1, 0.8 * cm))
 
-        # Compatibilidad por si algún template viejo usa otras claves
-        "entidad_original": _safe_text(datos.get("Entidad Original")),
-        "razon_social": _safe_text(datos.get("Razón Social Entidad"), default=_safe_text(datos.get("Razón Social"))),
-        "entidad": _safe_text(datos.get("Razón Social Entidad"), default=_safe_text(datos.get("Razón Social"))),
-    })
-
-    asterisco_texto = copy.get("asterisco_fmt", "").format_map(asterisco_vars)
     if asterisco_texto:
-        elements.append(Paragraph(asterisco_texto, styles["Asterisco"]))
+        elements.append(Paragraph(asterisco_texto, styles["Nota"]))
 
     # Vigencia (si existe)
     if datos.get("Vigencia Hasta") or datos.get("vigencia_hasta"):
@@ -726,7 +713,7 @@ def _build_pdf_bytes_azure(
             style=TableStyle(
                 [
                     ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+                    ("ALIGN", (0, 0), (-1, -1), "CENTER"),  # centra el bloque en la celda
                 ]
             ),
         )
@@ -806,6 +793,7 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
             .get(pk=reg.pk)
         )
     except Exception:
+        # En caso de error, continuar con reg tal cual (ya cargado)
         pass
 
     cert, _created = Certificate.objects.get_or_create(client=reg)
@@ -826,6 +814,7 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
         if not ent:
             return None
         if hasattr(ent, "logo") and hasattr(ent, "firma"):
+            # ya podría estar, pero aseguramos carga
             return Entidad.objects.only(*_ENTIDAD_MEDIA_FIELDS).filter(pk=ent.pk).first()
         return Entidad.objects.only(*_ENTIDAD_MEDIA_FIELDS).filter(pk=ent.pk).first()
 
@@ -848,6 +837,7 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
     logo_ent_ff = getattr(entidad_otras_m, "logo", None) if entidad_otras_m else None
 
     # ===== Invalidación de caché: SIEMPRE REGENERAR =====
+    # Si existe un PDF previo, lo eliminamos para forzar regeneración.
     if _fieldfile_exists(cert.pdf_file):
         try:
             cert.pdf_file.delete(save=False)
@@ -855,8 +845,12 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
         except Exception as e:
             logger.debug("[PDF] No se pudo borrar PDF viejo (se regenerará igual): %s", e)
     else:
+        # Si apunta a un nombre inexistente en storage, limpiamos el campo
         if getattr(cert.pdf_file, "name", ""):
-            logger.warning("[PDF] pdf_file apunta a %s pero no existe; se limpia.", cert.pdf_file.name)
+            logger.warning(
+                "[PDF] pdf_file apunta a %s pero no existe; se limpia.",
+                cert.pdf_file.name,
+            )
             try:
                 cert.pdf_file.delete(save=False)
             except Exception as e:
@@ -886,29 +880,19 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
 
     ent_emisora_nombre = (entidad_otras_m or entidad_bia_m).nombre if (entidad_otras_m or entidad_bia_m) else ""
 
-    # ===== CLAVE NUEVA: RAZON SOCIAL DE LA ENTIDAD (tabla Entidad) =====
-    razon_social_entidad = ""
-    if entidad_firma:
-        razon_social_entidad = getattr(entidad_firma, "razon_social", "") or ""
-
     datos = {
         "Número": reg.id_pago_unico,
         "ID": reg.id_pago_unico,  # NUEVO: variable central para el texto
         "DNI": reg.dni,
         "Nombre y Apellido": reg.nombre_apellido,
-
-        # Se mantiene (no se elimina nada extra): el cuerpo usa esto como "propietario"
         "Razón Social": reg.propietario or "",
-
-        # NUEVO: para el texto legal del asterisco (debe venir de Entidad.razon_social)
-        "Razón Social Entidad": razon_social_entidad,
-
         "Entidad Original": entidad_original_val,
         "Entidad Emisora": ent_emisora_nombre,
         "Emitido": emitido_str,
         "Estado": reg.estado or "",
         "Fecha de Emisión": hoy_str,
         "Fecha de Carga": fecha_carga_str,  # NUEVO: bloque de fecha de carga
+        # Se mantiene (no se elimina nada extra), aunque ya no se use en el texto central:
         "Creditos": getattr(reg, "creditos", "") or "",
     }
 
@@ -948,10 +932,12 @@ def _supports_distinct_on() -> bool:
 
 
 def _order_fields_distinct():
+    # Mantener consistencia de ordering con DISTINCT ON (Postgres)
     return ("id_pago_unico", "-ultima_fecha_pago", "-fecha_plan", "-fecha_apertura")
 
 
 def _base_bdb_qs():
+    # QS base con solo campos necesarios
     return BaseDeDatosBia.objects.only(*_BDB_MIN_FIELDS)
 
 
@@ -961,6 +947,7 @@ def _query_unicas_por_id(dni: str):
     if _supports_distinct_on():
         return qs.order_by(*order_fields).distinct("id_pago_unico")
 
+    # Fallback no-Postgres: dos queries eficientes y dedupe en Python sin cargar demás columnas
     ids = qs.values_list("id_pago_unico", flat=True).distinct()
     todas = list(
         _base_bdb_qs()
@@ -1001,6 +988,7 @@ def api_consulta_dni_unificada(request: HttpRequest):
     end = start + page_size
     subset = base[start:end] if hasattr(base, "__getitem__") else list(base)[start:end]
 
+    # Construimos payload con campos ya cargados; evitamos acceder a relaciones
     deudas = []
     total_canceladas_unicas = 0
     for r in subset:
@@ -1019,6 +1007,7 @@ def api_consulta_dni_unificada(request: HttpRequest):
                 "entidadoriginal": r.entidadoriginal,
                 "estado": r.estado,
                 "cancelado": cancelado,
+                # 👉 campos económicos que usa el frontend
                 "saldo_actualizado": (
                     str(r.saldo_actualizado)
                     if r.saldo_actualizado is not None
@@ -1073,8 +1062,9 @@ def seleccionar_certificado(request: HttpRequest) -> HttpResponse:
             status=400,
         )
 
+    # Un solo query con only() (lista completa para la página de selección)
     registros_qs = _base_bdb_qs().filter(dni=dni)
-    registros = list(registros_qs)
+    registros = list(registros_qs)  # fuerza evaluación una vez
     if not registros:
         return render(
             request,
@@ -1115,6 +1105,7 @@ def seleccionar_certificado(request: HttpRequest) -> HttpResponse:
 @csrf_exempt
 @allow_public
 def api_generar_certificado(request: HttpRequest) -> HttpResponse:
+    # Si está autenticado, exigimos permiso interno de lectura (sin romper público anónimo)
     if request.user.is_authenticated:
         if not (request.user.is_superuser or request.user.has_perm("carga_datos.can_view_clients")):
             raise PermissionDenied("No autorizado")
@@ -1181,6 +1172,7 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
     dni = _norm_dni(request.POST.get("dni") or "")
     idp = (request.POST.get("id_pago_unico") or request.POST.get("idp") or "").strip()
 
+    # Caso 1: id específico
     if idp:
         qs = _base_bdb_qs().filter(id_pago_unico=idp)
         if dni:
@@ -1221,6 +1213,7 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
         resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
         return resp
 
+    # Caso 2: solo DNI
     if not _ok_dni(dni):
         return JsonResponse({"error": "Ingresá un DNI válido (solo números)."}, status=400)
 
@@ -1271,6 +1264,7 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
         }
         return JsonResponse(payload, status=200)
 
+    # Exactamente 1 cancelado → PDF directo
     reg = cancelados[0]
     cert, pdf_bytes, err = _render_pdf_for_registro(reg)
     if not pdf_bytes:
@@ -1289,6 +1283,7 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
 # ======================================================================================
 
 class EntidadViewSet(viewsets.ModelViewSet):
+    # Evitar traer blobs en listados (logo/firma). Se cargan solo cuando se pidan explícitamente.
     queryset = Entidad.objects.defer("logo", "firma").only(*_ENTIDAD_MIN_FIELDS).order_by("id")
     serializer_class = EntidadSerializer
     permission_classes = [IsAuthenticated, CanManageEntities]
