@@ -373,8 +373,8 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
     # Nota: en los DOCX aparece con "..." literal. Se mantiene exactamente igual.
     # El placeholder de FECHA DE CARGA en DOCX está entre paréntesis.
     asterisco_docx = (
-        "*Este documento se refiere única y exclusivamente sobre los créditos que fueron originados y cedidos a {razon_social}, por"
-        "la entidad expresamente mencionada, de fecha anterior al {fecha_carga}."
+        "*Este documento se refiere única y exclusivamente sobre los créditos que fueron originados y cedidos a {razon_social}, "
+        "por la entidad expresamente mencionada, de fecha anterior al {fecha_carga}."
     )
 
     # Defaults de firma por entidad (fallback)
@@ -610,11 +610,19 @@ def _build_pdf_bytes_azure(
     
     firma_defaults = copy["firma_defaults"]
 
+    razon_social_emisora = _safe_text(
+        (firma_1 or {}).get("entidad")              # viene de Entidad.razon_social
+        or datos.get("Entidad Emisora Razon Social")
+        or firma_defaults.get("entidad")
+        or datos.get("Entidad Emisora"),
+        default="(sin dato)",
+    )
     # Párrafo principal según plantilla por entidad (inyectando siempre valores en negrita)
     parrafo_1 = copy["parrafo1_fmt"].format(
         nombre=nombre_apellido_b,
         dni=dni_txt_b,
-        razon_social=_safe_text(firma_defaults.get("entidad")),
+        #razon_social=_safe_text(firma_defaults.get("entidad")),
+        razon_social=razon_social_emisora,
         entidad_original=entidad_original_txt_b,
         id=id_txt_b,
     )
@@ -633,7 +641,8 @@ def _build_pdf_bytes_azure(
 
     asterisco_texto = copy.get("asterisco_fmt", "").format(
         fecha_carga=fecha_carga_parentesis,
-        razon_social=_safe_text(firma_defaults.get("entidad"))
+        #razon_social=_safe_text(firma_defaults.get("entidad"))
+        razon_social=razon_social_emisora,
     )
 
     elements.append(Spacer(1, 0.8 * cm))
