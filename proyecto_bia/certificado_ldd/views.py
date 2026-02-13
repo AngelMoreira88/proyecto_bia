@@ -345,7 +345,7 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
     # AZUR
     azur_parrafo1 = (
         "Se deja constancia de que el/la Sr./a <b>{nombre}</b>, con DNI <b>{dni}</b>, "
-        "ha cancelado la deuda correspondiente a <b>{razon_social}</b>, "
+        "ha cancelado la deuda correspondiente a <b>{razon_social}</b>, administrado por BIA S.R.L "
         "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado/s en <b>{entidad_original}</b>."
     )
 
