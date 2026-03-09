@@ -12,7 +12,8 @@ const WA_PHONE = (process.env.REACT_APP_WA_PHONE || "5491100000000")
 
 const WA_MSG_DEFAULT =
   process.env.REACT_APP_WA_MSG ||
-  "Hola, tengo una deuda para cancelar y necesito asesoramiento";
+  /*"Hola, tengo una deuda para cancelar y necesito asesoramiento";*/
+  "Hola, tengo un saldo pendiente de pago y necesito asistencia. "
 
 const WA_MSG_PUBLIC =
   process.env.REACT_APP_WA_MSG_PUBLIC ||

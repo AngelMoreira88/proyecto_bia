@@ -349,6 +349,13 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
         "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado/s en <b>{entidad_original}</b>."
     )
 
+    # WENANCE
+    wenance_parrafo1 = (
+        "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI: <b>{dni}</b>, "
+        "ha cancelado la deuda que mantenía con <b>{razon_social}</b>, en su carácter de fiduciaria de los Fideicomisos Financieros Privados: “MERCHANT”, “CILSA”, “FINTOP” y/o “FINUP”, "
+        "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado en <b>{entidad_original}</b>."
+    )
+
     # BIA (persona física / genérico)
     base_parrafo1 = (
         "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI: <b>{dni}</b> "
@@ -427,6 +434,16 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
                 "entidad": "FB Líneas Aéreas S.A.",
             },
             "parrafo1_fmt": empresa_parrafo1,
+            "asterisco_fmt": asterisco_docx,
+        },
+        {
+            "match": ["wenance"],
+            "firma": {
+                "nombre": "Administrador/Apoderado",
+                "cargo": "",
+                "entidad": "BIA S.R.L.",
+            },
+            "parrafo1_fmt": wenance_parrafo1,
             "asterisco_fmt": asterisco_docx,
         },
     ]
