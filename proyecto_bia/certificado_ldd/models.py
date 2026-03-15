@@ -1,18 +1,22 @@
-# certificado_ldd/models.py
 from django.db import models
 from django.db.models.functions import Lower
 from carga_datos.models import BaseDeDatosBia
 
 
-
 class Certificate(models.Model):
     # OneToOne al PK (id) de BaseDeDatosBia
-    client = models.OneToOneField(BaseDeDatosBia, on_delete=models.CASCADE, related_name='certificate', db_column='client_id')
+    client = models.OneToOneField(
+        BaseDeDatosBia,
+        on_delete=models.CASCADE,
+        related_name='certificate',
+        db_column='client_id'
+    )
     pdf_file = models.FileField(upload_to='certificados_generados/')
     generated_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         db_table = 'certificate'
+
 
 class Entidad(models.Model):
     nombre = models.CharField(max_length=255)

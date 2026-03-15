@@ -1,7 +1,8 @@
 from rest_framework import serializers
 from django.core.exceptions import ValidationError
+
 from .models import Certificate, Entidad
-from .models import BaseDeDatosBia
+from carga_datos.models import BaseDeDatosBia
 from .utils.images import process_image
 
 
@@ -9,7 +10,8 @@ class CertificateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Certificate
         fields = "__all__"
-        
+
+
 class EntidadSerializer(serializers.ModelSerializer):
     class Meta:
         model = Entidad
@@ -28,7 +30,6 @@ class EntidadSerializer(serializers.ModelSerializer):
         # 2) Validar tamaño del procesado
         size_kb = processed.size / 1024
         if size_kb > max_kb:
-            # Mensaje claro si aún supera el límite
             raise ValidationError(
                 f"La imagen final ({int(size_kb)} KB) supera el máximo permitido de {max_kb} KB."
             )
@@ -49,10 +50,12 @@ class EntidadSerializer(serializers.ModelSerializer):
             firma = self._handle_image(firma, max_w=600, max_h=180, max_kb=200)
 
         ent = Entidad.objects.create(**validated_data)
+
         if logo:
             ent.logo.save(logo.name, logo, save=False)
         if firma:
             ent.firma.save(firma.name, firma, save=False)
+
         ent.save()
         return ent
 
@@ -66,14 +69,16 @@ class EntidadSerializer(serializers.ModelSerializer):
         if logo:
             logo = self._handle_image(logo, max_w=600, max_h=200, max_kb=300)
             instance.logo.save(logo.name, logo, save=False)
+
         if firma:
             firma = self._handle_image(firma, max_w=600, max_h=180, max_kb=200)
             instance.firma.save(firma.name, firma, save=False)
 
         instance.save()
         return instance
+
+
 class BaseDeDatosBiaSerializer(serializers.ModelSerializer):
     class Meta:
         model = BaseDeDatosBia
         fields = '__all__'
-

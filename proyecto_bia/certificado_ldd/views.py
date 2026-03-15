@@ -323,24 +323,82 @@ def _page_template(logo_bia_ff, logo_ent_ff, footer_text: str):
 
     return _page, _page
 
+def _normalize_match_text(*values: Optional[str]) -> str:
+    parts = []
+    for val in values:
+        if val:
+            parts.append(str(val).strip().lower())
+    return " | ".join(parts)
+
+
+def _select_pdf_model_key(
+    *,
+    entidad_nombre: str | None,
+    razon_social_emisora: str | None,
+    propietario: str | None,
+    entidad_original: str | None,
+) -> str:
+    blob = _normalize_match_text(
+        entidad_nombre,
+        razon_social_emisora,
+        propietario,
+        entidad_original,
+    )
+
+    wenance_tokens = (
+        "wenance",
+        "merchant",
+        "cilsa",
+        "fintop",
+        "finup",
+    )
+
+    if any(token in blob for token in wenance_tokens):
+        return "WENANCE_TRUSTS"
+
+    if any(token in blob for token in ("azur", "fp azur")):
+        return "AZUR"
+
+    if any(token in blob for token in ("cpsa", "carnes pampeanas")):
+        return "CPSA"
+
+    if "egeo" in blob:
+        return "EGEO"
+
+    if any(token in blob for token in ("fb líneas aéreas", "fb lineas aereas", "fblasa")):
+        return "FBLASA"
+
+    if "bia" in blob:
+        return "BIA"
+
+    return "GENERIC"
 
 # ======================================================================================
 # Copy por entidad (texto profesional fiel a modelo)
 # ======================================================================================
 
-def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool) -> dict:
+def _select_copy_for_entity(
+    *,
+    entidad_nombre: str | None,
+    has_ent_externa: bool,
+    propietario: str | None = None,
+    entidad_original: str | None = None,
+    razon_social_emisora: str | None = None,
+) -> dict:
     """
     Devuelve:
       - ciudad fija ("Buenos Aires")
-      - parrafo1_fmt: plantilla principal según entidad (AZUR / BIA / CPSA / EGEO / FBLASA / genérico)
-      - parrafo2: texto fijo "A pedido del interesado..."
-      - asterisco_fmt: bloque con asterisco EXACTO a DOCX, con placeholder de FECHA DE CARGA
+      - parrafo1_fmt: plantilla principal según entidad
+      - parrafo2: texto fijo
+      - asterisco_fmt: bloque con asterisco
       - firma_defaults: texto por defecto de firma (fallback)
-      - agregar_admin_bia: sólo se usa en el caso genérico BIA
     """
-    nombre = (entidad_nombre or "").strip().lower()
-
-    # === Plantillas de texto (con ID) ===
+    model_key = _select_pdf_model_key(
+        entidad_nombre=entidad_nombre,
+        razon_social_emisora=razon_social_emisora,
+        propietario=propietario,
+        entidad_original=entidad_original,
+    )
 
     # AZUR
     azur_parrafo1 = (
@@ -349,122 +407,109 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
         "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado/s en <b>{entidad_original}</b>."
     )
 
-    # WENANCE
+    # WENANCE / fideicomisos
     wenance_parrafo1 = (
-        "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI: <b>{dni}</b>, "
-        "ha cancelado la deuda que mantenía con <b>{razon_social}</b>, en su carácter de fiduciaria de los Fideicomisos Financieros Privados: “MERCHANT”, “CILSA”, “FINTOP” y/o “FINUP”, "
-        "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado en <b>{entidad_original}</b>."
+        "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI: <b>{dni}</b> "
+        "ha cancelado la deuda que mantenía con <b>{razon_social}</b>, en su carácter de fiduciaria de los "
+        "Fideicomisos Financieros Privados: “MERCHANT”, “CILSA”, “FINTOP” y/o “FINUP”, respecto al/los crédito/s "
+        "comprendidos bajo el N° de ID <b>{id}</b>, originado en <b>{entidad_original}</b>."
     )
 
-    # BIA (persona física / genérico)
+    # BIA / genérico
     base_parrafo1 = (
         "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI: <b>{dni}</b> "
         "ha cancelado la deuda que mantenía con <b>{razon_social}</b>, "
         "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado en <b>{entidad_original}</b>."
     )
 
-    # Empresas (CPSA, EGEO, FBLASA)
+    # Empresas
     empresa_parrafo1 = (
         "Por medio de la presente se deja constancia que el Sr/a <b>{nombre}</b>, con DNI: <b>{dni}</b>, "
         "ha cancelado la deuda que mantenía con la empresa <b>{razon_social}</b>, "
         "respecto al/los crédito/s comprendidos bajo el N° de ID <b>{id}</b>, originado en <b>{entidad_original}</b>."
     )
-   
 
-    # Segundo párrafo: común a todos los modelos
     parrafo2 = (
         "A pedido del interesado, se extiende la presente para ser presentado a quien corresponda."
     )
 
-    # ===== BLOQUE CON ASTERISCO: EXACTO A DOCX =====
-    # Nota: en los DOCX aparece con "..." literal. Se mantiene exactamente igual.
-    # El placeholder de FECHA DE CARGA en DOCX está entre paréntesis.
-    asterisco_docx = (
+    asterisco_general = (
         "*Este documento se refiere única y exclusivamente sobre los créditos que fueron originados y cedidos a {razon_social}, "
         "por la entidad expresamente mencionada, de fecha anterior al {fecha_carga}."
     )
 
-    # Defaults de firma por entidad (fallback)
-    firma_por_entidad = [
-        {
-            "match": ["azur", "fp azur"],
+    asterisco_wenance = (
+        "*Este documento se refiere única y exclusivamente sobre los créditos que fueran originados y cedidos a BIA SRL, "
+        "por la entidad expresamente mencionada, de fecha anterior al {fecha_carga}."
+    )
+
+    mappings = {
+        "AZUR": {
             "firma": {
                 "nombre": "Administrador / Fiduciario",
                 "cargo": "FP Azur Investment / BIA S.R.L.",
                 "entidad": "",
             },
             "parrafo1_fmt": azur_parrafo1,
-            "asterisco_fmt": asterisco_docx,
+            "asterisco_fmt": asterisco_general,
         },
-        {
-            "match": ["bia"],
-            "firma": {
-                "nombre": "Administrador/Apoderado",
-                "cargo": "",
-                "entidad": "BIA S.R.L.",
-            },
-            "parrafo1_fmt": base_parrafo1,
-            "asterisco_fmt": asterisco_docx,
-        },
-        {
-            "match": ["cpsa", "carnes pampeanas"],
-            "firma": {
-                "nombre": "Federico Lequio",
-                "cargo": "Apoderado",
-                "entidad": "Sociedad Anónima Carnes Pampeanas SA",
-            },
-            "parrafo1_fmt": empresa_parrafo1,
-            "asterisco_fmt": asterisco_docx,
-        },
-        {
-            "match": ["egeo"],
-            "firma": {
-                "nombre": "Administrador/Apoderado",
-                "cargo": "",
-                "entidad": "EGEO S.A.C.I Y A",
-            },
-            "parrafo1_fmt": empresa_parrafo1,
-            "asterisco_fmt": asterisco_docx,
-        },
-        {
-            "match": ["fb líneas aéreas", "fblasa", "fb lineas aereas"],
-            "firma": {
-                "nombre": "Hernán Morosuk",
-                "cargo": "Apoderado",
-                "entidad": "FB Líneas Aéreas S.A.",
-            },
-            "parrafo1_fmt": empresa_parrafo1,
-            "asterisco_fmt": asterisco_docx,
-        },
-        {
-            "match": ["wenance"],
+        "WENANCE_TRUSTS": {
             "firma": {
                 "nombre": "Administrador/Apoderado",
                 "cargo": "",
                 "entidad": "BIA S.R.L.",
             },
             "parrafo1_fmt": wenance_parrafo1,
-            "asterisco_fmt": asterisco_docx,
+            "asterisco_fmt": asterisco_wenance,
         },
-    ]
-
-    selected = None
-    for item in firma_por_entidad:
-        if any(key in nombre for key in item["match"]):
-            selected = item
-            break
-
-    if not selected:
-        # Caso genérico (BIA-like)
-        selected = {
+        "BIA": {
+            "firma": {
+                "nombre": "Administrador/Apoderado",
+                "cargo": "",
+                "entidad": "BIA S.R.L.",
+            },
+            "parrafo1_fmt": base_parrafo1,
+            "asterisco_fmt": asterisco_general,
+        },
+        "CPSA": {
+            "firma": {
+                "nombre": "Federico Lequio",
+                "cargo": "Apoderado",
+                "entidad": "Sociedad Anónima Carnes Pampeanas SA",
+            },
+            "parrafo1_fmt": empresa_parrafo1,
+            "asterisco_fmt": asterisco_general,
+        },
+        "EGEO": {
+            "firma": {
+                "nombre": "Administrador/Apoderado",
+                "cargo": "",
+                "entidad": "EGEO S.A.C.I Y A",
+            },
+            "parrafo1_fmt": empresa_parrafo1,
+            "asterisco_fmt": asterisco_general,
+        },
+        "FBLASA": {
+            "firma": {
+                "nombre": "Hernán Morosuk",
+                "cargo": "Apoderado",
+                "entidad": "FB Líneas Aéreas S.A.",
+            },
+            "parrafo1_fmt": empresa_parrafo1,
+            "asterisco_fmt": asterisco_general,
+        },
+        "GENERIC": {
             "firma": {
                 "nombre": "Administrador/Apoderado",
                 "cargo": "",
                 "entidad": (entidad_nombre or "BIA S.R.L."),
             },
             "parrafo1_fmt": base_parrafo1,
-            "asterisco_fmt": asterisco_docx,
-        }
+            "asterisco_fmt": asterisco_general,
+        },
+    }
+
+    selected = mappings[model_key]
 
     return {
         "ciudad": "Buenos Aires",
@@ -472,9 +517,7 @@ def _select_copy_for_entity(*, entidad_nombre: str | None, has_ent_externa: bool
         "parrafo2": parrafo2,
         "asterisco_fmt": selected["asterisco_fmt"],
         "firma_defaults": selected["firma"],
-        # En el modelo BIA se puede indicar "administrado por BIA S.R.L."
-        # sólo cuando NO hay otra entidad externa.
-        #"agregar_admin_bia": not has_ent_externa,
+        "model_key": model_key,
     }
 
 
@@ -594,7 +637,13 @@ def _build_pdf_bytes_azure(
 
     ent_nombre = datos.get("Entidad Emisora") or datos.get("Razón Social") or ""
     has_ent_externa = _fieldfile_exists(logo_ent_ff)
-    copy = _select_copy_for_entity(entidad_nombre=ent_nombre, has_ent_externa=has_ent_externa)
+    copy = _select_copy_for_entity(
+        entidad_nombre=ent_nombre,
+        has_ent_externa=has_ent_externa,
+        propietario=datos.get("Razón Social"),
+        entidad_original=datos.get("Entidad Original"),
+        razon_social_emisora=datos.get("Entidad Emisora Razon Social"),
+    )
 
     # Línea de fecha, derecha, con ciudad (fecha en negrita)
     elements.append(Paragraph(f'{copy["ciudad"]}, <b>{fecha_emision}</b>', styles["Fecha"]))
@@ -908,17 +957,17 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
 
     datos = {
         "Número": reg.id_pago_unico,
-        "ID": reg.id_pago_unico,  # NUEVO: variable central para el texto
+        "ID": reg.id_pago_unico,
         "DNI": reg.dni,
         "Nombre y Apellido": reg.nombre_apellido,
         "Razón Social": reg.propietario or "",
         "Entidad Original": entidad_original_val,
         "Entidad Emisora": ent_emisora_nombre,
+        "Entidad Emisora Razon Social": getattr((entidad_otras_m or entidad_bia_m), "razon_social", "") if (entidad_otras_m or entidad_bia_m) else "",
         "Emitido": emitido_str,
         "Estado": reg.estado or "",
         "Fecha de Emisión": hoy_str,
-        "Fecha de Carga": fecha_carga_str,  # NUEVO: bloque de fecha de carga
-        # Se mantiene (no se elimina nada extra), aunque ya no se use en el texto central:
+        "Fecha de Carga": fecha_carga_str,
         "Creditos": getattr(reg, "creditos", "") or "",
     }
 
