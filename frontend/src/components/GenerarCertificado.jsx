@@ -12,12 +12,11 @@ const WA_PHONE = (process.env.REACT_APP_WA_PHONE || "5491100000000")
 
 const WA_MSG_DEFAULT =
   process.env.REACT_APP_WA_MSG ||
-  /*"Hola, tengo una deuda para cancelar y necesito asesoramiento";*/
-  "Hola, tengo un saldo pendiente de pago y necesito asistencia. "
+  "Hola, tengo un saldo pendiente de pago y necesito asistencia.";
 
 const WA_MSG_PUBLIC =
   process.env.REACT_APP_WA_MSG_PUBLIC ||
-  "Hola, necesito ayuda con el Portal de Consultas y Descargas";
+  "Hola, tengo un saldo pendiente de pago y necesito asistencia.";
 
 /* ========= Preferencias ========= */
 const ACCEPT_PREF = "application/pdf, application/json, */*";
@@ -136,7 +135,7 @@ async function descargarPDF(id_pago_unico, dni) {
   const ct = (res.headers?.["content-type"] || "").toLowerCase();
   if (!ct.includes("application/pdf")) throw new Error("Respuesta no es PDF");
 
-    const cd = res.headers?.["content-disposition"] || "";
+  const cd = res.headers?.["content-disposition"] || "";
   let filename = `certificado_${dni}.pdf`;
 
   // 1) RFC 5987: filename*=UTF-8''....
@@ -170,6 +169,7 @@ async function descargarPDF(id_pago_unico, dni) {
 /* ========= UI ========= */
 export default function GenerarCertificado() {
   const logged = isLoggedIn();
+  const showFinancialColumns = logged;
 
   const [dni, setDni] = useState("");
   const [loading, setLoading] = useState(false);
@@ -265,8 +265,7 @@ export default function GenerarCertificado() {
                 <th className="text-center text-nowrap">Entidad actual</th>
                 <th className="text-center text-nowrap">Entidad original</th>
                 <th className="text-center text-nowrap">Estado de la deuda</th>
-                {/* 👉 Solo mostramos columnas de montos si hay al menos una deuda vigente */}
-                {hasDeudaVigente && (
+                {showFinancialColumns && (
                   <>
                     <th className="text-center text-nowrap">Saldo actualizado</th>
                     <th className="text-center text-nowrap">Cancelación mínima</th>
@@ -317,8 +316,7 @@ export default function GenerarCertificado() {
                   "cancel_minimo_requerido",
                 ]);
 
-                // 👉 Para filas canceladas, NO mostrar ningún valor de montos
-                const showMontos = hasDeudaVigente && !isCanc;
+                const showMontos = showFinancialColumns && !isCanc;
 
                 const showWA = !isCanc;
                 const waText = `${WA_MSG_DEFAULT} DNI: ${dniTrim} • ID pago único: ${
@@ -343,8 +341,7 @@ export default function GenerarCertificado() {
                       </span>
                     </td>
 
-                    {/* 👉 Solo renderizamos estas celdas si hay alguna deuda vigente */}
-                    {hasDeudaVigente && (
+                    {showFinancialColumns && (
                       <>
                         <td className="fw-semibold text-nowrap">
                           {showMontos ? fmtMoney(rawSaldo) : ""}
