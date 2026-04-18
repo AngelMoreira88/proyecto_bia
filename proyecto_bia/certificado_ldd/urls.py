@@ -5,6 +5,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     EntidadViewSet,
+    PlantillaTextoViewSet,
     api_consulta_dni_unificada,
     api_generar_certificado,
     seleccionar_certificado,
@@ -14,6 +15,7 @@ app_name = "certificado_ldd"
 
 router = DefaultRouter()
 router.register(r"entidades", EntidadViewSet, basename="entidades")
+router.register(r"plantillas", PlantillaTextoViewSet, basename="plantillas")
 
 def ping(_request):
     return JsonResponse({"ok": True, "app": "certificado_ldd"})

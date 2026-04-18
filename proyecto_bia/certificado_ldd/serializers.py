@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from django.core.exceptions import ValidationError
 
-from .models import Certificate, Entidad
+from .models import Certificate, Entidad, PlantillaTexto
 from carga_datos.models import BaseDeDatosBia
 from .utils.images import process_image
 
@@ -76,6 +76,21 @@ class EntidadSerializer(serializers.ModelSerializer):
 
         instance.save()
         return instance
+
+
+class PlantillaTextoSerializer(serializers.ModelSerializer):
+    entidad_nombre = serializers.CharField(source='entidad.nombre', read_only=True)
+    modelo_base_display = serializers.CharField(source='get_modelo_base_display', read_only=True)
+
+    class Meta:
+        model = PlantillaTexto
+        fields = [
+            'id', 'entidad', 'entidad_nombre', 'version',
+            'modelo_base', 'modelo_base_display',
+            'parrafo1', 'asterisco', 'fiduciarios',
+            'activa', 'creada_en',
+        ]
+        read_only_fields = ['version', 'creada_en']
 
 
 class BaseDeDatosBiaSerializer(serializers.ModelSerializer):

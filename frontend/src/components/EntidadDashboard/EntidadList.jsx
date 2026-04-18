@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { listarEntidades, eliminarEntidad } from '../../services/api';
+import PlantillaTextoModal from './PlantillaTextoModal';
 
 export default function EntidadList({ onEdit, refreshKey = 0 }) {
   const [rows, setRows]     = useState([]);
   const [count, setCount]   = useState(0);
+  const [plantillaEntidad, setPlantillaEntidad] = useState(null);
   const [page, setPage]     = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [search, setSearch] = useState('');
@@ -112,7 +114,8 @@ export default function EntidadList({ onEdit, refreshKey = 0 }) {
       fetchData();
     } catch (e) {
       console.error('Error eliminando entidad:', e);
-      alert('No se pudo eliminar la entidad.');
+      const msg = e?.response?.data?.detail || 'No se pudo eliminar la entidad.';
+      alert(msg);
     }
   };
 
@@ -149,7 +152,7 @@ export default function EntidadList({ onEdit, refreshKey = 0 }) {
             <thead className="table-light">
               <tr>
                 <th style={{ width: 44 }}></th>
-                <th>Nombre</th>
+                <th>Propietario</th>
                 <th>Responsable</th>
                 <th>Cargo</th>
                 <th>Razón social</th>
@@ -210,6 +213,14 @@ export default function EntidadList({ onEdit, refreshKey = 0 }) {
                           </button>
                           <button
                             type="button"
+                            className="btn btn-outline-info"
+                            title="Gestionar plantillas de texto PDF"
+                            onClick={() => setPlantillaEntidad(r)}
+                          >
+                            Plantillas
+                          </button>
+                          <button
+                            type="button"
                             className="btn btn-outline-danger"
                             title="Eliminar"
                             onClick={() => handleDelete(r.id)}
@@ -226,6 +237,14 @@ export default function EntidadList({ onEdit, refreshKey = 0 }) {
           </table>
         </div>
       </div>
+
+      {/* Modal de plantillas */}
+      {plantillaEntidad && (
+        <PlantillaTextoModal
+          entidad={plantillaEntidad}
+          onClose={() => setPlantillaEntidad(null)}
+        />
+      )}
 
       {/* Paginación */}
       <div className="card-footer d-flex flex-wrap gap-2 justify-content-between align-items-center">

@@ -263,6 +263,21 @@ export function pingCertificado() {
 }
 
 /* =======================================================
+   Plantillas de texto para certificados
+======================================================= */
+export function listarPlantillas(params) {
+  return api.get('/api/certificado/plantillas/', { params });
+}
+export function crearPlantilla(data) {
+  return api.post('/api/certificado/plantillas/', data, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+export function eliminarPlantilla(id) {
+  return api.delete(`/api/certificado/plantillas/${id}/`);
+}
+
+/* =======================================================
    Otros endpoints previos
 ======================================================= */
 export const eliminarDatoBia = (id) =>

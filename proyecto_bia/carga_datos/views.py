@@ -38,7 +38,7 @@ from .models import (
     ExportJobBia,        # ⬅️ NUEVO modelo para exportaciones asíncronas
 )
 from .serializers import BaseDeDatosBiaSerializer
-from .views_helpers import limpiar_valor  # si ya lo tenés
+from .views_helpers import limpiar_valor, limpiar_payload_fechas
 
 # ⬇️ permisos backend
 from .permissions import (
@@ -339,6 +339,7 @@ def cargar_excel(request):
                 entidad_cache = _build_entidad_cache()
                 columnas = [f.name for f in BaseDeDatosBia._meta.fields if f.name != 'id']
                 registros = []
+                sin_entidad_count = 0
                 for i in df.index:
                     fila = {col: df.at[i, col] for col in columnas if col in df.columns}
                     # Ignorar filas vacías defensivamente
@@ -356,6 +357,13 @@ def cargar_excel(request):
                     if not payload.get('fecha_apertura'):
                         payload['fecha_apertura'] = timezone.localdate()
 
+                    if not ent:
+                        sin_entidad_count += 1
+                        logger.warning(
+                            f"[{request.user}] Fila sin entidad resuelta: "
+                            f"propietario={fila.get('propietario')!r}, "
+                            f"entidadinterna={fila.get('entidadinterna')!r}"
+                        )
                     obj = BaseDeDatosBia(**payload)
                     if ent:
                         obj.entidad = ent
@@ -367,6 +375,8 @@ def cargar_excel(request):
                     # batch_size un poco más grande para rendimiento
                     BaseDeDatosBia.objects.bulk_create(registros, batch_size=2000)
                     mensaje = f"✅ Se cargaron {len(registros)} registros."
+                    if sin_entidad_count:
+                        mensaje += f" ⚠️ {sin_entidad_count} fila(s) sin entidad asignada (propietario/entidadinterna no encontrado)."
                     logger.info(f"[{request.user}] Cargó archivo '{archivo.name}' con {len(registros)} registros (web).")
 
             except Exception as e:
@@ -407,26 +417,35 @@ def api_cargar_excel(request):
     try:
         extension = os.path.splitext(archivo.name)[1].lower()
         if extension == '.csv':
-            try:
-                df = pd.read_csv(archivo)
-            except UnicodeDecodeError:
-                archivo.seek(0)
-                df = pd.read_csv(archivo, encoding='latin1')
-        else:
+            raw_bytes = archivo.read()
+            df = None
+            for encoding in ('utf-8-sig', 'utf-8', 'latin1'):
+                try:
+                    text = raw_bytes.decode(encoding)
+                    df = pd.read_csv(StringIO(text), sep=None, engine='python')
+                    break
+                except (UnicodeDecodeError, Exception):
+                    continue
+            if df is None:
+                raise ValueError("No se pudo leer el archivo CSV. Guardalo con codificación UTF-8 e intentá de nuevo.")
+        elif extension in ('.xls', '.xlsx'):
             df = pd.read_excel(archivo)
+        else:
+            raise ValueError(f"Formato de archivo no soportado: '{extension}'. Usá .csv, .xls o .xlsx.")
 
         # 🔧 NUEVO: sacar filas completamente vacías
         df = df_drop_blank_rows(df)
         df = df.where(pd.notnull(df), None)
 
         # Validación de columnas
+        logger.info(f"[{request.user}] Columnas detectadas en '{archivo.name}': {list(df.columns)}")
         faltantes = validar_columnas_obligatorias(list(df.columns))
         if faltantes:
             errores = ["❌ Faltan columnas obligatorias en el archivo:"] + [
                 f"- Faltante: {col}" for col in faltantes
             ]
             logger.info(f"[{request.user}] Faltan columnas en archivo '{archivo.name}': {faltantes}")
-            return Response({'success': False, 'errors': errores}, status=400)
+            return Response({'success': False, 'errors': errores, 'columnas_detectadas': list(df.columns)}, status=400)
 
         # Mapeo columnas Excel -> modelo
         columnas_modelo = [f.name for f in BaseDeDatosBia._meta.fields if f.name != 'id']
@@ -561,6 +580,7 @@ def api_confirmar_carga(request):
             return Response({'success': False, 'error': 'Todas las filas están vacías o sin claves requeridas.'}, status=400)
 
         columnas = [f.name for f in BaseDeDatosBia._meta.fields if f.name != 'id']
+        skipped_duplicates = 0
 
         # 1) Normalizar + detectar faltantes de id_pago_unico
         normalized = []
@@ -578,17 +598,23 @@ def api_confirmar_carga(request):
                     )
             normalized.append(row)
 
-        # 2) Asignar bloque para faltantes
+        # 2) Asignar bloque para faltantes — los IDs auto-generados no pasan por check de duplicados
+        auto_generated_indices = set()
         if missing_indexes:
             new_ids = allocate_id_pago_unico_block(len(missing_indexes))
             for i, new_id in zip(missing_indexes, new_ids):
                 normalized[i]['id_pago_unico'] = new_id
+                auto_generated_indices.add(i)
 
-        # 3) Duplicados dentro del payload (optimizado O(n))
-        idps = [str(r.get('id_pago_unico')).strip() for r in normalized]
+        # 3) Duplicados dentro del payload — solo entre IDs que vinieron del archivo
+        idps_from_file = [
+            str(normalized[i].get('id_pago_unico')).strip()
+            for i in range(len(normalized))
+            if i not in auto_generated_indices
+        ]
         seen = set()
         dup_in_payload = set()
-        for x in idps:
+        for x in idps_from_file:
             if x in seen:
                 dup_in_payload.add(x)
             else:
@@ -603,16 +629,27 @@ def api_confirmar_carga(request):
                 status=400
             )
 
-        # 4) Duplicados contra la DB
-        existing = set(
-            BaseDeDatosBia.objects.filter(id_pago_unico__in=idps).values_list('id_pago_unico', flat=True)
-        )
-        if existing:
-            existing_str = {str(x) for x in existing}
+        # 4) Duplicados contra la DB — solo IDs que vinieron del archivo (no auto-generados)
+        existing_in_db = set(
+            str(x) for x in
+            BaseDeDatosBia.objects.filter(id_pago_unico__in=idps_from_file).values_list('id_pago_unico', flat=True)
+        ) if idps_from_file else set()
+        skipped_duplicates = len(existing_in_db)
+        if existing_in_db:
+            skipped_duplicates = len(existing_in_db)
+            normalized = [r for r in normalized if str(r.get('id_pago_unico')).strip() not in existing_in_db]
+            logger.info(
+                f"[{request.user}] Se omitieron {skipped_duplicates} filas por id_pago_unico duplicado en DB: "
+                f"{', '.join(sorted(existing_in_db))}"
+            )
+        if not normalized:
             return Response(
                 {
                     'success': False,
-                    'error': f'id_pago_unico ya existente en base: {", ".join(sorted(existing_str))}'
+                    'error': (
+                        f'Todos los registros del archivo ({skipped_duplicates}) '
+                        f'ya existen en la base de datos. No se insertó ninguno.'
+                    )
                 },
                 status=400
             )
@@ -620,6 +657,7 @@ def api_confirmar_carga(request):
         # 5) Construcción de objetos + resolución de FK
         entidad_cache = _build_entidad_cache()
         to_create = []
+        sin_entidad_count = 0
         for row in normalized:
             payload = {}
             for col in columnas:
@@ -634,7 +672,10 @@ def api_confirmar_carga(request):
             if _row_is_blank_dict(payload):
                 continue
 
-            # 🔧 NUEVO: garantizar fecha_apertura si falta/está vacía
+            # Parsear campos de fecha a datetime.date (acepta Timestamp, strings, etc.)
+            limpiar_payload_fechas(payload)
+
+            # Garantizar fecha_apertura si falta/está vacía
             if not payload.get('fecha_apertura'):
                 payload['fecha_apertura'] = timezone.localdate()
 
@@ -644,6 +685,13 @@ def api_confirmar_carga(request):
                 entidad_cache,
                 CREATE_MISSING_ENTIDADES
             )
+            if not ent:
+                sin_entidad_count += 1
+                logger.warning(
+                    f"[{request.user}] Fila sin entidad resuelta: "
+                    f"propietario={payload.get('propietario')!r}, "
+                    f"entidadinterna={payload.get('entidadinterna')!r}"
+                )
             obj = BaseDeDatosBia(**payload)
             if ent:
                 obj.entidad = ent
@@ -666,13 +714,27 @@ def api_confirmar_carga(request):
             except Exception as e:
                 logger.warning(f"No se pudo borrar archivo temporal {temp_path}: {e}")
 
-        return Response({
+        warnings = []
+        if skipped_duplicates:
+            warnings.append(
+                f'{skipped_duplicates} fila(s) omitidas porque su id_pago_unico ya existía en la base de datos.'
+            )
+        if sin_entidad_count:
+            warnings.append(
+                f'{sin_entidad_count} fila(s) cargadas sin entidad asignada '
+                f'(el valor de propietario/entidadinterna no coincide con ninguna entidad registrada).'
+            )
+
+        response_data = {
             'success': True,
             'created_count': len(to_create),
+            'skipped_count': skipped_duplicates,
             'updated_count': 0,
-            'skipped_count': 0,
             'errors_count': 0,
-        })
+        }
+        if warnings:
+            response_data['warnings'] = warnings
+        return Response(response_data)
 
     except Exception as e:
         logger.exception(f"[{request.user}] Error inesperado en confirmación: {e}")

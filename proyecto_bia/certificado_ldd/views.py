@@ -10,7 +10,6 @@ import logging
 import os
 from io import BytesIO
 from typing import Optional, Dict, Any, Tuple, List
-from functools import lru_cache
 
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -30,8 +29,8 @@ from rest_framework.response import Response
 # ====== MODELOS / PERMISOS PROPIOS ======
 from carga_datos.models import BaseDeDatosBia
 from carga_datos.permissions import CanManageEntities  # permisos internos
-from .models import Certificate, Entidad
-from .serializers import EntidadSerializer
+from .models import Certificate, Entidad, PlantillaTexto
+from .serializers import EntidadSerializer, PlantillaTextoSerializer
 
 # ====== REPORTLAB ======
 from reportlab.lib.pagesizes import A4
@@ -132,23 +131,15 @@ def _max_ts(*vals) -> Optional[object]:
 
 
 # ======================================================================================
-# Caches ligeras de entidades
+# Lookups de entidades (sin caché — multi-worker safe)
 # ======================================================================================
 
-@lru_cache(maxsize=64)
-def _cached_entidad_bia_name() -> str:
-    return "BIA"
-
-
-@lru_cache(maxsize=64)
-def _cached_entidad_by_name(nombre: str) -> Optional[Entidad]:
-    # Solo los campos de texto necesarios para copy/firma; logo/firma se piden aparte si hace falta
+def _get_entidad_by_name(nombre: str) -> Optional[Entidad]:
     return Entidad.objects.only(*_ENTIDAD_MIN_FIELDS).filter(nombre__iexact=nombre).first()
 
 
-@lru_cache(maxsize=1)
-def _cached_entidad_bia() -> Optional[Entidad]:
-    return _cached_entidad_by_name(_cached_entidad_bia_name())
+def _get_entidad_bia() -> Optional[Entidad]:
+    return _get_entidad_by_name("BIA")
 
 
 # ======================================================================================
@@ -374,8 +365,27 @@ def _select_pdf_model_key(
     return "GENERIC"
 
 # ======================================================================================
-# Copy por entidad (texto profesional fiel a modelo)
+# Copy por entidad — desde PlantillaTexto (DB) o fallback hardcodeado
 # ======================================================================================
+
+def _build_copy_from_plantilla(plantilla: PlantillaTexto) -> dict:
+    """
+    Construye el dict `copy` a partir de una PlantillaTexto de la DB.
+    El texto de parrafo1 puede contener {fiduciarios} que se resuelve aquí.
+    """
+    parrafo1 = plantilla.parrafo1
+    if '{fiduciarios}' in parrafo1 and plantilla.fiduciarios:
+        parrafo1 = parrafo1.replace('{fiduciarios}', plantilla.fiduciarios)
+
+    return {
+        "ciudad": "Buenos Aires",
+        "parrafo1_fmt": parrafo1,
+        "parrafo2": "A pedido del interesado, se extiende la presente para ser presentado a quien corresponda.",
+        "asterisco_fmt": plantilla.asterisco,
+        "firma_defaults": {"nombre": "", "cargo": "", "entidad": ""},
+        "model_key": plantilla.modelo_base,
+    }
+
 
 def _select_copy_for_entity(
     *,
@@ -535,6 +545,7 @@ def _build_pdf_bytes_azure(
     titulo: str,
     subtitulo: str | None,
     footer_text: str | None,
+    plantilla: Optional["PlantillaTexto"] = None,
 ) -> bytes:
     _register_fonts_for_azure()
 
@@ -637,13 +648,16 @@ def _build_pdf_bytes_azure(
 
     ent_nombre = datos.get("Entidad Emisora") or datos.get("Razón Social") or ""
     has_ent_externa = _fieldfile_exists(logo_ent_ff)
-    copy = _select_copy_for_entity(
-        entidad_nombre=ent_nombre,
-        has_ent_externa=has_ent_externa,
-        propietario=datos.get("Razón Social"),
-        entidad_original=datos.get("Entidad Original"),
-        razon_social_emisora=datos.get("Entidad Emisora Razon Social"),
-    )
+    if plantilla is not None:
+        copy = _build_copy_from_plantilla(plantilla)
+    else:
+        copy = _select_copy_for_entity(
+            entidad_nombre=ent_nombre,
+            has_ent_externa=has_ent_externa,
+            propietario=datos.get("Razón Social"),
+            entidad_original=datos.get("Entidad Original"),
+            razon_social_emisora=datos.get("Entidad Emisora Razon Social"),
+        )
 
     # Línea de fecha, derecha, con ciudad (fecha en negrita)
     elements.append(Paragraph(f'{copy["ciudad"]}, <b>{fecha_emision}</b>', styles["Fecha"]))
@@ -840,11 +854,11 @@ def get_entidad_emisora(registro: BaseDeDatosBia) -> Optional[Entidad]:
     interna = (registro.entidadinterna or "").strip()
 
     if propietario:
-        ent = _cached_entidad_by_name(propietario)
+        ent = _get_entidad_by_name(propietario)
         if ent:
             return ent
     if interna and interna.lower() != (propietario or "").lower():
-        ent = _cached_entidad_by_name(interna)
+        ent = _get_entidad_by_name(interna)
         if ent:
             return ent
     return None
@@ -875,7 +889,25 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
 
     # Resolver entidades (sin blobs primero)
     emisora = get_entidad_emisora(reg)  # only() aplicado
-    entidad_bia = _cached_entidad_bia()
+    entidad_bia = _get_entidad_bia()
+
+    # ── Resolución de PlantillaTexto versionada ──────────────────────────────
+    # Si el certificado ya tiene una plantilla bloqueada, se usa esa (inmutable).
+    # Si no, se busca la plantilla activa de la entidad emisora y se bloquea.
+    plantilla_pdf: Optional[PlantillaTexto] = None
+    if cert.plantilla_version_id:
+        plantilla_pdf = cert.plantilla_version
+    elif emisora:
+        plantilla_activa = PlantillaTexto.objects.filter(entidad=emisora, activa=True).first()
+        if plantilla_activa:
+            plantilla_pdf = plantilla_activa
+            cert.plantilla_version = plantilla_activa
+            cert.save(update_fields=['plantilla_version'])
+            logger.info(
+                "[PDF] Plantilla v%s bloqueada para certificado id_pago_unico=%s",
+                plantilla_activa.version, reg.id_pago_unico,
+            )
+    # ─────────────────────────────────────────────────────────────────────────
 
     entidad_otras = None
     if emisora:
@@ -983,6 +1015,7 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
             titulo="Certificado de Libre Deuda",
             subtitulo=None,
             footer_text=footer_text,
+            plantilla=plantilla_pdf,
         )
     except Exception as e:
         logger.exception("[PDF] Error generando PDF: %s", e)
@@ -1365,6 +1398,68 @@ class EntidadViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.OrderingFilter]
     ordering_fields = ["id", "nombre", "responsable"]
     ordering = ["id"]
+
+    def destroy(self, request, *args, **kwargs):
+        from django.db.models import ProtectedError
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            entidad = self.get_object()
+            count = entidad.registros.count()
+            return Response(
+                {"detail": (
+                    f"No se puede eliminar «{entidad.nombre}» porque tiene {count} registro(s) "
+                    "de base de datos asociados. Reasigná o eliminá esos registros primero."
+                )},
+                status=409,
+            )
+
+
+# ======================================================================================
+# Plantillas de texto versionadas (CRUD) – interno
+# ======================================================================================
+
+class PlantillaTextoViewSet(viewsets.ModelViewSet):
+    """
+    CRUD de plantillas de texto para certificados PDF.
+    Crear una nueva plantilla la activa automáticamente y desactiva la anterior.
+    Las plantillas ya usadas en certificados emitidos son inmutables (no se modifican,
+    se crea una versión nueva).
+    """
+    serializer_class = PlantillaTextoSerializer
+    permission_classes = [IsAuthenticated, CanManageEntities]
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ["entidad", "version"]
+    ordering = ["entidad", "-version"]
+
+    def get_queryset(self):
+        qs = PlantillaTexto.objects.select_related("entidad").order_by("entidad", "-version")
+        entidad_id = self.request.query_params.get("entidad")
+        if entidad_id:
+            qs = qs.filter(entidad_id=entidad_id)
+        return qs
+
+    def update(self, _request, *_args, **_kwargs):
+        return Response(
+            {"detail": "Las plantillas no se modifican. Creá una nueva versión para esta entidad."},
+            status=405,
+        )
+
+    def partial_update(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        plantilla = self.get_object()
+        if plantilla.certificados.exists():
+            return Response(
+                {"detail": (
+                    f"La plantilla v{plantilla.version} no puede eliminarse porque fue usada en "
+                    f"{plantilla.certificados.count()} certificado(s) emitido(s). "
+                    "El historial debe mantenerse intacto."
+                )},
+                status=409,
+            )
+        return super().destroy(request, *args, **kwargs)
 
 
 # ======================================================================================

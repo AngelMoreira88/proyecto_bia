@@ -17,7 +17,11 @@ export default function Footer() {
         {/* Derecha: Copyright */}
         <div className="text-center text-md-end">
           <small>
-            © 2025 <strong>Grupo BIA</strong> — Todos los derechos reservados.
+            © {new Date().getFullYear()} <strong>Grupo BIA</strong> — Todos los derechos reservados.
+          </small>
+          <br />
+          <small className="text-muted" style={{ fontSize: '0.75rem', opacity: 0.85 }}>
+            Desarrollado por <strong>2moreit</strong>
           </small>
         </div>
       </div>

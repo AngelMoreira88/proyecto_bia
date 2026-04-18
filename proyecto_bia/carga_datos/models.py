@@ -28,15 +28,27 @@ class BusinessKeyCounter(models.Model):
 def allocate_id_pago_unico_block(n: int) -> list[str]:
     """
     Reserva un bloque de 'n' IDs consecutivos de forma atómica.
+    Se auto-sincroniza con el máximo real de la DB para evitar colisiones
+    cuando el contador quedó desincronizado.
     Devuelve una lista de strings (para compatibilidad con CharField).
     """
     if n <= 0:
         return []
+    from django.db.models import Max
     counter, _ = BusinessKeyCounter.objects.select_for_update().get_or_create(
         name='id_pago_unico', defaults={'last_value': 0}
     )
-    start = counter.last_value + 1
-    counter.last_value = counter.last_value + n
+    # Obtener el máximo real de la tabla para detectar desincronización
+    max_en_db_raw = BaseDeDatosBia.objects.aggregate(m=Max('id_pago_unico'))['m']
+    try:
+        max_en_db = int(max_en_db_raw) if max_en_db_raw is not None else 0
+    except (ValueError, TypeError):
+        max_en_db = 0
+
+    # El contador siempre parte del mayor entre su propio valor y el máximo real
+    base = max(counter.last_value, max_en_db)
+    start = base + 1
+    counter.last_value = base + n
     counter.save(update_fields=['last_value', 'updated_at'])
     return [str(i) for i in range(start, start + n)]
 
