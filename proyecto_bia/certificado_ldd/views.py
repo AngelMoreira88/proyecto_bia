@@ -344,9 +344,6 @@ def _select_pdf_model_key(
         "finup",
     )
 
-    if any(token in blob for token in wenance_tokens):
-        return "WENANCE_TRUSTS"
-
     if any(token in blob for token in ("azur", "fp azur")):
         return "AZUR"
 
@@ -356,8 +353,11 @@ def _select_pdf_model_key(
     if "egeo" in blob:
         return "EGEO"
 
-    if any(token in blob for token in ("fb líneas aéreas", "fb lineas aereas", "fblasa")):
+    if any(token in blob for token in ("fb líneas aéreas", "fb lineas aereas", "fblasa", "flybondi")):
         return "FBLASA"
+
+    if any(token in blob for token in wenance_tokens):
+        return "WENANCE_TRUSTS"
 
     if "bia" in blob:
         return "BIA"
@@ -776,12 +776,13 @@ def _build_pdf_bytes_azure(
         blocks.append(Spacer(1, 0.05 * cm))
 
         # Texto del firmante
-        texto = "<b>{}</b><br/>{}<br/>{}".format(
-            _safe_text(f.get("responsable") or defaults.get("nombre")),
-            _safe_text(f.get("cargo") or defaults.get("cargo")),
-            _safe_text(f.get("entidad") or defaults.get("entidad")),
-        )
-        blocks.append(Paragraph(texto, styles["FirmaTxt"]))
+        if not f.get("hide_nombre_cargo"):
+            texto = "<b>{}</b><br/>{}<br/>{}".format(
+                _safe_text(f.get("responsable") or defaults.get("nombre")),
+                _safe_text(f.get("cargo") or defaults.get("cargo")),
+                _safe_text(f.get("entidad") or defaults.get("entidad")),
+            )
+            blocks.append(Paragraph(texto, styles["FirmaTxt"]))
 
         return blocks
 
@@ -943,6 +944,12 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
     logo_bia_ff = getattr(entidad_bia_m, "logo", None) if entidad_bia_m else None
     logo_ent_ff = getattr(entidad_otras_m, "logo", None) if entidad_otras_m else None
 
+    # PROMOTORA S.A. (WENANCE): solo logo BIA y sin nombre/cargo en firma
+    if (getattr(reg, "propietario", "") or "").strip() == "PROMOTORA S.A.":
+        logo_ent_ff = None
+        if firma_principal:
+            firma_principal["hide_nombre_cargo"] = True
+
     # ===== Invalidación de caché: SIEMPRE REGENERAR =====
     # Si existe un PDF previo, lo eliminamos para forzar regeneración.
     if _fieldfile_exists(cert.pdf_file):
@@ -969,6 +976,8 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
     hoy_str = datetime.now().strftime("%d/%m/%Y")
 
     entidad_original_val = (reg.entidadoriginal or "").strip() or (reg.entidadinterna or "").strip()
+    if (reg.propietario or "").strip() == "PROMOTORA S.A." and emisora:
+        entidad_original_val = emisora.nombre or entidad_original_val
 
     emitido = getattr(reg, "ultima_fecha_pago", None) or getattr(reg, "fecha_plan", None) or getattr(
         reg, "fecha_apertura", None
