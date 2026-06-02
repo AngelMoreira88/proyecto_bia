@@ -135,7 +135,7 @@ async function descargarPDF(id_pago_unico, dni) {
   const ct = (res.headers?.['content-type'] || '').toLowerCase();
   if (!ct.includes('application/pdf')) throw new Error('Respuesta no es PDF');
   const cd = res.headers?.['content-disposition'] || '';
-  let filename = 'certificado.pdf';
+  let filename = `certificado_${dni}_${id_pago_unico}.pdf`;
   const m = /filename\*?=(?:UTF-8''|")?([^";]+)/i.exec(cd);
   if (m && m[1]) filename = decodeURIComponent(m[1]);
   const blob = new Blob([res.data], { type: 'application/pdf' });

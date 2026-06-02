@@ -136,7 +136,7 @@ async function descargarPDF(id_pago_unico, dni) {
   if (!ct.includes("application/pdf")) throw new Error("Respuesta no es PDF");
 
   const cd = res.headers?.["content-disposition"] || "";
-  let filename = `certificado_${dni}.pdf`;
+  let filename = `certificado_${dni}_${id_pago_unico}.pdf`;
 
   // 1) RFC 5987: filename*=UTF-8''....
   let m = cd.match(/filename\*\s*=\s*UTF-8''([^;]+)/i);

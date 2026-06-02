@@ -1031,7 +1031,7 @@ def _render_pdf_for_registro(reg: BaseDeDatosBia) -> Tuple[Optional[Certificate]
         return cert, None, "Falló la generación del PDF para el certificado."
 
     try:
-        filename = f"certificado_{reg.id_pago_unico}.pdf"
+        filename = f"certificado_{reg.dni}_{reg.id_pago_unico}.pdf"
         cert.pdf_file.save(filename, ContentFile(pdf_bytes), save=True)
     except Exception as e:
         logger.exception("[PDF] Error guardando PDF: %s", e)
@@ -1281,7 +1281,7 @@ def _handle_get_generar(request: HttpRequest) -> HttpResponse:
         )
 
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-    resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
+    resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.dni}_{reg.id_pago_unico}.pdf"'
     return resp
 
 
@@ -1327,7 +1327,7 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
             )
 
         resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-        resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
+        resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.dni}_{reg.id_pago_unico}.pdf"'
         return resp
 
     # Caso 2: solo DNI
@@ -1391,7 +1391,7 @@ def _handle_post_generar(request: HttpRequest) -> HttpResponse:
         )
 
     resp = HttpResponse(pdf_bytes, content_type="application/pdf")
-    resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.id_pago_unico}.pdf"'
+    resp["Content-Disposition"] = f'attachment; filename="certificado_{reg.dni}_{reg.id_pago_unico}.pdf"'
     return resp
 
 
